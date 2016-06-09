@@ -13,7 +13,7 @@ Table of Contents
 
 -  `Getting Started <#getting-started>`__
 -  `Custom Method <#custom-method>`__
--  `Response Format <#response-format>`__
+-  `Formatter Classes <#formatter-classes>`__
 -  `Roadmap <#roadmap>`__
 
 How does it work?
@@ -156,11 +156,34 @@ add the method name to the variable ``available_methods``
 
 This will be automatically mapped to the ``user.invite`` channel.
 
-Response Format
----------------
+Formatter Classes
+-----------------
 
-To implement a custom format override the ``format_response`` method on
-ModelConsumerBase
+By default channels_api just returns the response directly from the serializer.
+
+To add some additional formatting of the response (status codes, error codes, meta objects) just
+subclass ``formatters.BaseFormatter``
+
+.. code:: python
+
+    # proj/formatters.py
+
+    from channels_api import formatters
+
+    class CustomFormatter(formatters.BaseFormatter):
+
+        def format(self):
+            return {"data": self.data, "errors": self.error }
+
+Then you just need to configure channels_api to use the formatter class
+
+.. code:: python
+
+    # proj/settings.py
+
+    CHANNELS_API = {
+        "DEFAULT_FORMATTER_CLASS": "proj.formatters.CustomFormatter"
+    }
 
 Roadmap
 -------

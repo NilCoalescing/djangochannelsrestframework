@@ -1,6 +1,7 @@
 import json
 
 from channels.generic import websockets
+from channels_api.settings import api_settings
 
 from rest_framework.exceptions import ValidationError
 
@@ -29,17 +30,16 @@ class ModelConsumerBase(SerializerMixin, websockets.JsonWebsocketConsumer):
 
     def dispatch(self, message, **kwargs):
         try:
-            self.send(self.format_response(super().dispatch(message, **kwargs)))
+            self.send(self.format_response(data=super().dispatch(message, **kwargs)))
         except ValidationError as ex:
-            self.send(self.format_response({"errors": ex.detail}))
+            self.send(self.format_response(error={"errors": ex.detail}))
 
     def filter_queryset(self, queryset):
         """Override this method to handle filtering."""
         return queryset
 
-    def format_response(self, response):
-        """Override this method to handle formatting."""
-        return response
+    def format_response(self, **kwargs):
+        return api_settings.DEFAULT_FORMATTER_CLASS(**kwargs)()
 
     def get_content(self):
         return json.loads(self.message.content['text'])
