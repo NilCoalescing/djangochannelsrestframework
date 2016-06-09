@@ -1,0 +1,26 @@
+<html>
+  <head>
+    <script type='text/javascript'>
+      window.onload = function(){
+        connectWebsocket()
+      }
+
+      function connectWebsocket(){
+
+        var socket = new WebSocket("ws://" + window.location.host + "/")
+        socket.onmessage = function(e){
+          window.message_event = e;
+          document.getElementById('log').value += "\n" + e.data;
+        }
+        window.conn = socket;
+      }
+    </script>
+  </head>
+  <body>
+    <h1>Websocket Debugger</h1>
+    <p> Open console to use the connection stored at conn </p>
+    <h3>Response Log</h3>
+    <textarea id='log'>
+    </textarea>
+  </body>
+</html>
