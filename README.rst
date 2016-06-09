@@ -6,12 +6,15 @@ channels. It provides a ``ModelConsumer`` which is comparable to Django
 Rest Framework's ``ModelViewSet``. It is based on DRF serializer
 classes.
 
-It requires Python3, Django 1.8, and Django Rest Framework 3.0
+It requires Python 3, Django 1.8, and Django Rest Framework 3.0
 
 Table of Contents
 -----------------
 
 -  `Getting Started <#getting-started>`__
+-  `Custom Method <#custom-method>`__
+-  `Response Format <#response-format>`__
+-  `Roadmap <#roadmap>`__
 
 How does it work?
 -----------------
@@ -91,14 +94,18 @@ Started <https://channels.readthedocs.io/en/latest/getting-started.html>`__
         route_class(QuestionConsumer, path='/')
     ]
 
-That's it. You can now make WebSocket requests to the server.
+That's it. You can now make REST WebSocket requests to the server.
 
 .. code:: javascript
 
+    var ws = new WebSocket("ws://" + window.location.host + "/")
 
-    var ws = new WebSocket('localhost:8000')
-
+    ws.onmessage = function(e){
+        console.log(e.data)
+    }
     ws.send(JSON.stringify({method: "question.create", question_text: "What is your favorite python package?"}))
+    //"{"question_text":"What is your favorite python package?","id":1}"
+
 
 -  Add the channels debugger page (Optional)
 

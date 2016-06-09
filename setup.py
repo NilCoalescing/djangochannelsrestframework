@@ -15,5 +15,10 @@ setup(
         'Django>=1.8',
         'channels>=0.14',
         'djangorestframework>=3.0'
+    ],
+    classifiers=[
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
     ]
 )
