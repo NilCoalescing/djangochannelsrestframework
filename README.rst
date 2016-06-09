@@ -74,6 +74,8 @@ Started <https://channels.readthedocs.io/en/latest/getting-started.html>`__
 
     # polls/consumers.py
 
+    from channels_api.generics import ModelConsumer
+
     from .models import Question
     from .serializers import QuestionSerializer
 
