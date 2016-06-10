@@ -1,5 +1,3 @@
-import json
-
 from channels.generic import websockets
 from channels_api.settings import api_settings
 
@@ -41,12 +39,12 @@ class ModelConsumerBase(SerializerMixin, websockets.JsonWebsocketConsumer):
     def format_response(self, **kwargs):
         return api_settings.DEFAULT_FORMATTER_CLASS(**kwargs)()
 
-    def get_content(self):
-        return json.loads(self.message.content['text'])
+    def get_params(self):
+        return api_settings.DEFAULT_PARSER_CLASS(self.message)()
 
     def get_object(self):
         queryset = self.filter_queryset(self.get_queryset())
-        return queryset.get(**{self.lookup_field: self.get_content()["id"]})
+        return queryset.get(**{self.lookup_field: self.get_params()["id"]})
 
     def get_queryset(self):
         assert self.queryset is not None, (

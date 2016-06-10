@@ -13,8 +13,7 @@ class CreateModelMixin(object):
         serializer.save()
 
     def get_create_data(self):
-        """Override method to customize params parsing."""
-        return self.get_content()
+        return self.get_params()
 
 
 class RetrieveModelMixin(object):
@@ -46,7 +45,7 @@ class UpdateModelMixin(object):
         serializer.save()
 
     def get_update_data(self):
-        return self.get_content()
+        return self.get_params()
 
 
 class DeleteModelMixin(object):

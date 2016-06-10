@@ -13,6 +13,7 @@ Table of Contents
 
 -  `Getting Started <#getting-started>`__
 -  `Custom Method <#custom-method>`__
+-  `Parser Classes <#parser-classes>`__
 -  `Formatter Classes <#formatter-classes>`__
 -  `Roadmap <#roadmap>`__
 
@@ -106,7 +107,7 @@ That's it. You can now make REST WebSocket requests to the server.
         console.log(e.data)
     }
     ws.send(JSON.stringify({method: "question.create", question_text: "What is your favorite python package?"}))
-    //"{"question_text":"What is your favorite python package?","id":1}"
+    //'{"question_text":"What is your favorite python package?","id":1}'
 
 
 -  Add the channels debugger page (Optional)
@@ -156,13 +157,55 @@ add the method name to the variable ``available_methods``
 
 This will be automatically mapped to the ``user.invite`` channel.
 
+Parser Classes
+--------------
+
+Parser classes parse the params from the message content
+
+By default channels_api removes the `method` key and passes all params forward.
+
+You might want to implement a custom format, using a `params` key.
+
+
+.. code:: python
+
+    # proj/parsers.py
+
+    from channels_api import parsers
+
+    class CustomParser(formatters.BaseParser):
+
+        def parse(self):
+            return super().parse()['params']
+
+
+Update the configuration
+
+.. code:: python
+
+    # proj/settings.py
+
+    CHANNELS_API = {
+        "DEFAULT_PARSER_CLASS": "proj.parsers.CustomParser"
+    }
+
+Now to update the example from above
+
+.. code:: javascript
+
+    ws.send(JSON.stringify({method: "question.create", params: { question_text: "What is your favorite python package?"}}))
+    //'{"question_text":"What is your favorite python package?","id":1}'
+
+
 Formatter Classes
 -----------------
+
+Formatter classes format the output of the consumer response.
 
 By default channels_api just returns the response directly from the serializer.
 
 To add some additional formatting of the response (status codes, error codes, meta objects) just
-subclass ``formatters.BaseFormatter``
+subclass ``formatters.BaseFormatter`` and update the configuration.
 
 .. code:: python
 
@@ -184,6 +227,11 @@ Then you just need to configure channels_api to use the formatter class
     CHANNELS_API = {
         "DEFAULT_FORMATTER_CLASS": "proj.formatters.CustomFormatter"
     }
+
+The Output from the example above will now look like this
+.. code:: javascript
+
+    '{"data":{"question_text":"What is your favorite python package?","id":1}, "errors": null}'
 
 Roadmap
 -------
