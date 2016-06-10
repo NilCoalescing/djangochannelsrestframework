@@ -30,9 +30,9 @@ class ModelConsumerBase(SerializerMixin, websockets.JsonWebsocketConsumer):
 
     def dispatch(self, message, **kwargs):
         try:
-            self.send(self.format_response(data=super().dispatch(message, **kwargs)))
+            self.send(self.format_response(data=super().dispatch(message, **kwargs), message=message))
         except ValidationError as ex:
-            self.send(self.format_response(error={"errors": ex.detail}))
+            self.send(self.format_response(error=ex, message=message))
 
     def filter_queryset(self, queryset):
         """Override this method to handle filtering."""

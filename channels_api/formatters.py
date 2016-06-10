@@ -1,9 +1,10 @@
 
 class BaseFormatter(object):
 
-    def __init__(self, data=None, error=None):
+    def __init__(self, data=None, error=None, message=None):
         self.data = data
         self.error = error
+        self.message = message
 
     def __call__(self):
         return self.format()
@@ -13,6 +14,9 @@ class BaseFormatter(object):
 
 
 class SimpleFormatter(BaseFormatter):
+    """Standard non-formatting."""
 
     def format(self):
-        return self.data or self.error
+        if self.error:
+            return {"errors": self.error.detail}
+        return self.data
