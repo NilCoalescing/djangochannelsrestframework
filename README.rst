@@ -1,6 +1,9 @@
 Channels API
 ------------
 
+.. image:: https://travis-ci.org/linuxlewis/channels-api.svg?branch=master
+    :target: https://travis-ci.org/linuxlewis/channels-api
+
 Channels API exposes a RESTful Streaming API over WebSockets using
 channels. It provides a ``ResourceBinding`` which is comparable to Django
 Rest Framework's ``ModelViewSet``. It is based on DRF serializer
