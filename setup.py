@@ -7,7 +7,7 @@ setup(
     url='https://github.com/linuxlewis/channels-api',
     author='Sam Bolgert',
     author_email='sbolgert@gmail.com',
-    description="Helps build a REST-like API on top of WebSockets using channels.",
+    description="Helps build a RESTful API on top of WebSockets using channels.",
     license='BSD',
     packages=find_packages(),
     include_package_data=True,
