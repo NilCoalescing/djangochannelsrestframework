@@ -15,4 +15,10 @@ CHANNEL_LAYERS = {
 
 MIDDLEWARE_CLASSES = []
 
-INSTALLED_APPS = ('tests', )
+INSTALLED_APPS = (
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'channels',
+    'tests'
+)
