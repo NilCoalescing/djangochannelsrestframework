@@ -1,8 +1,8 @@
 Channels API
 ------------
 
-Channels API exposes a REST-like Streaming API over WebSockets using
-channels. It provides a ``ModelConsumer`` which is comparable to Django
+Channels API exposes a RESTful Streaming API over WebSockets using
+channels. It provides a ``ResourceBinding`` which is comparable to Django
 Rest Framework's ``ModelViewSet``. It is based on DRF serializer
 classes.
 
@@ -12,29 +12,43 @@ Table of Contents
 -----------------
 
 -  `Getting Started <#getting-started>`__
--  `Custom Method <#custom-method>`__
--  `Parser Classes <#parser-classes>`__
--  `Formatter Classes <#formatter-classes>`__
+-  `ResourceBinding <#resource-binding>`__
+-  `Subscriptions <#subscriptions>`__
+-  `Errors <#errors>`__
 -  `Roadmap <#roadmap>`__
+
 
 How does it work?
 -----------------
 
-The API works by having the WebSocket client send a ``method``
-parameter. This follows the format of ``resource.method``. So
-``POST /user`` would have a message payload that looks like the
-following:
+The API builds on top of channels' ``WebsocketBinding`` class. It works by having
+the client send a ``stream`` and ``payload`` parameters. This allows
+us to route messages to different streams (or resources) for a particular
+action. So ``POST /user`` would have a message that looks like the following
 
 .. code:: javascript
 
-    {method: "user.create", email: "test@test.com", password: "1Password" }
+    var msg = {
+      stream: "users",
+      payload: {
+        action: "create",
+        data: {
+          email: "test@example.com",
+          password: "password",
+        }
+      }
+    }
+
+    ws.send(JSON.stringify(msg))
 
 Why?
 ----
 
-You're already using Django Rest Framework and want to expose the same
-logic over WebSockets. WebSockets has lower overhead and provides other
-functionality then HTTP.
+You're already using Django Rest Framework and want to expose similar
+logic over WebSockets.
+
+WebSockets can publish updates to clients without a request. This is
+helpful when a resource can be edited by multiple users across many platforms.
 
 Getting Started
 ---------------
@@ -56,45 +70,55 @@ Started <https://channels.readthedocs.io/en/latest/getting-started.html>`__
         'channels_api'
     )
 
--  Add API consumer to route websockets to API channels
+-  Add a ``WebsocketDemultiplexer`` to your ``channel_routing``
 
 .. code:: python
 
     # proj/routing.py
 
-    from channels.routing import include
+
+    from channels.generic.websockets import WebsocketDemultiplexer
+    from channels.routing import route_class
+
+    class APIDemultiplexer(WebsocketDemultiplexer):
+
+        mapping = {
+          'questions': 'questions_channel'
+        }
 
     channel_routing = [
-        include('channels_api.routing.channel_routing'),
+        route_class(APIDemultiplexer)
     ]
 
--  Add your first model consumer
+-  Add your first resource binding
 
 .. code:: python
 
 
-    # polls/consumers.py
+    # polls/bindings.py
 
-    from channels_api.generics import ModelConsumer
+    from channels_api.bindings import ResourceBinding
 
     from .models import Question
     from .serializers import QuestionSerializer
 
-    class QuestionConsumer(ModelConsumer):
+    class QuestionBinding(ResourceBinding):
 
         model = Question
+        stream = "questions"
         serializer_class = QuestionSerializer
         queryset = Question.objects.all()
 
+
     # proj/routing.py
 
-    from channels.routing import include, route_class
+    from channels.routing import route_class, route
 
-    from polls.consumers import QuestionConsumer
+    from polls.bindings import QuestionBinding
 
     channel_routing = [
-        include('channels_api.routing.channel_routing'),
-        route_class(QuestionConsumer, path='/')
+      route_class(APIDemultiplexer),
+      route("question_channel", QuestionBinding.consumer)
     ]
 
 That's it. You can now make REST WebSocket requests to the server.
@@ -106,9 +130,32 @@ That's it. You can now make REST WebSocket requests to the server.
     ws.onmessage = function(e){
         console.log(e.data)
     }
-    ws.send(JSON.stringify({method: "question.create", question_text: "What is your favorite python package?"}))
-    //'{"question_text":"What is your favorite python package?","id":1}'
 
+    var msg = {
+      stream: "questions",
+      payload: {
+        action: "create",
+        data: {
+          question_text: "What is your favorite python package?"
+        },
+        request_id: "some-guid"
+      }
+    }
+    ws.send(JSON.stringify(msg))
+    // response
+    {
+      stream: "questions",
+      payload: {
+        action: "create",
+        data: {
+          id: "1",
+          question_text: "What is your favorite python package"
+        }
+        errors: [],
+        response_status: 200
+        request_id: "some-guid"
+      }
+    }
 
 -  Add the channels debugger page (Optional)
 
@@ -125,120 +172,84 @@ response. It is only designed to be used when ``DEBUG=TRUE``.
             url(r'^channels-api/', include('channels_api.urls'))
         ]
 
-ModelConsumer
+ResourceBinding
+---------------
+
+By default the ``ResourceBinding`` implements the following REST methods:
+
+- ``create``
+- ``retrieve``
+- ``update``
+- ``list``
+- ``delete``
+- ``subscribe``
+
+See the test suite for usage examples for each method.
+
+
+List Pagination
+---------------
+
+Pagination is handled by `django.core.paginator.Paginator`
+
+You can configure the ``DEFAULT_PAGE_SIZE`` by overriding the settings.
+
+
+.. code:: python
+
+  # settings.py
+
+  CHANNELS_API = {
+    'DEFAULT_PAGE_SIZE': 25
+  }
+
+
+Subscriptions
 -------------
 
-By default the ModelConsumer implements the following REST methods:
-``create``, ``retrieve``, ``update``, ``list``, ``delete``
+Subscriptions are a way to programmatically receive updates
+from the server whenever a resource is created, updated, or deleted
 
-They will be mapped to ``modelname.method`` respectively.
+By default channels-api has implemented the following subscriptions
 
-Custom Method
--------------
+- create a Resource
+- update any Resource
+- update this Resource
+- delete any Resource
+- delete this Resource
 
-To add a custom method just define the method on the consumer class and
-add the method name to the variable ``available_methods``
-
-.. code:: python
-
-
-    class UserConsumer(ModelConsumer):
-
-        model = User
-        serializer_class = UserSerializer
-        queryset = User.objects.all()
-
-        available_methods = ModelConsumer.available_methods + ('invite', )
-
-        def invite(self, message, **kwargs):
-            content = self.get_content()
-            # email.send(content["email"])
-            return content
-
-This will be automatically mapped to the ``user.invite`` channel.
-
-Parser Classes
---------------
-
-Parser classes parse the params from the message content
-
-By default channels_api removes the `method` key and passes all params forward.
-
-You might want to implement a custom format, using a `params` key.
-
-
-.. code:: python
-
-    # proj/parsers.py
-
-    from channels_api import parsers
-
-    class CustomParser(formatters.BaseParser):
-
-        def parse(self):
-            return super().parse()['params']
-
-
-Update the configuration
-
-.. code:: python
-
-    # proj/settings.py
-
-    CHANNELS_API = {
-        "DEFAULT_PARSER_CLASS": "proj.parsers.CustomParser"
-    }
-
-Now to update the example from above
+To subscribe to a particular event just use the subscribe action
+with the parameters to filter
 
 .. code:: javascript
 
-    ws.send(JSON.stringify({method: "question.create", params: { question_text: "What is your favorite python package?"}}))
-    //'{"question_text":"What is your favorite python package?","id":1}'
+  // get an event when any question is updated
 
-
-Formatter Classes
------------------
-
-Formatter classes format the output of the consumer response.
-
-By default channels_api just returns the response directly from the serializer.
-
-To add some additional formatting of the response (status codes, error codes, meta objects) just
-subclass ``formatters.BaseFormatter`` and update the configuration.
-
-.. code:: python
-
-    # proj/formatters.py
-
-    from channels_api import formatters
-
-    class CustomFormatter(formatters.BaseFormatter):
-
-        def format(self):
-            return {"data": self.data, "errors": self.error }
-
-Then you just need to configure channels_api to use the formatter class
-
-.. code:: python
-
-    # proj/settings.py
-
-    CHANNELS_API = {
-        "DEFAULT_FORMATTER_CLASS": "proj.formatters.CustomFormatter"
+  var msg = {
+    stream: "questions",
+    payload: {
+      action: "subscribe",
+      data: {
+        action: "update"
+      }
     }
+  }
 
-The Output from the example above will now look like this
-.. code:: javascript
-
-    '{"data":{"question_text":"What is your favorite python package?","id":1}, "errors": null}'
+  // get an event when question(1) is updated
+  var msg = {
+    stream: "questions",
+    payload: {
+      action: "subscribe"
+      data: {
+        action: "update",
+        pk: "1"
+      }
+    }
+  }
 
 Roadmap
 -------
 
--  0.2
-    -  pagination for list
-    -  formatter classes for response formatting
 -  0.3
-    -  permissions
-    -  testproject
+    -  Permissions
+    -  Custom Methods
