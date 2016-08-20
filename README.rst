@@ -62,6 +62,10 @@ Started <https://channels.readthedocs.io/en/latest/getting-started.html>`__
 
 -  Add ``channels_api`` to requirements.txt
 
+.. code:: bash
+
+  pip install channels_api
+
 -  Add ``channels_api`` to ``INSTALLED_APPS``
 
 .. code:: python
