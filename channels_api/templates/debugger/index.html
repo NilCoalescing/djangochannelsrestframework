@@ -12,15 +12,15 @@
           window.message_event = e;
           document.getElementById('log').value += "\n" + e.data;
         }
-        window.conn = socket;
+        window.ws = socket;
       }
     </script>
   </head>
   <body>
     <h1>Websocket Debugger</h1>
-    <p> Open console to use the connection stored at conn </p>
+    <p> Open console to use the connection stored at ws </p>
     <h3>Response Log</h3>
-    <textarea id='log'>
+    <textarea id='log' rows="40" cols="60">
     </textarea>
   </body>
 </html>
