@@ -15,7 +15,7 @@ Table of Contents
 -----------------
 
 -  `Getting Started <#getting-started>`__
--  `ResourceBinding <#resource-binding>`__
+-  `ResourceBinding <#resourcebinding>`__
 -  `Subscriptions <#subscriptions>`__
 -  `Errors <#errors>`__
 -  `Roadmap <#roadmap>`__

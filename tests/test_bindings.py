@@ -68,17 +68,13 @@ class ResourceBindingTestCase(ChannelTestCase):
 
     def test_create_failure(self):
         """Integration that asserts error handling of a message to the create channel."""
-        class FailingTestModelBinding(TestModelResourceBinding):
 
-            def create(self, data, **kwargs):
-                raise ValidationError("You fail")
-
-        with apply_routes([route(FailingTestModelBinding.stream, FailingTestModelBinding.consumer)]):
+        with apply_routes([route(TestModelResourceBinding.stream, TestModelResourceBinding.consumer)]):
             json_content = self._send_and_consume('testmodel', {
                 'action': 'create',
                 'pk': None,
                 'request_id': 'client-request-id',
-                'data': {'name': 'some-name'},
+                'data': {},
             })
             # it should not create an object
             self.assertEqual(TestModel.objects.count(), 0)
@@ -87,7 +83,7 @@ class ResourceBindingTestCase(ChannelTestCase):
                 'action': 'create',
                 'data': None,
                 'request_id': 'client-request-id',
-                'errors': ['You fail'],
+                'errors': [{'name': ['This field is required.']}],
                 'response_status': 400
             }
             # it should respond with an error

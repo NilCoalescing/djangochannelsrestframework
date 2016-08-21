@@ -47,6 +47,8 @@ class ResourceBindingBase(SerializerMixin, websockets.WebsocketBinding):
             return errors
         elif isinstance(errors, str):
             return [errors]
+        elif isinstance(errors, dict):
+            return [errors]
 
     def get_object(self, pk):
         queryset = self.filter_queryset(self.get_queryset())
