@@ -8,6 +8,7 @@ setup(
     author='Sam Bolgert',
     author_email='sbolgert@gmail.com',
     description="Helps build a RESTful API on top of WebSockets using channels.",
+    long_description=open('README.rst').read(),
     license='BSD',
     packages=find_packages(),
     include_package_data=True,
