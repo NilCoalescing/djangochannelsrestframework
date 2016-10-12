@@ -21,7 +21,7 @@ class ResourceBindingBase(SerializerMixin, websockets.WebsocketBinding):
 
     def deserialize(self, message):
         self.request_id = message.get('request_id', None)
-        return super().deserialize(message)
+        return super(ResourceBindingBase, self).deserialize(message)
 
     def group_names(self, instance, action):
         groups = [self._group_name(action)]
