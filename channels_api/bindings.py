@@ -78,7 +78,7 @@ class ResourceBindingBase(SerializerMixin, websockets.WebsocketBinding):
                 self.reply(action, errors=['Invalid Action'], status=400)
             else:
                 if action in ('create', 'list'):
-                data, status = getattr(self, action)(data)
+                    data, status = getattr(self, action)(data)
                 elif action in ('retrieve', 'delete'):
                     data, status = getattr(self, action)(pk)
                 elif action in ('update', 'subscribe'):
