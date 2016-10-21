@@ -74,15 +74,16 @@ class ResourceBindingBase(SerializerMixin, websockets.WebsocketBinding):
         try:
             if not self.has_permission(self.user, action, pk):
                 self.reply(action, errors=['Permission Denied'], status=401)
-            if not action in self.available_actions:
+            elif not action in self.available_actions:
                 self.reply(action, errors=['Invalid Action'], status=400)
-            elif action in ('create', 'list'):
+            else:
+                if action in ('create', 'list'):
                 data, status = getattr(self, action)(data)
-            elif action in ('retrieve', 'delete'):
-                data, status = getattr(self, action)(pk)
-            elif action in ('update', 'subscribe'):
-                data, status = getattr(self, action)(pk, data)
-            self.reply(action, data=data, status=status, request_id=self.request_id)
+                elif action in ('retrieve', 'delete'):
+                    data, status = getattr(self, action)(pk)
+                elif action in ('update', 'subscribe'):
+                    data, status = getattr(self, action)(pk, data)
+                self.reply(action, data=data, status=status, request_id=self.request_id)
         except APIException as ex:
             self.reply(action, errors=self._format_errors(ex.detail), status=ex.status_code, request_id=self.request_id)
 
