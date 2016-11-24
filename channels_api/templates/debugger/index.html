@@ -7,7 +7,7 @@
 
       function connectWebsocket(){
 
-        var socket = new WebSocket("ws://" + window.location.host + "/")
+        var socket = new WebSocket("ws://" + window.location.host + "/?session_key={{ request.session.session_key }}")
         socket.onmessage = function(e){
           window.message_event = e;
           document.getElementById('log').value += "\n" + e.data;

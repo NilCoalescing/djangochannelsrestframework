@@ -62,6 +62,7 @@ class DeleteModelMixin(object):
 class SubscribeModelMixin(object):
 
     def subscribe(self, pk, data, **kwargs):
+
         if 'action' not in data:
             raise ValidationError('action required')
         group_name = self._group_name(data['action'], id=pk)
