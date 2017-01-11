@@ -1,6 +1,6 @@
-from channels.binding import websockets
+import json
 
-from django.db import models
+from channels.binding import websockets
 from django.core.exceptions import ObjectDoesNotExist
 
 from rest_framework.exceptions import APIException, NotFound
@@ -20,8 +20,12 @@ class ResourceBindingBase(SerializerMixin, websockets.WebsocketBinding):
     lookup_field = 'pk'
 
     def deserialize(self, message):
-        self.request_id = message.get('request_id', None)
-        return super(ResourceBindingBase, self).deserialize(message)
+        body = json.loads(message['text'])
+        self.request_id = body.get("request_id")
+        action = body['action']
+        pk = body.get('pk', None)
+        data = body.get('data', None)
+        return action, pk, data
 
     @classmethod
     def group_names(cls, instance, action):

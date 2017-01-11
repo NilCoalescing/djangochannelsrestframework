@@ -9,7 +9,7 @@ DATABASES = {
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'asgiref.inmemory.ChannelLayer',
-        'ROUTING': [],
+        'ROUTING': "tests.routing.channel_routing",
     },
 }
 
