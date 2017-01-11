@@ -9,7 +9,7 @@ channels. It provides a ``ResourceBinding`` which is comparable to Django
 Rest Framework's ``ModelViewSet``. It is based on DRF serializer
 classes.
 
-It requires Python 3, Django 1.8, and Django Rest Framework 3.0
+It requires Python 3, Channels >0.17.3, Django >1.8, and Django Rest Framework 3.0
 
 Table of Contents
 -----------------
@@ -77,26 +77,6 @@ Started <https://channels.readthedocs.io/en/latest/getting-started.html>`__
         'channels_api'
     )
 
--  Add a ``WebsocketDemultiplexer`` to your ``channel_routing``
-
-.. code:: python
-
-    # proj/routing.py
-
-
-    from channels.generic.websockets import WebsocketDemultiplexer
-    from channels.routing import route_class
-
-    class APIDemultiplexer(WebsocketDemultiplexer):
-
-        mapping = {
-          'questions': 'questions_channel'
-        }
-
-    channel_routing = [
-        route_class(APIDemultiplexer)
-    ]
-
 -  Add your first resource binding
 
 .. code:: python
@@ -116,16 +96,26 @@ Started <https://channels.readthedocs.io/en/latest/getting-started.html>`__
         serializer_class = QuestionSerializer
         queryset = Question.objects.all()
 
+-  Add a ``WebsocketDemultiplexer`` to your ``channel_routing``
+
+.. code:: python
 
     # proj/routing.py
 
-    from channels.routing import route_class, route
+
+    from channels.generic.websockets import WebsocketDemultiplexer
+    from channels.routing import route_class
 
     from polls.bindings import QuestionBinding
 
+    class APIDemultiplexer(WebsocketDemultiplexer):
+
+        consumers = {
+          'questions': QuestionBinding.consumer
+        }
+
     channel_routing = [
-      route_class(APIDemultiplexer),
-      route("question_channel", QuestionBinding.consumer)
+        route_class(APIDemultiplexer)
     ]
 
 That's it. You can now make REST WebSocket requests to the server.
