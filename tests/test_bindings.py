@@ -203,7 +203,6 @@ class ResourceBindingTestCase(ChannelTestCase):
 
         # it should be on the create group
         instance = TestModel.objects.create(name='test-name')
-        pending_message_store.send_and_flush()
 
         expected = {
             'action': 'create',
