@@ -3,6 +3,7 @@ import json
 from channels.binding import websockets
 from channels.binding.base import CREATE, UPDATE, DELETE
 from django.core.exceptions import ObjectDoesNotExist
+from django.utils import six
 
 from rest_framework.exceptions import APIException, NotFound
 
@@ -86,7 +87,7 @@ class ResourceBindingBase(SerializerMixin, websockets.WebsocketBinding):
     def _format_errors(self, errors):
         if isinstance(errors, list):
             return errors
-        elif isinstance(errors, str):
+        elif isinstance(errors, six.string_types):
             return [errors]
         elif isinstance(errors, dict):
             return [errors]

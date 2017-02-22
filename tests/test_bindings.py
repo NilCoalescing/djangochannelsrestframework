@@ -1,5 +1,6 @@
 import json
 
+from django.utils.encoding import force_text
 from rest_framework import serializers
 
 from channels.message import pending_message_store
@@ -28,12 +29,12 @@ class TestModelResourceBinding(bindings.ResourceBinding):
 class ResourceBindingTestCase(ChannelTestCase):
 
     def setUp(self):
-        super().setUp()
+        super(ResourceBindingTestCase, self).setUp()
         self.client = Client()
 
     def _send_and_consume(self, channel, data):
         """Helper that sends and consumes message and returns the next message."""
-        self.client.send_and_consume(channel, data)
+        self.client.send_and_consume(force_text(channel), data)
         return self._get_next_message()
 
     def _get_next_message(self):
