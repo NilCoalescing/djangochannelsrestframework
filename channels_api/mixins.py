@@ -65,9 +65,10 @@ class SubscribeModelMixin(object):
 
         if 'action' not in data:
             raise ValidationError('action required')
-        group_name = self._group_name(data['action'], id=pk)
+        action = data['action']
+        group_name = self._group_name(action, id=pk)
         Group(group_name).add(self.message.reply_channel)
-        return {}, 200
+        return {'action': action}, 200
 
 
 class SerializerMixin(object):

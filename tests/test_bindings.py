@@ -195,7 +195,9 @@ class ResourceBindingTestCase(ChannelTestCase):
         expected_response = {
             'action': 'subscribe',
             'request_id': 'client-request-id',
-            'data': {},
+            'data': {
+                'action': 'create'
+             },
             'errors': [],
             'response_status': 200
         }
