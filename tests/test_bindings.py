@@ -7,6 +7,7 @@ from channels.message import pending_message_store
 from channels.tests import ChannelTestCase, Client
 
 from channels_api import bindings
+from channels_api.decorators import list_action, detail_action
 from channels_api.settings import api_settings
 
 from .models import TestModel
@@ -24,6 +25,24 @@ class TestModelResourceBinding(bindings.ResourceBinding):
     queryset = TestModel.objects.all()
     serializer_class = TestModelSerializer
     stream = 'testmodel'
+
+    @list_action()
+    def test_list(self, data=None, **kwargs):
+        return 'some data', 200
+
+    @detail_action()
+    def test_detail(self, pk, data=None, **kwargs):
+        instance = self.get_object(pk)
+        return instance.name, 200
+
+    @list_action(name='named_list')
+    def some_other_list(self, data=None, **kwargs):
+        return 'some data', 200
+
+    @detail_action(name='named_detail')
+    def some_other_detail(self, pk, data=None, **kwargs):
+        instance = self.get_object(pk)
+        return instance.name, 200
 
 
 class ResourceBindingTestCase(ChannelTestCase):
@@ -271,6 +290,82 @@ class ResourceBindingTestCase(ChannelTestCase):
             'action': 'update',
             'errors': ['Not found.'],
             'response_status': 404,
+            'request_id': 'client-request-id'
+        }
+
+        self.assertEqual(json_content['payload'], expected)
+
+    def test_list_action(self):
+        json_content = self._send_and_consume('websocket.receive', self._build_message('testmodel',{
+            'action': 'test_list',
+            'pk': None,
+            'data': {},
+            'request_id': 'client-request-id',
+        }))
+
+        expected = {
+            'action': 'test_list',
+            'errors': [],
+            'data': 'some data',
+            'response_status': 200,
+            'request_id': 'client-request-id'
+        }
+
+        self.assertEqual(json_content['payload'], expected)
+
+    def test_detail_action(self):
+        instance = TestModel.objects.create(name='some-test')
+
+        json_content = self._send_and_consume('websocket.receive', self._build_message('testmodel',{
+            'action': 'test_detail',
+            'pk': instance.id,
+            'data': {},
+            'request_id': 'client-request-id'
+        }))
+
+        expected = {
+            'action': 'test_detail',
+            'errors': [],
+            'data': instance.name,
+            'response_status': 200,
+            'request_id': 'client-request-id'
+        }
+
+        self.assertEqual(json_content['payload'], expected)
+
+    def test_named_list_action(self):
+        json_content = self._send_and_consume('websocket.receive', self._build_message('testmodel',{
+            'action': 'named_list',
+            'pk': None,
+            'data': {},
+            'request_id': 'client-request-id',
+        }))
+
+        expected = {
+            'action': 'named_list',
+            'errors': [],
+            'data': 'some data',
+            'response_status': 200,
+            'request_id': 'client-request-id'
+        }
+
+        self.assertEqual(json_content['payload'], expected)
+
+    def test_named_detail_action(self):
+        instance = TestModel.objects.create(name='some-test')
+
+        json_content = self._send_and_consume('websocket.receive', self._build_message('testmodel',{
+            'action': 'named_detail',
+            'pk': instance.id,
+            'data': {},
+            'request_id': 'client-request-id'
+        }))
+
+        expected = {
+            'action': 'named_detail',
+            'errors': [],
+            'data': instance.name,
+            'response_status': 200,
             'request_id': 'client-request-id'
         }
 
