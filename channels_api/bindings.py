@@ -3,9 +3,11 @@ import json
 from channels.binding import websockets
 from channels.binding.base import CREATE, UPDATE, DELETE
 from django.core.exceptions import ObjectDoesNotExist
+from django.http import Http404
 from django.utils import six
 
 from rest_framework.exceptions import APIException, NotFound
+from rest_framework.generics import get_object_or_404
 
 from .mixins import SerializerMixin, SubscribeModelMixin, CreateModelMixin, UpdateModelMixin, \
     RetrieveModelMixin, ListModelMixin, DeleteModelMixin
@@ -92,14 +94,13 @@ class ResourceBindingBase(SerializerMixin, websockets.WebsocketBinding):
         elif isinstance(errors, dict):
             return [errors]
 
-    def get_object(self, pk):
-        queryset = self.filter_queryset(self.get_queryset())
-        return queryset.get(**{self.lookup_field: pk})
-
     def get_object_or_404(self, pk):
+        queryset = self.filter_queryset(self.get_queryset())
+        filter_kwargs = {self.lookup_field: pk}
         try:
-            return self.get_object(pk)
-        except ObjectDoesNotExist:
+            return get_object_or_404(queryset, **filter_kwargs)
+        except Http404:
+            # transform Http404 into an APIException
             raise NotFound
 
     def get_queryset(self):

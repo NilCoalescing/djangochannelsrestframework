@@ -182,6 +182,21 @@ class ResourceBindingTestCase(ChannelTestCase):
         }
         self.assertEqual(json_content['payload'], expected)
 
+    def test_retrieve_invalid_pk_404(self):
+        json_content = self._send_and_consume('websocket.receive', self._build_message('testmodel', {
+            'action': 'retrieve',
+            'pk': 'invalid-pk-value',
+            'request_id': 'client-request-id'
+        }))
+        expected = {
+            'action': 'retrieve',
+            'data': None,
+            'errors': ['Not found.'],
+            'response_status': 404,
+            'request_id': 'client-request-id'
+        }
+        self.assertEqual(json_content['payload'], expected)
+
     def test_subscribe(self):
 
         json_content = self._send_and_consume('websocket.receive', self._build_message("testmodel",{
