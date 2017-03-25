@@ -1,7 +1,7 @@
 import json
 
 from channels.binding import websockets
-from channels.binding.base import CREATE, UPDATE, DELETE
+from channels.binding.base import CREATE, UPDATE, DELETE, BindingMetaclass
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import Http404
 from django.utils import six
@@ -13,9 +13,29 @@ from .mixins import SerializerMixin, SubscribeModelMixin, CreateModelMixin, Upda
     RetrieveModelMixin, ListModelMixin, DeleteModelMixin
 
 
+class ResourceBindingMetaclass(BindingMetaclass):
+    """
+    Metaclass that records action methods
+    """
+
+    def __new__(cls, name, bases, body):
+        binding = super(ResourceBindingMetaclass, cls).__new__(cls, name, bases, body)
+
+        binding.available_actions = {}
+        for methodname in dir(binding):
+            attr = getattr(binding, methodname)
+            is_action = getattr(attr, 'action', False)
+            if is_action:
+                kwargs = getattr(attr, 'kwargs', {})
+                name = kwargs.get('name', methodname)
+                binding.available_actions[name] = methodname
+
+        return binding
+
+
+@six.add_metaclass(ResourceBindingMetaclass)
 class ResourceBindingBase(SerializerMixin, websockets.WebsocketBinding):
 
-    available_actions = ('create', 'retrieve', 'list', 'update', 'delete', 'subscribe')
     fields = []  # hack to pass cls.register() without ValueError
     queryset = None
     # mark as abstract
@@ -115,15 +135,17 @@ class ResourceBindingBase(SerializerMixin, websockets.WebsocketBinding):
         try:
             if not self.has_permission(self.user, action, pk):
                 self.reply(action, errors=['Permission Denied'], status=401)
-            elif not action in self.available_actions:
+            elif action not in self.available_actions:
                 self.reply(action, errors=['Invalid Action'], status=400)
             else:
-                if action in ('create', 'list'):
-                    data, status = getattr(self, action)(data)
-                elif action in ('retrieve', 'delete'):
-                    data, status = getattr(self, action)(pk)
-                elif action in ('update', 'subscribe'):
-                    data, status = getattr(self, action)(pk, data)
+                methodname = self.available_actions[action]
+                method = getattr(self, methodname)
+                detail = getattr(method, 'detail', True)
+                if detail:
+                    rv = method(pk, data=data)
+                else:
+                    rv = method(data=data)
+                data, status = rv
                 self.reply(action, data=data, status=status, request_id=self.request_id)
         except APIException as ex:
             self.reply(action, errors=self._format_errors(ex.detail), status=ex.status_code, request_id=self.request_id)

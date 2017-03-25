@@ -244,10 +244,67 @@ with the parameters to filter
     }
   }
 
+
+Custom Actions
+--------------
+
+To add your own custom actions, use the ``detail_action`` or ``list_action``
+decorators.
+
+
+.. code:: python
+
+    from channels_api.bindings import ResourceBinding
+    from channels_api.decorators import detail_action, list_action
+
+    from .models import Question
+    from .serializers import QuestionSerializer
+
+    class QuestionBinding(ResourceBinding):
+
+        model = Question
+        stream = "questions"
+        serializer_class = QuestionSerializer
+        queryset = Question.objects.all()
+
+        @detail_action()
+        def publish(self, pk, data=None, **kwargs):
+            instance = self.get_object(pk)
+            result = instance.publish()
+            return result, 200
+
+        @list_action()
+        def report(self, data=None, **kwargs):
+            report = self.get_queryset().build_report()
+            return report, 200
+
+Then pass the method name as "action" in your message
+
+.. code:: javascript
+
+  // run the publish() custom action on Question 1
+  var msg = {
+    stream: "questions",
+    payload: {
+      action: "publish",
+      data: {
+        pk: "1"
+      }
+    }
+  }
+
+  // run the report() custom action on all Questions
+  var msg = {
+    stream: "questions",
+    payload: {
+      action: "report"
+    }
+  }
+
+
 Roadmap
 -------
 
 -  0.4
     -  Permissions
-    -  Custom Methods
     -  Test Project

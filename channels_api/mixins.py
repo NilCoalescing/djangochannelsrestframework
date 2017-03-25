@@ -2,11 +2,13 @@ from channels import Group
 from django.core.paginator import Paginator
 from rest_framework.exceptions import ValidationError
 
+from .decorators import detail_action, list_action
 from .settings import api_settings
 
 class CreateModelMixin(object):
     """Mixin class that handles the creation of an object using a DRF serializer."""
 
+    @list_action()
     def create(self, data, **kwargs):
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
@@ -18,6 +20,7 @@ class CreateModelMixin(object):
 
 class RetrieveModelMixin(object):
 
+    @detail_action()
     def retrieve(self, pk, **kwargs):
         instance = self.get_object_or_404(pk)
         serializer = self.get_serializer(instance)
@@ -26,6 +29,7 @@ class RetrieveModelMixin(object):
 
 class ListModelMixin(object):
 
+    @list_action()
     def list(self, data, **kwargs):
         if not data:
             data = {}
@@ -38,6 +42,7 @@ class ListModelMixin(object):
 
 class UpdateModelMixin(object):
 
+    @detail_action()
     def update(self, pk, data, **kwargs):
         instance = self.get_object_or_404(pk)
         serializer = self.get_serializer(instance, data=data)
@@ -51,6 +56,7 @@ class UpdateModelMixin(object):
 
 class DeleteModelMixin(object):
 
+    @detail_action()
     def delete(self, pk, **kwargs):
         instance = self.get_object_or_404(pk)
         self.perform_delete(instance)
@@ -61,6 +67,7 @@ class DeleteModelMixin(object):
 
 class SubscribeModelMixin(object):
 
+    @detail_action()
     def subscribe(self, pk, data, **kwargs):
 
         if 'action' not in data:
