@@ -32,7 +32,7 @@ class TestModelResourceBinding(bindings.ResourceBinding):
 
     @detail_action()
     def test_detail(self, pk, data=None, **kwargs):
-        instance = self.get_object(pk)
+        instance = self.get_object_or_404(pk)
         return instance.name, 200
 
     @list_action(name='named_list')
@@ -41,7 +41,7 @@ class TestModelResourceBinding(bindings.ResourceBinding):
 
     @detail_action(name='named_detail')
     def some_other_detail(self, pk, data=None, **kwargs):
-        instance = self.get_object(pk)
+        instance = self.get_object_or_404(pk)
         return instance.name, 200
 
 
