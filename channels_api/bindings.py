@@ -2,7 +2,6 @@ import json
 
 from channels.binding import websockets
 from channels.binding.base import CREATE, UPDATE, DELETE, BindingMetaclass
-from django.core.exceptions import ObjectDoesNotExist
 from django.http import Http404
 from django.utils import six
 
@@ -11,6 +10,7 @@ from rest_framework.generics import get_object_or_404
 
 from .mixins import SerializerMixin, SubscribeModelMixin, CreateModelMixin, UpdateModelMixin, \
     RetrieveModelMixin, ListModelMixin, DeleteModelMixin
+from .settings import api_settings
 
 
 class ResourceBindingMetaclass(BindingMetaclass):
@@ -42,6 +42,7 @@ class ResourceBindingBase(SerializerMixin, websockets.WebsocketBinding):
     model = None
     serializer_class = None
     lookup_field = 'pk'
+    permission_classes = ()
 
     def deserialize(self, message):
         body = json.loads(message['text'])
@@ -100,7 +101,15 @@ class ResourceBindingBase(SerializerMixin, websockets.WebsocketBinding):
         else:
             return "{}-{}".format(self.model_label, action)
 
-    def has_permission(self, action, pk, data):
+    def has_permission(self, user, action, pk):
+        if self.permission_classes:
+            permissions = self.permission_classes
+        else:
+            permissions = api_settings.DEFAULT_PERMISSION_CLASSES
+
+        for cls in permissions:
+            if not cls().has_permission(user, action, pk):
+                return False
         return True
 
     def filter_queryset(self, queryset):
@@ -163,11 +172,13 @@ class ResourceBindingBase(SerializerMixin, websockets.WebsocketBinding):
         }
         return self.message.reply_channel.send(self.encode(self.stream, payload))
 
+
 class ResourceBinding(CreateModelMixin, RetrieveModelMixin, ListModelMixin,
     UpdateModelMixin, DeleteModelMixin, SubscribeModelMixin, ResourceBindingBase):
 
     # mark as abstract
     model = None
+
 
 class ReadOnlyResourceBinding(RetrieveModelMixin, ListModelMixin,
     ResourceBindingBase):
