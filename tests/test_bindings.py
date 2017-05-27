@@ -1,13 +1,19 @@
 import json
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
 
+from django.contrib.auth.models import User
 from django.utils.encoding import force_text
 from rest_framework import serializers
 
-from channels.message import pending_message_store
+from channels.test import WSClient
 from channels.tests import ChannelTestCase, Client
 
 from channels_api import bindings
 from channels_api.decorators import list_action, detail_action
+from channels_api.permissions import IsAuthenticated
 from channels_api.settings import api_settings
 
 from .models import TestModel
@@ -49,7 +55,7 @@ class ResourceBindingTestCase(ChannelTestCase):
 
     def setUp(self):
         super(ResourceBindingTestCase, self).setUp()
-        self.client = Client()
+        self.client = WSClient()
 
     def _send_and_consume(self, channel, data):
         """Helper that sends and consumes message and returns the next message."""
@@ -387,3 +393,24 @@ class ResourceBindingTestCase(ChannelTestCase):
         }
 
         self.assertEqual(json_content['payload'], expected)
+
+    def test_is_authenticated_permission(self):
+
+        with patch.object(TestModelResourceBinding, 'permission_classes', (IsAuthenticated,)):
+            content = {
+                'action': 'test_list',
+                'pk': None,
+                'data': {},
+                'request_id': 'client-request-id',
+            }
+            json_content = self._send_and_consume('websocket.receive', self._build_message('testmodel', content))
+            # It should block the request
+            self.assertEqual(json_content['payload']['response_status'], 401)
+
+            user = User.objects.create(username="testuser", password="123")
+            self.client.force_login(user)
+            self.client._session_cookie = True
+
+            json_content = self._send_and_consume('websocket.receive', self._build_message('testmodel', content))
+
+            self.assertEqual(json_content['payload']['response_status'], 200)

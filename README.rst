@@ -17,8 +17,8 @@ Table of Contents
 -  `Getting Started <#getting-started>`__
 -  `ResourceBinding <#resourcebinding>`__
 -  `Subscriptions <#subscriptions>`__
--  `Errors <#errors>`__
--  `Roadmap <#roadmap>`__
+-  `Custom Actions <#custom-actions>`__
+-  `Permissions <#permissions>`__
 
 
 How does it work?
@@ -301,10 +301,43 @@ Then pass the method name as "action" in your message
     }
   }
 
+Permissions
+-----------
 
-Roadmap
--------
+Channels API offers a simple permission class system inspired by rest_framework.
+There are two provided permission classes: ``AllowAny`` and ``IsAuthenticated``.
 
--  0.4
-    -  Permissions
-    -  Test Project
+To configure permissions globally use the setting ``DEFAULT_PERMISSION_CLASSES`` like so
+
+.. code:: python
+
+    # settings.py
+
+    CHANNELS_API = {
+        'DEFAULT_PERMISSION_CLASSES': ('channels_api.permissions.AllowAny',)
+
+    }
+
+You can also configure the permission classes on a ``ResourceBinding`` itself like so
+
+.. code:: python
+
+    from channels_api.permissions import IsAuthenticated
+
+    class MyBinding(ResourceBinding):
+        permission_classes = (IsAuthenticated,)
+
+
+Lastly, to implement your own permission class, override the ``has_permission`` of ``BasePermission``.
+
+.. code:: python
+
+    from channels_api.permissions import BasePermission
+
+    class MyPermission(BasePermission):
+
+        def has_permission(self, user, action, pk):
+
+            if action == "CREATE":
+                return True
+            return False
