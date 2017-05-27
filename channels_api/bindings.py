@@ -89,8 +89,8 @@ class ResourceBindingBase(SerializerMixin, websockets.WebsocketBinding):
     def group_names(cls, instance, action):
         self = cls()
         groups = [self._group_name(action)]
-        if instance.id:
-            groups.append(self._group_name(action, id=instance.id))
+        if instance.pk:
+            groups.append(self._group_name(action, id=instance.pk))
         return groups
 
     def _group_name(self, action, id=None):
