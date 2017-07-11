@@ -1,8 +1,8 @@
 import json
 try:
-    from unittest.mock import patch
+    from unittest.mock import Mock, patch
 except ImportError:
-    from mock import patch
+    from mock import Mock, patch
 
 from django.contrib.auth.models import User
 from django.utils.encoding import force_text
@@ -389,6 +389,46 @@ class ResourceBindingTestCase(ChannelTestCase):
             'errors': [],
             'data': instance.name,
             'response_status': 200,
+            'request_id': 'client-request-id'
+        }
+
+        self.assertEqual(json_content['payload'], expected)
+
+    def test_bad_permission_reply(self):
+        mock_has_perm = Mock()
+        mock_has_perm.return_value = False
+        with patch.object(TestModelResourceBinding, 'has_permission', mock_has_perm):
+            json_content = self._send_and_consume('websocket.receive', self._build_message('testmodel',{
+                'action': 'named_detail',
+                'pk': 546,
+                'data': {},
+                'request_id': 'client-request-id'
+            }))
+
+            expected = {
+                'action': 'named_detail',
+                'errors': ['Permission Denied'],
+                'data': None,
+                'response_status': 401,
+                'request_id': 'client-request-id'
+            }
+
+            self.assertEqual(json_content['payload'], expected)
+            mock_has_perm.assert_called()
+
+    def test_bad_action_reply(self):
+        json_content = self._send_and_consume('websocket.receive', self._build_message('testmodel',{
+            'action': 'named_detail_not_set',
+            'pk': 123,
+            'data': {},
+            'request_id': 'client-request-id'
+        }))
+
+        expected = {
+            'action': 'named_detail_not_set',
+            'errors': ['Invalid Action'],
+            'data': None,
+            'response_status': 400,
             'request_id': 'client-request-id'
         }
 
