@@ -39,7 +39,7 @@ action. So ``POST /user`` would have a message that looks like the following
         action: "create",
         data: {
           email: "test@example.com",
-          password: "password",
+          password: "password"
         }
       }
     }
@@ -238,10 +238,10 @@ with the parameters to filter
   var msg = {
     stream: "questions",
     payload: {
-      action: "subscribe"
+      action: "subscribe",
+      pk: "1",
       data: {
-        action: "update",
-        pk: "1"
+        action: "update"
       }
     }
   }
