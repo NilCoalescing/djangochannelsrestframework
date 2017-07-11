@@ -143,9 +143,11 @@ class ResourceBindingBase(SerializerMixin, websockets.WebsocketBinding):
     def run_action(self, action, pk, data):
         try:
             if not self.has_permission(self.user, action, pk):
-                self.reply(action, errors=['Permission Denied'], status=401)
+                self.reply(action, errors=['Permission Denied'], status=401,
+                           request_id=self.request_id)
             elif action not in self.available_actions:
-                self.reply(action, errors=['Invalid Action'], status=400)
+                self.reply(action, errors=['Invalid Action'], status=400,
+                           request_id=self.request_id)
             else:
                 methodname = self.available_actions[action]
                 method = getattr(self, methodname)
