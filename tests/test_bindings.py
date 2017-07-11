@@ -414,7 +414,7 @@ class ResourceBindingTestCase(ChannelTestCase):
             }
 
             self.assertEqual(json_content['payload'], expected)
-            mock_has_perm.assert_called()
+            self.assertEqual(mock_has_perm.called, True)
 
     def test_bad_action_reply(self):
         json_content = self._send_and_consume('websocket.receive', self._build_message('testmodel',{
