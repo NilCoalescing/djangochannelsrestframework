@@ -53,6 +53,18 @@ class UpdateModelMixin(object):
     def perform_update(self, serializer):
         serializer.save()
 
+class PatchModelMixin(object):
+
+    @detail_action()
+    def patch(self, pk, data, **kwargs):
+        instance = self.get_object_or_404(pk)
+        serializer = self.get_serializer(instance, data=data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_patch(serializer)
+        return serializer.data, 200
+
+    def perform_patch(self, serializer):
+        serializer.save()
 
 class DeleteModelMixin(object):
 
