@@ -9,7 +9,7 @@ from rest_framework.exceptions import APIException, NotFound
 from rest_framework.generics import get_object_or_404
 
 from .mixins import SerializerMixin, SubscribeModelMixin, CreateModelMixin, UpdateModelMixin, \
-    RetrieveModelMixin, ListModelMixin, DeleteModelMixin
+    PatchModelMixin, RetrieveModelMixin, ListModelMixin, DeleteModelMixin
 from .settings import api_settings
 
 
@@ -176,7 +176,7 @@ class ResourceBindingBase(SerializerMixin, websockets.WebsocketBinding):
 
 
 class ResourceBinding(CreateModelMixin, RetrieveModelMixin, ListModelMixin,
-    UpdateModelMixin, DeleteModelMixin, SubscribeModelMixin, ResourceBindingBase):
+    UpdateModelMixin, PatchModelMixin, DeleteModelMixin, SubscribeModelMixin, ResourceBindingBase):
 
     # mark as abstract
     model = None
