@@ -18,12 +18,11 @@ def pytest_configure():
             }
         },
 
-        CHANNEL_LAYERS = {
-            'default': {
-                'BACKEND': 'asgiref.inmemory.ChannelLayer',
-                'ROUTING': "tests.routing.channel_routing",
-            },
-        },
+        #CHANNEL_LAYERS = {
+        #    'default': {
+        #        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+        #    },
+        #},
 
         MIDDLEWARE_CLASSES = []
 

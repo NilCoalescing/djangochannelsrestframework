@@ -1,18 +1,29 @@
+from typing import Dict, Any
+
+from channels.consumer import AsyncConsumer
 
 
-class BasePermission(object):
+class BasePermission:
 
-    def has_permission(self, user, action, pk):
+    async def has_permission(self, scope: Dict[str, Any],
+                             consumer: AsyncConsumer,
+                             action: str, **kwargs) -> bool:
         pass
 
 
 class AllowAny(BasePermission):
-
-    def has_permission(self, user, action, pk):
+    async def has_permission(self, scope: Dict[str, Any],
+                             consumer: AsyncConsumer,
+                             action: str, **kwargs) -> bool:
         return True
 
 
 class IsAuthenticated(BasePermission):
-
-    def has_permission(self, user, action, pk):
+    async def has_permission(self,
+                             scope: Dict[str, Any],
+                             consumer: AsyncConsumer,
+                             action: str, **kwargs) -> bool:
+        user = scope.get('user')
+        if not user:
+            return False
         return user.pk and user.is_authenticated
