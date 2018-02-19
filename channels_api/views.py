@@ -1,16 +1,25 @@
 import asyncio
+import json
+import re
 import typing
 from functools import partial
 
 from typing import List, Type
 
-from asgiref.sync import async_to_sync
+from channels.consumer import AsyncConsumer
 from channels.db import database_sync_to_async
-from channels.generic.websocket import AsyncJsonWebsocketConsumer
-
+from channels.generic.websocket import AsyncJsonWebsocketConsumer, \
+    WebsocketConsumer
+from django.conf.urls import url
+from django.http import HttpRequest, HttpResponse
+from django.http.response import HttpResponseBase
+from django.template.response import SimpleTemplateResponse
+from django.urls import Resolver404, reverse, resolve
 
 from rest_framework.exceptions import PermissionDenied, MethodNotAllowed, \
-    APIException
+    APIException, NotFound
+from rest_framework.response import Response
+from rest_framework.viewsets import ViewSet
 
 from channels_api.permissions import BasePermission
 from channels_api.settings import api_settings
@@ -150,3 +159,128 @@ class AsyncWebsocketAPIView(AsyncJsonWebsocketConsumer,
         await self.send_json(
             payload
         )
+
+
+class DjangoViewConsumer(AsyncWebsocketAPIView):
+
+    view = None
+
+    @property
+    def dumpy_url_config(self):
+        return
+
+    # maps actions to HTTP methods
+    actions = {}  # type: Dict[str, str]
+
+    async def receive_json(self, content: typing.Dict, **kwargs):
+        """
+        Called with decoded JSON content.
+        """
+        # TODO assert format, if does not match return message.
+        request_id = content.pop('request_id')
+        action = content.pop('action')
+        await self.handle_action(action, request_id=request_id, **content)
+
+    async def handle_action(self, action: str, request_id: str, **kwargs):
+        """
+        run the action.
+        """
+        try:
+            await self.check_permissions(action, **kwargs)
+
+            if action not in self.actions:
+                raise MethodNotAllowed(method=action)
+
+            content, status = await self.call_view(
+                action=action,
+                **kwargs
+            )
+
+            await self.reply(
+                action=action,
+                request_id=request_id,
+                data=content,
+                status=status
+            )
+
+        except Exception as exc:
+            await self.handle_exception(
+                exc,
+                action=action,
+                request_id=request_id
+            )
+
+    @database_sync_to_async
+    def call_view(self,
+                  action: str,
+                  **kwargs):
+
+        request = HttpRequest()
+        request.path = self.scope.get('path')
+        request.session = self.scope.get('session', None)
+
+        request.META['HTTP_CONTENT_TYPE'] = 'application/json'
+        request.META['HTTP_ACCEPT'] = 'application/json'
+
+        for (header_name, value) in self.scope.get('headers', []):
+            request.META[header_name.decode('utf-8')] = value.decode('utf-8')
+
+        args, view_kwargs = self.get_view_args(action=action, **kwargs)
+
+        request.method = self.actions[action]
+        request.POST = json.dumps(kwargs.get('data', {}))
+        if self.scope.get('cookies'):
+            request.COOKIES = self.scope.get('cookies')
+
+        view = getattr(self.__class__, 'view')
+
+        response = view(request, *args, **view_kwargs)
+
+        status = response.status_code
+
+        if isinstance(response, Response):
+            data = response.data
+            try:
+                # check if we can json encode it!
+                # there must be a better way fo doing this?
+                json.dumps(data)
+                return data, status
+            except Exception as e:
+                pass
+        if isinstance(response, SimpleTemplateResponse):
+            response.render()
+
+        response_content = response.content
+        if isinstance(response_content, bytes):
+            try:
+                response_content = response_content.decode('utf-8')
+            except Exception as e:
+                response_content = response_content.hex()
+        return response_content, status
+
+    def get_view_args(self, action: str, **kwargs):
+        return [], {}
+
+
+def view_as_consumer(
+        wrapped_view: typing.Callable[[HttpRequest], HttpResponse],
+        mapped_actions: typing.Optional[
+            typing.Dict[str, str]
+        ] =None) -> Type[AsyncConsumer]:
+    """
+    Wrap a django View so that it will be triggered by actions over this json
+     websocket consumer.
+    """
+    if mapped_actions is None:
+        mapped_actions = {
+            'create': 'PUT',
+            'update': 'PATCH',
+            'list': 'GET',
+            'retrieve': 'GET'
+        }
+
+    class DjangoViewWrapper(DjangoViewConsumer):
+        view = wrapped_view
+        actions = mapped_actions
+
+    return DjangoViewWrapper
