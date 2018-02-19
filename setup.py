@@ -1,9 +1,8 @@
 from setuptools import find_packages, setup
-from channels_api import __version__
 
 setup(
     name='channels_api',
-    version=__version__,
+    version="0.5.0",
     url='https://github.com/linuxlewis/channels-api',
     author='Sam Bolgert',
     author_email='sbolgert@gmail.com',
@@ -22,6 +21,7 @@ setup(
             'pytest~=3.3',
             "pytest-django~=3.1",
             "pytest-asyncio~=0.8",
+            "channels>=2.0.2",
             'coverage~=4.4',
         ],
     },

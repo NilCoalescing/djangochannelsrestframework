@@ -40,7 +40,7 @@ def action(**kwargs):
             return func
 
         async def async_f(self: AsyncWebsocketAPIView,
-                          *args, reply=None, **kwargs,):
+                          *args, reply=None, **kwargs):
             result, status = await database_sync_to_async(func)(
                 self, *args, **kwargs
             )
