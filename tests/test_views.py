@@ -4,7 +4,7 @@ from channels.testing import WebsocketCommunicator
 from channels_api.decorators import action
 from channels_api.views import AsyncWebsocketAPIView
 
-
+@pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_decorator():
 

@@ -12,7 +12,7 @@ from channels.generic.websocket import AsyncJsonWebsocketConsumer, \
     WebsocketConsumer
 from django.conf.urls import url
 from django.http import HttpRequest, HttpResponse
-from django.http.response import HttpResponseBase
+from django.http.response import HttpResponseBase, Http404
 from django.template.response import SimpleTemplateResponse
 from django.urls import Resolver404, reverse, resolve
 
@@ -90,6 +90,13 @@ class AsyncWebsocketAPIView(AsyncJsonWebsocketConsumer,
                 action=action,
                 errors=self._format_errors(exc.detail),
                 status=exc.status_code,
+                request_id=request_id
+            )
+        elif exc == Http404 or isinstance(exc, Http404):
+            await self.reply(
+                action=action,
+                errors=self._format_errors('Not found'),
+                status=404,
                 request_id=request_id
             )
         else:
@@ -266,7 +273,7 @@ def view_as_consumer(
         wrapped_view: typing.Callable[[HttpRequest], HttpResponse],
         mapped_actions: typing.Optional[
             typing.Dict[str, str]
-        ] =None) -> Type[AsyncConsumer]:
+        ]=None) -> Type[AsyncConsumer]:
     """
     Wrap a django View so that it will be triggered by actions over this json
      websocket consumer.
