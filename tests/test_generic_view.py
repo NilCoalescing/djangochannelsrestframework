@@ -24,10 +24,9 @@ async def test_generic_view():
 
         @action()
         def test_sync_action(self, pk=None):
-            user = self.get_object(action='test_async_action', pk=pk)
+            user = self.get_object(pk=pk)
 
             s = self.get_serializer(
-                action='test_async_action',
                 action_kwargs={'pk': pk},
                 instance=user
             )

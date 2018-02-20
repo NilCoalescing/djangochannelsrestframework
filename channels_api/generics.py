@@ -1,7 +1,5 @@
 from typing import Dict, Type, Optional
 
-from asgiref.sync import async_to_sync
-from channels.db import database_sync_to_async
 from django.db.models import QuerySet, Model
 from rest_framework.generics import get_object_or_404
 from rest_framework.mixins import ListModelMixin
@@ -34,7 +32,7 @@ class GenericAsyncWebsocketAPIView(AsyncWebsocketAPIView):
 
     # TODO pagination_class
 
-    def get_queryset(self, action: str, **kwargs) -> QuerySet:
+    def get_queryset(self, **kwargs) -> QuerySet:
         """
         Get the list of items for this view.
         This must be an iterable, and may be a queryset.
@@ -61,7 +59,7 @@ class GenericAsyncWebsocketAPIView(AsyncWebsocketAPIView):
             queryset = queryset.all()
         return queryset
 
-    def get_object(self, action: str, **kwargs) ->Model:
+    def get_object(self, **kwargs) ->Model:
         """
         Returns the object the view is displaying.
 
@@ -70,8 +68,7 @@ class GenericAsyncWebsocketAPIView(AsyncWebsocketAPIView):
         keyword arguments in the url conf.
         """
         queryset = self.filter_queryset(
-            queryset=self.get_queryset(action=action, **kwargs),
-            action=action,
+            queryset=self.get_queryset(**kwargs),
             **kwargs
         )
 
@@ -93,7 +90,7 @@ class GenericAsyncWebsocketAPIView(AsyncWebsocketAPIView):
         return obj
 
     def get_serializer(
-            self, action: str,
+            self,
             action_kwargs: Dict=None,
             *args, **kwargs) -> Serializer:
         """
@@ -101,16 +98,16 @@ class GenericAsyncWebsocketAPIView(AsyncWebsocketAPIView):
         deserializing input, and for serializing output.
         """
         serializer_class = self.get_serializer_class(
-            action=action, **action_kwargs
+            **action_kwargs
         )
 
         kwargs['context'] = self.get_serializer_context(
-            action=action, **action_kwargs
+            **action_kwargs
         )
 
         return serializer_class(*args, **kwargs)
 
-    def get_serializer_class(self, action: str, **kwargs) -> Type[Serializer]:
+    def get_serializer_class(self, **kwargs) -> Type[Serializer]:
         """
         Return the class to use for the serializer.
         Defaults to using `self.serializer_class`.
@@ -128,7 +125,7 @@ class GenericAsyncWebsocketAPIView(AsyncWebsocketAPIView):
 
         return self.serializer_class
 
-    def get_serializer_context(self, action: str, **kwargs):
+    def get_serializer_context(self, **kwargs):
         """
         Extra context provided to the serializer class.
         """
@@ -137,7 +134,7 @@ class GenericAsyncWebsocketAPIView(AsyncWebsocketAPIView):
             'consumer': self
         }
 
-    def filter_queryset(self, queryset: QuerySet, action: str, **kwargs):
+    def filter_queryset(self, queryset: QuerySet, **kwargs):
         """
         Given a queryset, filter it with whichever filter backend is in use.
 

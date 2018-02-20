@@ -1,116 +1,107 @@
-from channels import Group
-from django.core.paginator import Paginator
-from rest_framework.exceptions import ValidationError
+from rest_framework import status
 
-from .decorators import detail_action, list_action
-from .settings import api_settings
+from .decorators import action
 
-class CreateModelMixin(object):
-    """Mixin class that handles the creation of an object using a DRF serializer."""
 
-    @list_action()
+class CreateModelMixin:
+
+    @action()
     def create(self, data, **kwargs):
-        serializer = self.get_serializer(data=data)
+        serializer = self.get_serializer(data=data, action_kwargs=kwargs)
         serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        return serializer.data, 201
+        self.perform_create(serializer, **kwargs)
+        return serializer.data, status.HTTP_201_CREATED
 
-    def perform_create(self, serializer):
+    def perform_create(self, serializer, **kwargs):
         serializer.save()
 
-class RetrieveModelMixin(object):
 
-    @detail_action()
-    def retrieve(self, pk, **kwargs):
-        instance = self.get_object_or_404(pk)
-        serializer = self.get_serializer(instance)
-        return serializer.data, 200
+class ListModelMixin:
 
-
-class ListModelMixin(object):
-
-    @list_action()
-    def list(self, data, **kwargs):
-        if not data:
-            data = {}
-        queryset = self.filter_queryset(self.get_queryset())
-        paginator = Paginator(queryset, api_settings.DEFAULT_PAGE_SIZE)
-        data = paginator.page(data.get('page', 1))
-        serializer = self.get_serializer(data, many=True)
-        return serializer.data, 200
-
-
-class UpdateModelMixin(object):
-
-    @detail_action()
-    def update(self, pk, data, **kwargs):
-        instance = self.get_object_or_404(pk)
-        serializer = self.get_serializer(instance, data=data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        return serializer.data, 200
-
-    def perform_update(self, serializer):
-        serializer.save()
-
-class PatchModelMixin(object):
-
-    @detail_action()
-    def patch(self, pk, data, **kwargs):
-        instance = self.get_object_or_404(pk)
-        serializer = self.get_serializer(instance, data=data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        self.perform_patch(serializer)
-        return serializer.data, 200
-
-    def perform_patch(self, serializer):
-        serializer.save()
-
-class DeleteModelMixin(object):
-
-    @detail_action()
-    def delete(self, pk, **kwargs):
-        instance = self.get_object_or_404(pk)
-        self.perform_delete(instance)
-        return dict(), 200
-
-    def perform_delete(self, instance):
-        instance.delete()
-
-class SubscribeModelMixin(object):
-
-    @detail_action()
-    def subscribe(self, pk, data, **kwargs):
-
-        if 'action' not in data:
-            raise ValidationError('action required')
-        action = data['action']
-        group_name = self._group_name(action, id=pk)
-        Group(group_name).add(self.message.reply_channel)
-        return {'action': action}, 200
-
-
-class SerializerMixin(object):
-    """Mixin class that handles the loading of the serializer class, context and object."""
-
-    serializer_class = None
-
-    def get_serializer(self, *args, **kwargs):
-        serializer_class = self.get_serializer_class()
-        kwargs['context'] = self.get_serializer_context()
-        return serializer_class(*args, **kwargs)
-
-    def get_serializer_class(self):
-        assert self.serializer_class is not None, (
-            "'%s' should either include a `serializer_class` attribute, "
-            "or override the `get_serializer_class()` method."
-            % self.__class__.__name__
+    @action()
+    def list(self, **kwargs):
+        queryset = self.filter_queryset(
+            self.get_queryset(**kwargs),
+            **kwargs
         )
-        return self.serializer_class
+        serializer = self.get_serializer(
+            instance=queryset,
+            many=True,
+            action_kwargs=kwargs
+        )
+        return serializer.data, status.HTTP_200_OK
 
-    def get_serializer_context(self):
-        return {
-        }
 
-    def serialize_data(self, instance):
-        return self.get_serializer(instance).data
+class RetrieveModelMixin:
+
+    @action()
+    def retrieve(self,**kwargs):
+        instance = self.get_object(**kwargs)
+        serializer = self.get_serializer(instance, action_kwargs=kwargs)
+        return serializer.data, status.HTTP_200_OK
+
+
+class UpdateModelMixin:
+
+    @action()
+    def update(self, data, **kwargs):
+        instance = self.get_object(data=data, **kwargs)
+
+        serializer = self.get_serializer(
+            instance=instance,
+            data=data,
+            action_kwargs=kwargs
+        )
+
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer, **kwargs)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
+
+        return serializer.data, status.HTTP_200_OK
+
+    def perform_update(self, serializer, **kwargs):
+        serializer.save()
+
+
+class PatchModelMixin:
+
+    @action()
+    def patch(self, data, **kwargs):
+        instance = self.get_object(data=data, **kwargs)
+
+        serializer = self.get_serializer(
+            instance=instance,
+            data=data,
+            action_kwargs=kwargs,
+            partial=True
+        )
+
+        serializer.is_valid(raise_exception=True)
+        self.perform_patch(serializer, **kwargs)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
+
+        return serializer.data, status.HTTP_200_OK
+
+    def perform_patch(self, serializer, **kwargs):
+        serializer.save()
+
+
+class DeleteModelMixin:
+
+    @action()
+    def delete(self,**kwargs):
+        instance = self.get_object(**kwargs)
+
+        self.perform_delete(instance, **kwargs)
+        return None, status.HTTP_204_NO_CONTENT
+
+    def perform_delete(self, instance, **kwargs):
+        instance.delete()
