@@ -4,6 +4,7 @@ from asgiref.sync import async_to_sync
 from channels.db import database_sync_to_async
 from django.db.models import QuerySet, Model
 from rest_framework.generics import get_object_or_404
+from rest_framework.mixins import ListModelMixin
 from rest_framework.serializers import Serializer
 
 from channels_api.views import AsyncWebsocketAPIView
@@ -33,7 +34,7 @@ class GenericAsyncWebsocketAPIView(AsyncWebsocketAPIView):
 
     # TODO pagination_class
 
-    async def get_queryset(self, action: str, **kwargs) -> QuerySet:
+    def get_queryset(self, action: str, **kwargs) -> QuerySet:
         """
         Get the list of items for this view.
         This must be an iterable, and may be a queryset.
@@ -60,7 +61,7 @@ class GenericAsyncWebsocketAPIView(AsyncWebsocketAPIView):
             queryset = queryset.all()
         return queryset
 
-    async def get_object(self, action: str, **kwargs) ->Model:
+    def get_object(self, action: str, **kwargs) ->Model:
         """
         Returns the object the view is displaying.
 
@@ -68,8 +69,8 @@ class GenericAsyncWebsocketAPIView(AsyncWebsocketAPIView):
         queryset lookups.  Eg if objects are referenced using multiple
         keyword arguments in the url conf.
         """
-        queryset = await self.filter_queryset(
-            queryset=await self.get_queryset(action=action, **kwargs),
+        queryset = self.filter_queryset(
+            queryset=self.get_queryset(action=action, **kwargs),
             action=action,
             **kwargs
         )
@@ -86,30 +87,30 @@ class GenericAsyncWebsocketAPIView(AsyncWebsocketAPIView):
 
         filter_kwargs = {self.lookup_field: kwargs[lookup_url_kwarg]}
 
-        obj = await database_sync_to_async(get_object_or_404)(queryset, **filter_kwargs)
+        obj = get_object_or_404(queryset, **filter_kwargs)
         # TODO check_object_permissions
 
         return obj
 
-    async def get_serializer(
+    def get_serializer(
             self, action: str,
             action_kwargs: Dict=None,
-            *args, **kwargs):
+            *args, **kwargs) -> Serializer:
         """
         Return the serializer instance that should be used for validating and
         deserializing input, and for serializing output.
         """
-        serializer_class = await self.get_serializer_class(
+        serializer_class = self.get_serializer_class(
             action=action, **action_kwargs
         )
 
-        kwargs['context'] = await self.get_serializer_context(
+        kwargs['context'] = self.get_serializer_context(
             action=action, **action_kwargs
         )
 
         return serializer_class(*args, **kwargs)
 
-    async def get_serializer_class(self, action: str, **kwargs) -> Type[Serializer]:
+    def get_serializer_class(self, action: str, **kwargs) -> Type[Serializer]:
         """
         Return the class to use for the serializer.
         Defaults to using `self.serializer_class`.
@@ -127,7 +128,7 @@ class GenericAsyncWebsocketAPIView(AsyncWebsocketAPIView):
 
         return self.serializer_class
 
-    async def get_serializer_context(self, action: str, **kwargs):
+    def get_serializer_context(self, action: str, **kwargs):
         """
         Extra context provided to the serializer class.
         """
@@ -136,7 +137,7 @@ class GenericAsyncWebsocketAPIView(AsyncWebsocketAPIView):
             'consumer': self
         }
 
-    async def filter_queryset(self, queryset: QuerySet, action: str, **kwargs):
+    def filter_queryset(self, queryset: QuerySet, action: str, **kwargs):
         """
         Given a queryset, filter it with whichever filter backend is in use.
 

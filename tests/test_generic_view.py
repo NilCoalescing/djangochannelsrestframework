@@ -23,20 +23,15 @@ async def test_generic_view():
         serializer_class = UserSerializer
 
         @action()
-        async def test_async_action(self, reply, pk=None):
-            user = await self.get_object(action='test_async_action', pk=pk)
+        def test_sync_action(self, pk=None):
+            user = self.get_object(action='test_async_action', pk=pk)
 
-            s = await self.get_serializer(
+            s = self.get_serializer(
                 action='test_async_action',
                 action_kwargs={'pk': pk},
                 instance=user
             )
-            await reply(data=s.data, status=200)
-
-        @action()
-        def test_sync_action(self, pk=None):
-            results['test_sync_action'] = pk
-            return {'pk': pk, 'sync': True}, 200
+            return s.data, 200
 
     # Test a normal connection
     communicator = WebsocketCommunicator(AView, "/testws/")
@@ -45,7 +40,7 @@ async def test_generic_view():
 
     await communicator.send_json_to(
         {
-            "action": "test_async_action",
+            "action": "test_sync_action",
             "pk": 2,
             "request_id": 1
         }
@@ -54,7 +49,7 @@ async def test_generic_view():
     response = await communicator.receive_json_from()
 
     assert response == {
-            "action": "test_async_action",
+            "action": "test_sync_action",
             "errors": ["Not found"],
             "response_status": 404,
             "request_id": 1,
@@ -78,7 +73,7 @@ async def test_generic_view():
 
     await communicator.send_json_to(
         {
-            "action": "test_async_action",
+            "action": "test_sync_action",
             "pk": pk,
             "request_id": 2
         }
@@ -87,7 +82,7 @@ async def test_generic_view():
     response = await communicator.receive_json_from()
 
     assert response == {
-        "action": "test_async_action",
+        "action": "test_sync_action",
         "errors": [],
         "response_status": 200,
         "request_id": 2,
