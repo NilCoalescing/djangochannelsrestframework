@@ -4,24 +4,27 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from channels_api.decorators import action
-from channels_api.generics import GenericAsyncWebsocketAPIView
+from channels_api.generics import GenericAsyncAPIConsumer
 from channels_api.mixins import (
     CreateModelMixin,
     ListModelMixin,
     RetrieveModelMixin,
-    UpdateModelMixin, PatchModelMixin, DeleteModelMixin)
+    UpdateModelMixin,
+    PatchModelMixin,
+    DeleteModelMixin
+)
 
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
-async def test_generic_view():
+async def test_generic_consumer():
 
     class UserSerializer(serializers.ModelSerializer):
         class Meta:
             model = get_user_model()
             fields = ('id', 'username', 'email',)
 
-    class AView(GenericAsyncWebsocketAPIView):
+    class AConsumer(GenericAsyncAPIConsumer):
         queryset = get_user_model().objects.all()
         serializer_class = UserSerializer
 
@@ -36,7 +39,7 @@ async def test_generic_view():
             return s.data, 200
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(AView, "/testws/")
+    communicator = WebsocketCommunicator(AConsumer, "/testws/")
     connected, _ = await communicator.connect()
     assert connected
 
@@ -68,7 +71,7 @@ async def test_generic_view():
 
     await communicator.disconnect()
 
-    communicator = WebsocketCommunicator(AView, "/testws/")
+    communicator = WebsocketCommunicator(AConsumer, "/testws/")
     connected, _ = await communicator.connect()
 
     assert connected
@@ -96,21 +99,21 @@ async def test_generic_view():
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
-async def test_create_mixin_view():
+async def test_create_mixin_consumer():
 
     class UserSerializer(serializers.ModelSerializer):
         class Meta:
             model = get_user_model()
             fields = ('id', 'username', 'email',)
 
-    class AView(CreateModelMixin, GenericAsyncWebsocketAPIView):
+    class AConsumer(CreateModelMixin, GenericAsyncAPIConsumer):
         queryset = get_user_model().objects.all()
         serializer_class = UserSerializer
 
     assert not get_user_model().objects.all().exists()
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(AView, "/testws/")
+    communicator = WebsocketCommunicator(AConsumer, "/testws/")
     connected, _ = await communicator.connect()
     assert connected
 
@@ -142,21 +145,21 @@ async def test_create_mixin_view():
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
-async def test_list_mixin_view():
+async def test_list_mixin_consumer():
 
     class UserSerializer(serializers.ModelSerializer):
         class Meta:
             model = get_user_model()
             fields = ('id', 'username', 'email',)
 
-    class AView(ListModelMixin, GenericAsyncWebsocketAPIView):
+    class AConsumer(ListModelMixin, GenericAsyncAPIConsumer):
         queryset = get_user_model().objects.all()
         serializer_class = UserSerializer
 
     assert not get_user_model().objects.all().exists()
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(AView, "/testws/")
+    communicator = WebsocketCommunicator(AConsumer, "/testws/")
     connected, _ = await communicator.connect()
     assert connected
 
@@ -207,21 +210,21 @@ async def test_list_mixin_view():
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
-async def test_retrieve_mixin_view():
+async def test_retrieve_mixin_consumer():
 
     class UserSerializer(serializers.ModelSerializer):
         class Meta:
             model = get_user_model()
             fields = ('id', 'username', 'email',)
 
-    class AView(RetrieveModelMixin, GenericAsyncWebsocketAPIView):
+    class AConsumer(RetrieveModelMixin, GenericAsyncAPIConsumer):
         queryset = get_user_model().objects.all()
         serializer_class = UserSerializer
 
     assert not get_user_model().objects.all().exists()
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(AView, "/testws/")
+    communicator = WebsocketCommunicator(AConsumer, "/testws/")
     connected, _ = await communicator.connect()
     assert connected
 
@@ -293,21 +296,21 @@ async def test_retrieve_mixin_view():
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
-async def test_update_mixin_view():
+async def test_update_mixin_consumer():
 
     class UserSerializer(serializers.ModelSerializer):
         class Meta:
             model = get_user_model()
             fields = ('id', 'username', 'email',)
 
-    class AView(UpdateModelMixin, GenericAsyncWebsocketAPIView):
+    class AConsumer(UpdateModelMixin, GenericAsyncAPIConsumer):
         queryset = get_user_model().objects.all()
         serializer_class = UserSerializer
 
     assert not get_user_model().objects.all().exists()
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(AView, "/testws/")
+    communicator = WebsocketCommunicator(AConsumer, "/testws/")
     connected, _ = await communicator.connect()
     assert connected
 
@@ -368,21 +371,21 @@ async def test_update_mixin_view():
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
-async def test_patch_mixin_view():
+async def test_patch_mixin_consumer():
 
     class UserSerializer(serializers.ModelSerializer):
         class Meta:
             model = get_user_model()
             fields = ('id', 'username', 'email',)
 
-    class AView(PatchModelMixin, GenericAsyncWebsocketAPIView):
+    class AConsumer(PatchModelMixin, GenericAsyncAPIConsumer):
         queryset = get_user_model().objects.all()
         serializer_class = UserSerializer
 
     assert not get_user_model().objects.all().exists()
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(AView, "/testws/")
+    communicator = WebsocketCommunicator(AConsumer, "/testws/")
     connected, _ = await communicator.connect()
     assert connected
 
@@ -443,21 +446,21 @@ async def test_patch_mixin_view():
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
-async def test_delete_mixin_view():
+async def test_delete_mixin_consumer():
 
     class UserSerializer(serializers.ModelSerializer):
         class Meta:
             model = get_user_model()
             fields = ('id', 'username', 'email',)
 
-    class AView(DeleteModelMixin, GenericAsyncWebsocketAPIView):
+    class AConsumer(DeleteModelMixin, GenericAsyncAPIConsumer):
         queryset = get_user_model().objects.all()
         serializer_class = UserSerializer
 
     assert not get_user_model().objects.all().exists()
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(AView, "/testws/")
+    communicator = WebsocketCommunicator(AConsumer, "/testws/")
     connected, _ = await communicator.connect()
     assert connected
 

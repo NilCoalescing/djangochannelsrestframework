@@ -4,7 +4,7 @@ from channels.db import database_sync_to_async
 from django.conf import settings
 from django.db import transaction
 
-from channels_api.views import AsyncWebsocketAPIView
+from channels_api.consumers import AsyncAPIConsumer
 
 
 def detail_action(**kwargs):
@@ -52,7 +52,7 @@ def action(atomic=None, **kwargs):
             # wrap function in atomic wrapper
             func = transaction.atomic(func)
 
-        async def async_f(self: AsyncWebsocketAPIView,
+        async def async_f(self: AsyncAPIConsumer,
                           *args, reply=None, **_kwargs):
 
             result, status = await database_sync_to_async(func)(

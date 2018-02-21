@@ -4,10 +4,10 @@ from django.db.models import QuerySet, Model
 from rest_framework.generics import get_object_or_404
 from rest_framework.serializers import Serializer
 
-from channels_api.views import AsyncWebsocketAPIView
+from channels_api.consumers import AsyncAPIConsumer
 
 
-class GenericAsyncWebsocketAPIView(AsyncWebsocketAPIView):
+class GenericAsyncAPIConsumer(AsyncAPIConsumer):
     """
     Base class for all other generic views.
     """

@@ -3,7 +3,7 @@ from channels.testing import WebsocketCommunicator
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from channels_api.views import view_as_consumer
+from channels_api.consumers import view_as_consumer
 
 
 @pytest.mark.asyncio

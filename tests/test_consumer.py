@@ -2,7 +2,8 @@ import pytest
 from channels.testing import WebsocketCommunicator
 
 from channels_api.decorators import action
-from channels_api.views import AsyncWebsocketAPIView
+from channels_api.consumers import AsyncAPIConsumer
+
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
@@ -10,7 +11,7 @@ async def test_decorator():
 
     results = {}
 
-    class AView(AsyncWebsocketAPIView):
+    class AConsumer(AsyncAPIConsumer):
 
         @action()
         async def test_async_action(self, reply, pk=None):
@@ -23,7 +24,7 @@ async def test_decorator():
             return {'pk': pk, 'sync': True}, 200
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(AView, "/testws/")
+    communicator = WebsocketCommunicator(AConsumer, "/testws/")
     connected, _ = await communicator.connect()
     assert connected
 

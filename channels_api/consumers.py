@@ -25,7 +25,7 @@ from channels_api.permissions import BasePermission
 from channels_api.settings import api_settings
 
 
-class APIViewMetaclass(type):
+class APIConsumerMetaclass(type):
     """
     Metaclass that records action methods
     """
@@ -51,8 +51,8 @@ def ensure_async(method: typing.Callable):
     return database_sync_to_async(method)
 
 
-class AsyncWebsocketAPIView(AsyncJsonWebsocketConsumer,
-                            metaclass=APIViewMetaclass):
+class AsyncAPIConsumer(AsyncJsonWebsocketConsumer,
+                       metaclass=APIConsumerMetaclass):
     """
     Be very inspired by django rest framework ViewSets
     """
@@ -168,7 +168,7 @@ class AsyncWebsocketAPIView(AsyncJsonWebsocketConsumer,
         )
 
 
-class DjangoViewConsumer(AsyncWebsocketAPIView):
+class DjangoViewAsConsumer(AsyncAPIConsumer):
 
     view = None
 
@@ -286,7 +286,7 @@ def view_as_consumer(
             'retrieve': 'GET'
         }
 
-    class DjangoViewWrapper(DjangoViewConsumer):
+    class DjangoViewWrapper(DjangoViewAsConsumer):
         view = wrapped_view
         actions = mapped_actions
 
