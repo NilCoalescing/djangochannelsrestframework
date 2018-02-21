@@ -1,6 +1,7 @@
 import asyncio
 
 from channels.db import database_sync_to_async
+from django.conf import settings
 from django.db import transaction
 
 from channels_api.views import AsyncWebsocketAPIView
@@ -30,19 +31,24 @@ def list_action(**kwargs):
     return decorator
 
 
-def action(atomic=False, **kwargs):
+def action(atomic=None, **kwargs):
     """
     Mark a method as an action.
     """
     def decorator(func):
+        if atomic is None:
+            _atomic = getattr(settings, 'ATOMIC_REQUESTS', False)
+        else:
+            _atomic = atomic
+
         func.action = True
         func.kwargs = kwargs
         if asyncio.iscoroutinefunction(func):
-            if atomic:
+            if _atomic:
                 raise ValueError('Only synchronous actions can be atomic')
             return func
 
-        if atomic:
+        if _atomic:
             # wrap function in atomic wrapper
             func = transaction.atomic(func)
 
