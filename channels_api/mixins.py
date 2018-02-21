@@ -37,7 +37,7 @@ class RetrieveModelMixin:
     @action()
     def retrieve(self,**kwargs):
         instance = self.get_object(**kwargs)
-        serializer = self.get_serializer(instance, action_kwargs=kwargs)
+        serializer = self.get_serializer(instance=instance, action_kwargs=kwargs)
         return serializer.data, status.HTTP_200_OK
 
 
@@ -50,7 +50,8 @@ class UpdateModelMixin:
         serializer = self.get_serializer(
             instance=instance,
             data=data,
-            action_kwargs=kwargs
+            action_kwargs=kwargs,
+            partial=False
         )
 
         serializer.is_valid(raise_exception=True)

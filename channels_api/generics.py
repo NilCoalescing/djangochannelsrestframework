@@ -2,7 +2,6 @@ from typing import Dict, Type, Optional
 
 from django.db.models import QuerySet, Model
 from rest_framework.generics import get_object_or_404
-from rest_framework.mixins import ListModelMixin
 from rest_framework.serializers import Serializer
 
 from channels_api.views import AsyncWebsocketAPIView
