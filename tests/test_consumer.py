@@ -25,7 +25,9 @@ async def test_decorator():
 
     # Test a normal connection
     communicator = WebsocketCommunicator(AConsumer, "/testws/")
+
     connected, _ = await communicator.connect()
+
     assert connected
 
     await communicator.send_json_to(
@@ -63,3 +65,5 @@ async def test_decorator():
         'response_status': 200,
         'request_id': 10
     }
+
+    await communicator.disconnect()
