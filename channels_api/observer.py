@@ -12,6 +12,15 @@ from django.db.models.signals import pre_save, post_save, post_delete, \
 from django.dispatch import Signal
 
 
+class ObjPartial(partial):
+    def __getattribute__(self, name):
+        try:
+            item = super().__getattribute__(name)
+        except AttributeError:
+            return partial(getattr(self.func, name), *self.args, **self.keywords)
+        return item
+
+
 class BaseObserver:
     def __init__(self, func):
         self.func = func
@@ -21,11 +30,10 @@ class BaseObserver:
         return await self.func(*args, **kwargs)
 
     def __get__(self, parent, objtype):
-
         if parent is None:
             return self
 
-        return partial(self.__call__, parent)
+        return ObjPartial(self, parent)
 
     def serialize(self, signal, *args, **kwargs) -> Dict[str, Any]:
         message = {}
@@ -144,12 +152,10 @@ class ModelObserver(BaseObserver):
         """
         Triggers the old_binding to possibly send to its group.
         """
-        if not hasattr(instance, '__instance_groups'):
-            old_group_names = set()
-        elif not hasattr(instance.__instance_groups, 'observers'):
-            old_group_names = set()
-        else:
+        try:
             old_group_names = instance.__instance_groups.observers[self]
+        except (ValueError, KeyError):
+            old_group_names = set()
 
         if action == Action.DELETE:
             new_group_names = set()
@@ -205,7 +211,7 @@ class ModelObserver(BaseObserver):
         ).lower().replace('_', '.')
 
         # one channel for all updates.
-        yield '-model-{}'.format(
+        yield '{}-model-{}'.format(
             self.func.__name__.replace('_', '.'),
             model_label,
         )
