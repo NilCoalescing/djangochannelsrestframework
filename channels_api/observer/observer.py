@@ -206,12 +206,6 @@ class ModelObserver(BaseObserver):
         for group_name in group_names:
             async_to_sync(channel_layer.group_send)(group_name, message)
 
-    async def subscribe(self, consumer: AsyncAPIConsumer, *args, **kwargs):
-        for group_name in self.group_names(*args, **kwargs):
-            await consumer.add_group(
-                group_name
-            )
-
     def group_names(self, *args, **kwargs):
         if self._group_names:
             for group in self._group_names(self, *args, **kwargs):
