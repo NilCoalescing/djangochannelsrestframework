@@ -64,6 +64,34 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer,
     permission_classes = api_settings.\
         DEFAULT_PERMISSION_CLASSES  # type: List[Type[BasePermission]]
 
+    groups = {}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.groups = set(self.groups or [])
+
+    async def add_group(self, name: str):
+        if not isinstance(self.groups, set):
+            self.groups = set(self.groups)
+
+        if name not in self.groups:
+            await self.channel_layer.group_add(
+                name,
+                self.channel_name
+            )
+            self.groups.add(name)
+
+    async def remove_group(self, name: str):
+        if not isinstance(self.groups, set):
+            self.groups = set(self.groups)
+
+        if name in self.groups:
+            await self.channel_layer.group_discard(
+                name,
+                self.channel_name
+            )
+            self.groups.remove(name)
+
     async def get_permissions(self, action: str, **kwargs):
         """
         Instantiates and returns the list of permissions that this view requires.

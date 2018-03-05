@@ -1,7 +1,7 @@
 import threading
 from enum import Enum
 from functools import partial
-from typing import Dict, Any, Type, Set
+from typing import Dict, Any, Type, Set, Generator
 
 from asgiref.sync import async_to_sync
 from channels.consumer import AsyncConsumer
@@ -10,6 +10,8 @@ from django.db.models import Model
 from django.db.models.signals import pre_save, post_save, post_delete, \
     pre_delete
 from django.dispatch import Signal
+
+from channels_api.consumers import AsyncAPIConsumer
 
 
 class ObjPartial(partial):
@@ -25,6 +27,7 @@ class BaseObserver:
     def __init__(self, func):
         self.func = func
         self._serializer = None
+        self._group_names = None
 
     async def __call__(self, *args, **kwargs):
         return await self.func(*args, **kwargs)
@@ -46,11 +49,22 @@ class BaseObserver:
     def serializer(self, func):
         self._serializer = func
 
-    async def subscribe(self, consumer: AsyncConsumer, *args, **kwargs):
+    async def subscribe(self, consumer: AsyncAPIConsumer, *args, **kwargs):
+        for group_name in self.group_names(*args, **kwargs):
+            await consumer.add_group(group_name)
+
+    def group_names(self, *args, **kwargs) -> Generator[str, None, None]:
+        if self._group_names:
+            for group in self._group_names(*args, **kwargs):
+                yield group
+            return
         raise NotImplementedError()
 
+    def groups(self, func):
+        self._group_names = func
 
-class  Observer(BaseObserver):
+
+class Observer(BaseObserver):
     def __init__(self, func, signal: Signal=None, kwargs=None):
         super().__init__(func)
         if kwargs is None:
@@ -65,27 +79,21 @@ class  Observer(BaseObserver):
     def handle(self, signal, *args, **kwargs):
         message = self.serialize(signal, *args, **kwargs)
         channel_layer = get_channel_layer()
-        group_name = self.channel_name(signal, *args, **kwargs)
-        async_to_sync(channel_layer.group_send)(group_name, message)
+        for group_name in self.group_names(*args, **kwargs):
+            async_to_sync(channel_layer.group_send)(group_name, message)
 
-    def channel_name(self, *args, **kwargs):
-        return '{}-signal-{}'.format(
+    def group_names(self, *args, **kwargs):
+        if self._group_names:
+            for group in self._group_names(*args, **kwargs):
+                yield group
+            return
+        yield '{}-signal-{}'.format(
             self.func.__name__.replace('_', '.'),
             '.'.join(
                 arg.lower().replace('_', '.') for arg in
                 self.signal.providing_args
             )
         )
-
-    async def subscribe(self, consumer: AsyncConsumer, *args, **kwargs):
-        await consumer.channel_layer.group_add(
-            self.channel_name(*args, **kwargs),
-            consumer.channel_name
-        )
-
-
-def observer(signal, **kwargs):
-    return partial(Observer, signal=signal, kwargs=kwargs)
 
 
 class Action(Enum):
@@ -137,7 +145,7 @@ class ModelObserver(BaseObserver):
         if action == Action.CREATE:
             group_names = set()
         else:
-            group_names = set(self.channel_names(instance))
+            group_names = set(self.group_names(instance))
 
         # use a thread local dict to be safe...
         if not hasattr(instance, '__instance_groups'):
@@ -160,7 +168,7 @@ class ModelObserver(BaseObserver):
         if action == Action.DELETE:
             new_group_names = set()
         else:
-            new_group_names = set(self.channel_names(instance))
+            new_group_names = set(self.group_names(instance))
 
         # if post delete, new_group_names should be []
 
@@ -197,14 +205,18 @@ class ModelObserver(BaseObserver):
         for group_name in group_names:
             async_to_sync(channel_layer.group_send)(group_name, message)
 
-    async def subscribe(self, consumer: AsyncConsumer, *args, **kwargs):
-        for group_name in self.channel_names(*args, **kwargs):
-            await consumer.channel_layer.group_add(
-                group_name,
-                consumer.channel_name
+    async def subscribe(self, consumer: AsyncAPIConsumer, *args, **kwargs):
+        for group_name in self.group_names(*args, **kwargs):
+            await consumer.add_group(
+                group_name
             )
 
-    def channel_names(self, instance=None, **kwargs):
+    def group_names(self, *args, **kwargs):
+        if self._group_names:
+            for group in self._group_names(self, *args, **kwargs):
+                yield group
+            return
+
         model_label = '{}.{}'.format(
             self.model_cls._meta.app_label.lower(),
             self.model_cls._meta.object_name.lower()
@@ -225,7 +237,3 @@ class ModelObserver(BaseObserver):
         message['type'] = self.func.__name__.replace('_', '.')
         message['action'] = action.value
         return message
-
-
-def model_observer(model: Type[Model], **kwargs):
-    return partial(ModelObserver, model_cls=model, kwargs=kwargs)

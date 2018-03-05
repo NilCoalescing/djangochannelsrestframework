@@ -1,3 +1,5 @@
+import asyncio
+
 import pytest
 from channels import DEFAULT_CHANNEL_LAYER
 from channels.db import database_sync_to_async
@@ -5,7 +7,9 @@ from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from channels.layers import channel_layers
 from channels.testing import WebsocketCommunicator
 from django.contrib.auth import user_logged_in, get_user_model
+from django.utils.text import slugify
 
+from channels_api.consumers import AsyncAPIConsumer
 from channels_api.observer import observer, model_observer
 
 
@@ -23,7 +27,7 @@ async def test_observer_wrapper(settings):
 
     layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
 
-    class TestConsumer(AsyncJsonWebsocketConsumer):
+    class TestConsumer(AsyncAPIConsumer):
 
         async def accept(self):
             await TestConsumer.handle_user_logged_in.subscribe(self)
@@ -71,7 +75,7 @@ async def test_model_observer_wrapper(settings):
 
     layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
 
-    class TestConsumer(AsyncJsonWebsocketConsumer):
+    class TestConsumer(AsyncAPIConsumer):
 
         async def accept(self):
             await TestConsumer.user_change.subscribe(self)
@@ -117,7 +121,7 @@ async def test_model_observer_delete_wrapper(settings):
 
     layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
 
-    class TestConsumer(AsyncJsonWebsocketConsumer):
+    class TestConsumer(AsyncAPIConsumer):
 
         async def accept(self):
             await TestConsumer.user_change.subscribe(self)
@@ -173,7 +177,7 @@ async def test_model_observer_many_connections_wrapper(settings):
 
     layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
 
-    class TestConsumer(AsyncJsonWebsocketConsumer):
+    class TestConsumer(AsyncAPIConsumer):
 
         async def accept(self):
             await TestConsumer.user_change.subscribe(self)
@@ -235,7 +239,7 @@ async def test_model_observer_many_consumers_wrapper(settings):
 
     layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
 
-    class TestConsumer(AsyncJsonWebsocketConsumer):
+    class TestConsumer(AsyncAPIConsumer):
 
         async def accept(self):
             await self.user_change.subscribe()
@@ -245,7 +249,7 @@ async def test_model_observer_many_consumers_wrapper(settings):
         async def user_change(self, message):
             await self.send_json(message)
 
-    class TestConsumer2(AsyncJsonWebsocketConsumer):
+    class TestConsumer2(AsyncAPIConsumer):
 
         async def accept(self):
             await self.user_other.subscribe()
@@ -291,3 +295,65 @@ async def test_model_observer_many_consumers_wrapper(settings):
            } == response
 
     await communicator2.disconnect()
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.asyncio
+async def test_model_observer_custom_groups_wrapper(settings):
+    settings.CHANNEL_LAYERS={
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+            "TEST_CONFIG": {
+                "expiry": 100500,
+            },
+        },
+    }
+
+    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
+
+    class TestConsumer(AsyncAPIConsumer):
+
+        async def accept(self):
+            await self.user_change.subscribe(username='test')
+            await super().accept()
+
+        @model_observer(get_user_model())
+        async def user_change(self, message):
+            await self.send_json(message)
+
+        @user_change.groups
+        def groups(self, instance=None, username=None, **kwargs):
+            if username:
+                yield '-instance-username-{}'.format(slugify(username))
+            else:
+                yield '-instance-username-{}'.format(instance.username)
+
+    communicator = WebsocketCommunicator(TestConsumer, "/testws/")
+
+    connected, _ = await communicator.connect()
+
+    assert connected
+
+    user = await database_sync_to_async(get_user_model().objects.create)(
+        username='test',
+        email='test@example.com'
+    )
+
+    response = await communicator.receive_json_from()
+
+    assert {
+               'action': 'create',
+               'pk': user.pk,
+               'type': 'user.change'
+           } == response
+
+    await communicator.disconnect()
+
+    user = await database_sync_to_async(get_user_model().objects.create)(
+        username='test2',
+        email='test@example.com'
+    )
+
+    # no event since this is only subscribed to 'test'
+    with pytest.raises(asyncio.TimeoutError):
+        await communicator.receive_json_from()
