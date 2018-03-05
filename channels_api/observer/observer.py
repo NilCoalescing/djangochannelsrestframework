@@ -29,14 +29,14 @@ class BaseObserver:
         self._serializer = None
         self._group_names = None
 
-    async def __call__(self, *args, **kwargs):
-        return await self.func(*args, **kwargs)
+    async def __call__(self, *args, consumer=None, **kwargs):
+        return await self.func(consumer, *args, observer=self, **kwargs)
 
     def __get__(self, parent, objtype):
         if parent is None:
             return self
 
-        return ObjPartial(self, parent)
+        return ObjPartial(self, consumer=parent)
 
     def serialize(self, signal, *args, **kwargs) -> Dict[str, Any]:
         message = {}
@@ -50,7 +50,7 @@ class BaseObserver:
         self._serializer = func
 
     async def subscribe(self, consumer: AsyncAPIConsumer, *args, **kwargs):
-        for group_name in self.group_names(*args, **kwargs):
+        for group_name in self.group_names(*args, consumer=consumer, **kwargs):
             await consumer.add_group(group_name)
 
     def group_names(self, *args, **kwargs) -> Generator[str, None, None]:

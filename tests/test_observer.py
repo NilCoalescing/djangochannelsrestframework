@@ -34,8 +34,12 @@ async def test_observer_wrapper(settings):
             await super().accept()
 
         @observer(user_logged_in)
-        async def handle_user_logged_in(self, *args, **kwargs):
-            await self.send_json({'message': kwargs,})
+        async def handle_user_logged_in(self, *args, observer=None, **kwargs):
+            await self.send_json({
+                    'message': kwargs,
+                    'observer': observer is not None
+                }
+            )
 
     communicator = WebsocketCommunicator(TestConsumer, "/testws/")
 
@@ -56,7 +60,7 @@ async def test_observer_wrapper(settings):
 
     response = await communicator.receive_json_from()
 
-    assert {'message': {}} == response
+    assert {'message': {}, 'observer': True} == response
 
     await communicator.disconnect()
 
@@ -82,7 +86,7 @@ async def test_model_observer_wrapper(settings):
             await super().accept()
 
         @model_observer(get_user_model())
-        async def user_change(self, message):
+        async def user_change(self, message, observer=None, **kwargs):
             await self.send_json(message)
 
     communicator = WebsocketCommunicator(TestConsumer, "/testws/")
@@ -128,7 +132,7 @@ async def test_model_observer_delete_wrapper(settings):
             await super().accept()
 
         @model_observer(get_user_model())
-        async def user_change(self, message):
+        async def user_change(self, message, observer=None, **kwargs):
             await self.send_json(message)
 
     communicator = WebsocketCommunicator(TestConsumer, "/testws/")
@@ -184,7 +188,7 @@ async def test_model_observer_many_connections_wrapper(settings):
             await super().accept()
 
         @model_observer(get_user_model())
-        async def user_change(self, message):
+        async def user_change(self, message, **kwargs):
             await self.send_json(message)
 
     communicator1 = WebsocketCommunicator(TestConsumer, "/testws/")
@@ -246,7 +250,7 @@ async def test_model_observer_many_consumers_wrapper(settings):
             await super().accept()
 
         @model_observer(get_user_model())
-        async def user_change(self, message):
+        async def user_change(self, message, **kwargs):
             await self.send_json(message)
 
     class TestConsumer2(AsyncAPIConsumer):
@@ -256,7 +260,7 @@ async def test_model_observer_many_consumers_wrapper(settings):
             await super().accept()
 
         @model_observer(get_user_model())
-        async def user_other(self, message):
+        async def user_other(self, message, **kwargs):
             await self.send_json(message)
 
     communicator1 = WebsocketCommunicator(TestConsumer, "/testws/")
@@ -318,7 +322,7 @@ async def test_model_observer_custom_groups_wrapper(settings):
             await super().accept()
 
         @model_observer(get_user_model())
-        async def user_change(self, message):
+        async def user_change(self, message, **kwargs):
             await self.send_json(message)
 
         @user_change.groups
