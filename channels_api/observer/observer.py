@@ -62,6 +62,7 @@ class BaseObserver:
 
     def groups(self, func):
         self._group_names = func
+        return self
 
 
 class Observer(BaseObserver):

@@ -322,7 +322,7 @@ async def test_model_observer_custom_groups_wrapper(settings):
             await self.send_json(message)
 
         @user_change.groups
-        def groups(self, instance=None, username=None, **kwargs):
+        def user_change(self, instance=None, username=None, **kwargs):
             if username:
                 yield '-instance-username-{}'.format(slugify(username))
             else:
