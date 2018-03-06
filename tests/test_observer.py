@@ -140,11 +140,14 @@ async def test_model_observer_delete_wrapper(settings):
     connected, _ = await communicator.connect()
 
     assert connected
-
-    user = await database_sync_to_async(get_user_model().objects.create)(
+    print("before create ---------------")
+    user = await database_sync_to_async(get_user_model())(
         username='test',
         email='test@example.com'
     )
+    print('not saved yet ------' )
+    await database_sync_to_async(user.save)()
+    print("after create ---------------")
 
     response = await communicator.receive_json_from()
 
@@ -154,6 +157,7 @@ async def test_model_observer_delete_wrapper(settings):
                'type': 'user.change'
            } == response
     pk = user.pk
+
     await database_sync_to_async(user.delete)()
 
     response = await communicator.receive_json_from()

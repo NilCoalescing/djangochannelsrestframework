@@ -14,12 +14,12 @@ async def test_decorator():
     class AConsumer(AsyncAPIConsumer):
 
         @action()
-        async def test_async_action(self, reply, pk=None):
+        async def test_async_action(self, pk=None, **kwargs):
             results['test_action'] = pk
-            await reply(data={'pk': pk}, status=200)
+            return {'pk': pk}, 200
 
         @action()
-        def test_sync_action(self, pk=None):
+        def test_sync_action(self, pk=None, **kwargs):
             results['test_sync_action'] = pk
             return {'pk': pk, 'sync': True}, 200
 

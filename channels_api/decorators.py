@@ -53,14 +53,13 @@ def action(atomic=None, **kwargs):
             func = transaction.atomic(func)
 
         async def async_f(self: AsyncAPIConsumer,
-                          *args, reply=None, **_kwargs):
+                          *args, **_kwargs):
 
             result, status = await database_sync_to_async(func)(
                 self, *args, **_kwargs
             )
-            if reply:
-                await reply(data=result, status=status)
-            return
+
+            return result, status
 
         async_f.action = True
         async_f.kwargs = kwargs

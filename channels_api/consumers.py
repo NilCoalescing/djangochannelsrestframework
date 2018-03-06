@@ -155,7 +155,18 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer,
 
             # the @action decorator will wrap non-async action into async ones.
 
-            await method(reply=reply, **kwargs)
+            response = await method(
+                request_id=request_id,
+                action=action,
+                **kwargs
+            )
+
+            if isinstance(response, tuple):
+                data, status = response
+                await reply(
+                    data=data,
+                    status=status
+                )
 
         except Exception as exc:
             await self.handle_exception(

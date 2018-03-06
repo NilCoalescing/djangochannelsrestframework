@@ -1,7 +1,9 @@
 import threading
+import traceback
 from enum import Enum
 from functools import partial
 from typing import Dict, Any, Type, Set, Generator
+from uuid import uuid4
 
 from asgiref.sync import async_to_sync
 from channels.consumer import AsyncConsumer
@@ -28,6 +30,7 @@ class BaseObserver:
         self.func = func
         self._serializer = None
         self._group_names = None
+        self._uuid = str(uuid4())
 
     async def __call__(self, *args, consumer=None, **kwargs):
         return await self.func(consumer, *args, observer=self, **kwargs)
@@ -56,7 +59,7 @@ class BaseObserver:
     def group_names(self, *args, **kwargs) -> Generator[str, None, None]:
         if self._group_names:
             for group in self._group_names(*args, **kwargs):
-                yield group
+                yield '{}-{}'.format(self._uuid, group)
             return
         raise NotImplementedError()
 
@@ -86,9 +89,10 @@ class Observer(BaseObserver):
     def group_names(self, *args, **kwargs):
         if self._group_names:
             for group in self._group_names(*args, **kwargs):
-                yield group
+                yield '{}-{}'.format(self._uuid, group)
             return
-        yield '{}-signal-{}'.format(
+        yield '{}-{}-signal-{}'.format(
+            self._uuid,
             self.func.__name__.replace('_', '.'),
             '.'.join(
                 arg.lower().replace('_', '.') for arg in
@@ -107,17 +111,38 @@ class ModelObserver(BaseObserver):
 
     def __init__(self, func, model_cls: Type[Model], **kwargs):
         super().__init__(func)
+        self._model_cls = None
         self.model_cls = model_cls  # type: Type[Model]
-        self._connect()
+
+    @property
+    def model_cls(self) -> Type[Model]:
+        return self._model_cls
+
+    @model_cls.setter
+    def model_cls(self, value: Type[Model]):
+        was_none = self._model_cls is None
+        self._model_cls = value
+
+        if self._model_cls is not None and was_none:
+            self._connect()
 
     def _connect(self):
-        pre_save.connect(self.pre_save_receiver, sender=self.model_cls)
-        post_save.connect(self.post_save_receiver, sender=self.model_cls)
-        pre_delete.connect(self.pre_delete_receiver, sender=self.model_cls)
-        post_delete.connect(self.post_delete_receiver, sender=self.model_cls)
+        pre_save.connect(
+            self.pre_save_receiver,
+            sender=self.model_cls,
+            dispatch_uid=id(self)
+        )
+        post_save.connect(
+            self.post_save_receiver,
+            sender=self.model_cls,
+            dispatch_uid=id(self)
+        )
+        pre_delete.connect(self.pre_delete_receiver, sender=self.model_cls, dispatch_uid=id(self))
+        post_delete.connect(self.post_delete_receiver, sender=self.model_cls, dispatch_uid=id(self))
 
     def pre_save_receiver(self, instance: Model, **kwargs):
         creating = instance._state.adding
+
         self.pre_change_receiver(
             instance,
             Action.CREATE if creating else Action.UPDATE
@@ -131,6 +156,7 @@ class ModelObserver(BaseObserver):
         )
 
     def pre_delete_receiver(self, instance: Model, **kwargs):
+
         self.pre_change_receiver(
             instance,
             Action.DELETE
@@ -187,6 +213,7 @@ class ModelObserver(BaseObserver):
             Action.UPDATE,
             **kwargs
         )
+
         #
         self.send_messages(
             instance,
@@ -209,7 +236,7 @@ class ModelObserver(BaseObserver):
     def group_names(self, *args, **kwargs):
         if self._group_names:
             for group in self._group_names(self, *args, **kwargs):
-                yield group
+                yield '{}-{}'.format(self._uuid, group)
             return
 
         model_label = '{}.{}'.format(
@@ -218,7 +245,8 @@ class ModelObserver(BaseObserver):
         ).lower().replace('_', '.')
 
         # one channel for all updates.
-        yield '{}-model-{}'.format(
+        yield '{}-{}-model-{}'.format(
+            self._uuid,
             self.func.__name__.replace('_', '.'),
             model_label,
         )

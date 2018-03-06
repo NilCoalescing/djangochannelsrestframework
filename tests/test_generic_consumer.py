@@ -29,7 +29,7 @@ async def test_generic_consumer():
         serializer_class = UserSerializer
 
         @action()
-        def test_sync_action(self, pk=None):
+        def test_sync_action(self, pk=None, **kwargs):
             user = self.get_object(pk=pk)
 
             s = self.get_serializer(
