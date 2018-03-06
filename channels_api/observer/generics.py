@@ -13,6 +13,16 @@ from channels_api.observer import model_observer, ModelObserver
 from channels_api.observer.observer import BaseObserver
 
 
+
+class GenericModelObserver(ModelObserver):
+
+    def __init__(self, func, **kwargs):
+        super().__init__(func=func, model_cls=None, **kwargs)
+
+
+generic_model_observer = GenericModelObserver
+
+
 class ObserverAPIConsumerMetaclass(APIConsumerMetaclass):
     def __new__(mcs, name, bases, body) -> Type[GenericAsyncAPIConsumer]:
         cls = super().__new__(mcs, name, bases, body)  # type: Type[GenericAsyncAPIConsumer]
@@ -20,7 +30,7 @@ class ObserverAPIConsumerMetaclass(APIConsumerMetaclass):
         if issubclass(cls, GenericAsyncAPIConsumer):
             for method_name in dir(cls):
                 attr = getattr(cls, method_name)
-                if isinstance(attr, ModelObserver):
+                if isinstance(attr, GenericModelObserver):
                     if getattr(cls, 'queryset') is not None:
                         if attr.model_cls is None:
                             attr.model_cls = cls.queryset.model
@@ -49,7 +59,7 @@ class ObserverModelInstanceMixin(ObserverConsumerMixin, RetrieveModelMixin):
 
         return None, status.HTTP_201_CREATED
 
-    @model_observer(None)
+    @generic_model_observer
     async def handle_instance_change(self, message, **kwargs):
         action = message.pop('action')
         message.pop('type')
