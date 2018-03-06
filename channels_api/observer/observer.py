@@ -51,6 +51,7 @@ class BaseObserver:
 
     def serializer(self, func):
         self._serializer = func
+        return self
 
     async def subscribe(self, consumer: AsyncAPIConsumer, *args, **kwargs):
         for group_name in self.group_names(*args, consumer=consumer, **kwargs):
