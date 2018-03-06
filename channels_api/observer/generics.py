@@ -21,9 +21,12 @@ class ObserverAPIConsumerMetaclass(APIConsumerMetaclass):
             for method_name in dir(cls):
                 attr = getattr(cls, method_name)
                 if isinstance(attr, ModelObserver):
-                    if attr.model_cls is None:
-                        if hasattr(cls, 'queryset'):
+                    if getattr(cls, 'queryset') is not None:
+                        if attr.model_cls is None:
                             attr.model_cls = cls.queryset.model
+                        elif attr.model_cls != cls.queryset.model:
+                            raise ValueError('Subclasses of observed consumers'
+                                             ' cant change the model class')
         return cls
 
 
@@ -46,7 +49,7 @@ class ObserverModelInstanceMixin(ObserverConsumerMixin, RetrieveModelMixin):
 
         return None, status.HTTP_201_CREATED
 
-    @model_observer(None)  # todo metaclass should inject model!
+    @model_observer(None)
     async def handle_instance_change(self, message, **kwargs):
         action = message.pop('action')
         message.pop('type')

@@ -10,6 +10,7 @@ from rest_framework import serializers
 
 from channels_api.generics import GenericAsyncAPIConsumer
 from channels_api.observer.generics import ObserverModelInstanceMixin
+from tests.models import TestModel
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -151,7 +152,32 @@ async def test_observer_model_instance_mixin(settings):
         "data": {'email': '42@example.com', 'id': 13, 'username': 'thenewname'},
     }
 
+    await database_sync_to_async(u1.delete)()
+
+    response = await communicator.receive_json_from()
+
+    assert response == {
+        "action": "delete",
+        "errors": [],
+        "response_status": 204,
+        "request_id": 4,
+        "data": {'pk': 13},
+    }
+
     await communicator.disconnect()
 
 
+@pytest.mark.django_db(transaction=True)
+def test_no_change_of_model():
+    class TestConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
 
+        queryset = get_user_model().objects.all()
+        serializer_class = UserSerializer
+
+        async def accept(self):
+            await super().accept()
+
+    with pytest.raises(ValueError,
+                       match='Subclasses of observed consumers cant change the model class'):
+        class SubConsumer(TestConsumer):
+            queryset = TestModel.objects.all()
