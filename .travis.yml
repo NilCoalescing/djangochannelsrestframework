@@ -11,9 +11,7 @@ env:
   - DJANGO="Django>=2.0,<2.1"
 
 install:
-  - nvm install 7
   - pip install $DJANGO -e .[tests]
-  - pip install git+https://github.com/django/channels.git --upgrade
   - pip freeze
 
 script:

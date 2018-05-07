@@ -1,5 +1,5 @@
 django>=1.8
 djangorestframework>=3
-git+https://github.com/django/channels.git
+channels>=2.1.1
 pytest-django
 pytest-asyncio

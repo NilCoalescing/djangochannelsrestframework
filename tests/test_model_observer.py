@@ -8,6 +8,7 @@ from channels.testing import WebsocketCommunicator
 from django.contrib.auth import get_user_model, user_logged_in
 from rest_framework import serializers
 
+from djangochannelsrestframework.decorators import action
 from djangochannelsrestframework.generics import GenericAsyncAPIConsumer
 from djangochannelsrestframework.observer.generics import ObserverModelInstanceMixin
 from tests.models import TestModel
@@ -38,8 +39,15 @@ async def test_observer_model_instance_mixin(settings):
         queryset = get_user_model().objects.all()
         serializer_class = UserSerializer
 
-        async def accept(self):
+        async def accept(self, subprotocol=None):
             await super().accept()
+
+        @action()
+        async def update_username(self, pk=None, username=None, **kwargs):
+            user = await database_sync_to_async(self.get_object)(pk=pk)
+            user.username = username
+            await database_sync_to_async(user.save)()
+            return {'pk': pk}, 200
 
     assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
@@ -122,7 +130,9 @@ async def test_observer_model_instance_mixin(settings):
         }
     )
 
+
     response = await communicator.receive_json_from()
+
 
     assert response == {
         "action": "subscribe_instance",
@@ -136,11 +146,25 @@ async def test_observer_model_instance_mixin(settings):
         username='test3', email='46@example.com'
     )
 
-    with pytest.raises(asyncio.TimeoutError):
-        await communicator.receive_json_from()
+    # lookup up u1
+    await communicator.send_json_to(
+        {
+            "action": "update_username",
+            "pk": u1.id,
+            "username": "thenewname",
+            "request_id": 5
+        }
+    )
 
-    u1.username = 'thenewname'
-    await database_sync_to_async(u1.save)()
+    response = await communicator.receive_json_from()
+
+    assert response == {
+        "action": "update_username",
+        "errors": [],
+        "response_status": 200,
+        "request_id": 5,
+        "data": {'pk': u1.id}
+    }
 
     response = await communicator.receive_json_from()
 
