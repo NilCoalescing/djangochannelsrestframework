@@ -12,18 +12,11 @@ def pytest_configure():
         ),
         SECRET_KEY='dog',
 
-        DATABASES = {
+        DATABASES={
             'default': {
                 'ENGINE': 'django.db.backends.sqlite3',
             }
         },
 
-        #CHANNEL_LAYERS = {
-        #    'default': {
-        #        'BACKEND': 'channels.layers.InMemoryChannelLayer',
-        #    },
-        #},
-
-        MIDDLEWARE_CLASSES = []
-
-        )
+        MIDDLEWARE_CLASSES=[]
+    )

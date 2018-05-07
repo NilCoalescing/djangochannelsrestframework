@@ -1,14 +1,14 @@
 from setuptools import find_packages, setup
 
 setup(
-    name='channels_api',
-    version="0.5.0",
-    url='https://github.com/linuxlewis/channels-api',
-    author='Sam Bolgert',
-    author_email='sbolgert@gmail.com',
-    description="Helps build a RESTful API on top of WebSockets using channels.",
-    long_description=open('README.rst').read(),
-    license='BSD',
+    name='djangochannelsrestframework',
+    version="0.0.1",
+    url='https://github.com/hishnash/djangochannelsrestframework',
+    author='Matthaus Woolard',
+    author_email='matthaus.woolard@gmail.com',
+    description="RESTful API for WebSockets using django channels.",
+    long_description=open('README.md').read(),
+    license='MIT',
     packages=find_packages(exclude=['tests']),
     include_package_data=True,
     install_requires=[
@@ -26,8 +26,6 @@ setup(
         ],
     },
     classifiers=[
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
     ]

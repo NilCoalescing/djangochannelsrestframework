@@ -13,14 +13,6 @@ from django.contrib.auth.models import User
 from django.utils.encoding import force_text
 from rest_framework import serializers
 
-#from channels.test import WSClient
-#from channels.tests import ChannelTestCase, Client
-
-#from channels_api import bindings
-#from channels_api.decorators import list_action, detail_action
-#from channels_api.permissions import IsAuthenticated
-#from channels_api.settings import api_settings
-
 from .models import TestModel
 
 
@@ -29,32 +21,6 @@ class TestModelSerializer(serializers.ModelSerializer):
         model = TestModel
         fields = ('id', 'name')
 
-"""
-class TestModelResourceBinding(bindings.ResourceBinding):
-
-    model = TestModel
-    queryset = TestModel.objects.all()
-    serializer_class = TestModelSerializer
-    stream = 'testmodel'
-
-    @list_action()
-    def test_list(self, data=None, **kwargs):
-        return 'some data', 200
-
-    @detail_action()
-    def test_detail(self, pk, data=None, **kwargs):
-        instance = self.get_object_or_404(pk)
-        return instance.name, 200
-
-    @list_action(name='named_list')
-    def some_other_list(self, data=None, **kwargs):
-        return 'some data', 200
-
-    @detail_action(name='named_detail')
-    def some_other_detail(self, pk, data=None, **kwargs):
-        instance = self.get_object_or_404(pk)
-        return instance.name, 200
-"""
 
 class ResourceBindingTestCase(ChannelsLiveServerTestCase):
 

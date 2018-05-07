@@ -3,9 +3,9 @@ from channels.testing import WebsocketCommunicator
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from channels_api.decorators import action
-from channels_api.generics import GenericAsyncAPIConsumer
-from channels_api.mixins import (
+from djangochannelsrestframework.decorators import action
+from djangochannelsrestframework.generics import GenericAsyncAPIConsumer
+from djangochannelsrestframework.mixins import (
     CreateModelMixin,
     ListModelMixin,
     RetrieveModelMixin,

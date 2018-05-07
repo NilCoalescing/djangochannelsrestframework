@@ -1,28 +1,20 @@
 import asyncio
 import json
-import re
 import typing
 from functools import partial
-
 from typing import List, Type
 
 from channels.consumer import AsyncConsumer
 from channels.db import database_sync_to_async
-from channels.generic.websocket import AsyncJsonWebsocketConsumer, \
-    WebsocketConsumer
-from django.conf.urls import url
+from channels.generic.websocket import AsyncJsonWebsocketConsumer
+from djangochannelsrestframework.permissions import BasePermission
+from djangochannelsrestframework.settings import api_settings
 from django.http import HttpRequest, HttpResponse
-from django.http.response import HttpResponseBase, Http404
+from django.http.response import Http404
 from django.template.response import SimpleTemplateResponse
-from django.urls import Resolver404, reverse, resolve
-
 from rest_framework.exceptions import PermissionDenied, MethodNotAllowed, \
-    APIException, NotFound
+    APIException
 from rest_framework.response import Response
-from rest_framework.viewsets import ViewSet
-
-from channels_api.permissions import BasePermission
-from channels_api.settings import api_settings
 
 
 class APIConsumerMetaclass(type):

@@ -4,7 +4,7 @@ from django.db.models import QuerySet, Model
 from rest_framework.generics import get_object_or_404
 from rest_framework.serializers import Serializer
 
-from channels_api.consumers import AsyncAPIConsumer
+from djangochannelsrestframework.consumers import AsyncAPIConsumer
 
 
 class GenericAsyncAPIConsumer(AsyncAPIConsumer):

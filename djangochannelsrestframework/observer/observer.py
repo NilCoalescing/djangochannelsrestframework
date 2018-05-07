@@ -1,19 +1,17 @@
 import threading
-import traceback
 from enum import Enum
 from functools import partial
 from typing import Dict, Any, Type, Set, Generator
 from uuid import uuid4
 
 from asgiref.sync import async_to_sync
-from channels.consumer import AsyncConsumer
 from channels.layers import get_channel_layer
 from django.db.models import Model
 from django.db.models.signals import pre_save, post_save, post_delete, \
     pre_delete
 from django.dispatch import Signal
 
-from channels_api.consumers import AsyncAPIConsumer
+from djangochannelsrestframework.consumers import AsyncAPIConsumer
 
 
 class ObjPartial(partial):

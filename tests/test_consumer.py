@@ -1,8 +1,8 @@
 import pytest
 from channels.testing import WebsocketCommunicator
 
-from channels_api.decorators import action
-from channels_api.consumers import AsyncAPIConsumer
+from djangochannelsrestframework.decorators import action
+from djangochannelsrestframework.consumers import AsyncAPIConsumer
 
 
 @pytest.mark.django_db(transaction=True)

@@ -9,8 +9,8 @@ from channels.testing import WebsocketCommunicator
 from django.contrib.auth import user_logged_in, get_user_model
 from django.utils.text import slugify
 
-from channels_api.consumers import AsyncAPIConsumer
-from channels_api.observer import observer, model_observer
+from djangochannelsrestframework.consumers import AsyncAPIConsumer
+from djangochannelsrestframework.observer import observer, model_observer
 
 
 @pytest.mark.django_db(transaction=True)

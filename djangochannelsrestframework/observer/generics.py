@@ -2,16 +2,13 @@ from functools import partial
 from typing import Dict, Type
 
 from channels.db import database_sync_to_async
-
 from rest_framework import status
 
-from channels_api.consumers import APIConsumerMetaclass
-from channels_api.decorators import action
-from channels_api.generics import GenericAsyncAPIConsumer
-from channels_api.mixins import RetrieveModelMixin
-from channels_api.observer import model_observer, ModelObserver
-from channels_api.observer.observer import BaseObserver
-
+from djangochannelsrestframework.consumers import APIConsumerMetaclass
+from djangochannelsrestframework.decorators import action
+from djangochannelsrestframework.generics import GenericAsyncAPIConsumer
+from djangochannelsrestframework.mixins import RetrieveModelMixin
+from djangochannelsrestframework.observer import ModelObserver
 
 
 class GenericModelObserver(ModelObserver):

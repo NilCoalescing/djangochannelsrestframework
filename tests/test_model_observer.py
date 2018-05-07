@@ -8,8 +8,8 @@ from channels.testing import WebsocketCommunicator
 from django.contrib.auth import get_user_model, user_logged_in
 from rest_framework import serializers
 
-from channels_api.generics import GenericAsyncAPIConsumer
-from channels_api.observer.generics import ObserverModelInstanceMixin
+from djangochannelsrestframework.generics import GenericAsyncAPIConsumer
+from djangochannelsrestframework.observer.generics import ObserverModelInstanceMixin
 from tests.models import TestModel
 
 

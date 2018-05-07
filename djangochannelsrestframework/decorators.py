@@ -5,7 +5,7 @@ from channels.db import database_sync_to_async
 from django.conf import settings
 from django.db import transaction
 
-from channels_api.consumers import AsyncAPIConsumer
+from djangochannelsrestframework.consumers import AsyncAPIConsumer
 
 
 def detail_action(**kwargs):
