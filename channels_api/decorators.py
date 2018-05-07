@@ -1,4 +1,5 @@
 import asyncio
+from functools import wraps
 
 from channels.db import database_sync_to_async
 from django.conf import settings
@@ -52,6 +53,7 @@ def action(atomic=None, **kwargs):
             # wrap function in atomic wrapper
             func = transaction.atomic(func)
 
+        @wraps(func)
         async def async_f(self: AsyncAPIConsumer,
                           *args, **_kwargs):
 
