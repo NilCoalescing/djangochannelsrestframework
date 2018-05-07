@@ -3,6 +3,10 @@ Django Channels Rest Framework
 
 Django Channels Rest Framework provides a DRF like interface for building channels-v2 websocket consumers.
 
+
+[![Build Status](https://travis-ci.org/hishnash/djangochannelsrestframework.svg?branch=master)](https://travis-ci.org/hishnash/djangochannelsrestframework)
+
+
 Thanks to
 ---------
 
