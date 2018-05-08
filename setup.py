@@ -2,12 +2,12 @@ from setuptools import find_packages, setup
 
 setup(
     name='djangochannelsrestframework',
-    version="0.0.1",
+    version="0.0.2",
     url='https://github.com/hishnash/djangochannelsrestframework',
     author='Matthaus Woolard',
     author_email='matthaus.woolard@gmail.com',
     description="RESTful API for WebSockets using django channels.",
-    long_description=open('README.md').read(),
+    long_description=open('README.rst').read(),
     license='MIT',
     packages=find_packages(exclude=['tests']),
     include_package_data=True,
