@@ -15,6 +15,14 @@ Thanks to
 DCRF is based of a fork of `Channels Api <https://github.com/linuxlewis/channels-api>`_ and of course inspired by `Django Rest Framework <http://www.django-rest-framework.org/>`_.
 
 
+Install
+-------
+
+.. code-block:: bash
+  
+  pip install djangochannelsrestframework
+
+
 How to Use
 ==========
 
