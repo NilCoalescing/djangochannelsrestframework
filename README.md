@@ -45,3 +45,45 @@ Actions will be sent down out from the server:
     "data": {'email': '42@example.com', 'id': 42, 'username': 'thenewname'},
 }
 ```
+
+### Adding Custom actions
+```python
+class UserConsumer(GenericAsyncAPIConsumer):
+    queryset = get_user_model().objects.all()
+    serializer_class = UserSerializer
+    
+    @action()
+    async def send_email(self, pk=None, to=None, **kwargs):
+        user = await database_sync_to_async(self.get_object)(pk=pk)
+        # ... do some stuff
+        # remember to wrap all db actions in `database_sync_to_async`
+        return {}, 200  # return the contenct and the response code.
+
+    @action()  # if the method is not async it is already wrapped in `database_sync_to_async`
+    def publish(self, pk=None, **kwargs):
+        user = self.get_object(pk=pk)
+        # ...
+        return {'pk': pk}, 200
+```
+
+You can also use any of:
+* `CreateModelMixin`
+* `ListModelMixin`
+* `RetrieveModelMixin`
+* `UpdateModelMixin`
+* `PatchModelMixin`
+* `DeleteModelMixin`
+
+just as you would in DRF.
+
+```python
+from djangochannelsrestframework.generics import GenericAsyncAPIConsumer
+from djangochannelsrestframework.mixins import (
+    RetrieveModelMixin,
+    UpdateModelMixin
+)
+
+class UserConsumer(RetrieveModelMixin, UpdateModelMixin, GenericAsyncAPIConsumer):
+    queryset = get_user_model().objects.all()
+    serializer_class = UserSerializer
+```
