@@ -87,3 +87,24 @@ class UserConsumer(RetrieveModelMixin, UpdateModelMixin, GenericAsyncAPIConsumer
     queryset = get_user_model().objects.all()
     serializer_class = UserSerializer
 ```
+
+
+### Consumers that are not bound to Models
+You can also create consumers that are not at all related to any models.
+
+```python
+from djangochannelsrestframework.decorators import action
+from djangochannelsrestframework.consumers import AsyncAPIConsumer
+
+class MyConsumer(AsyncAPIConsumer):
+
+    @action()
+    async def an_async_action(self, some=None, **kwargs):
+        # do something async
+        return {'response with': 'some message'}, 200
+
+    @action()
+    def a_sync_action(self, pk=None, **kwargs):
+        # do something sync
+        return {'response with': 'some message'}, 200
+```
