@@ -108,3 +108,19 @@ class MyConsumer(AsyncAPIConsumer):
         # do something sync
         return {'response with': 'some message'}, 200
 ```
+
+### Using your normal views over a websocket connection 
+
+```python
+from djangochannelsrestframework.consumers import view_as_consumer
+
+application = ProtocolTypeRouter({
+
+    "websocket": AuthMiddlewareStack(
+        URLRouter([
+            url(r"^front(end)/$", view_as_consumer(YourDjangoView)),
+        ])
+    ),
+
+})
+```
