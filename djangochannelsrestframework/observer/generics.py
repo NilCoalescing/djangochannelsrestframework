@@ -1,3 +1,4 @@
+from django.db.models import Model
 from functools import partial
 from typing import Dict, Type
 
@@ -11,30 +12,50 @@ from djangochannelsrestframework.mixins import RetrieveModelMixin
 from djangochannelsrestframework.observer import ModelObserver
 
 
-class GenericModelObserver(ModelObserver):
+class _GenericModelObserver:
 
     def __init__(self, func, **kwargs):
-        super().__init__(func=func, model_cls=None, **kwargs)
+        self.func = func
+        self._group_names = None
+        self._serializer = None
 
+    def bind_to_model(self, model_cls: Type[Model]) -> ModelObserver:
+        observer = ModelObserver(
+            func=self.func,
+            model_cls=model_cls
+        )
+        observer.groups(self._group_names)
+        observer.serializer(self._serializer)
+        return observer
 
-generic_model_observer = GenericModelObserver
+    def groups(self, func):
+        self._group_names = func
+        return self
+
+    def serializer(self, func):
+        self._serializer = func
+        return self
 
 
 class ObserverAPIConsumerMetaclass(APIConsumerMetaclass):
     def __new__(mcs, name, bases, body) -> Type[GenericAsyncAPIConsumer]:
-        cls = super().__new__(mcs, name, bases, body)  # type: Type[GenericAsyncAPIConsumer]
 
-        if issubclass(cls, GenericAsyncAPIConsumer):
-            for method_name in dir(cls):
-                attr = getattr(cls, method_name)
-                if isinstance(attr, GenericModelObserver):
-                    if getattr(cls, 'queryset') is not None:
-                        if attr.model_cls is None:
-                            attr.model_cls = cls.queryset.model
-                        elif attr.model_cls != cls.queryset.model:
-                            raise ValueError('Subclasses of observed consumers'
-                                             ' cant change the model class')
-        return cls
+        queryset = body.get('queryset', None)
+        if queryset is not None:
+            for attr_name, attr in body.items():
+                if isinstance(attr, _GenericModelObserver):
+                    body[attr_name] = attr.bind_to_model(
+                        model_cls=queryset.model
+                    )
+            for base in bases:
+                for attr_name in dir(base):
+                    attr = getattr(base, attr_name)
+                    if isinstance(attr, _GenericModelObserver):
+                        body[attr_name] = attr.bind_to_model(
+                            model_cls=queryset.model
+                        )
+
+        return super().__new__(mcs, name, bases, body)
 
 
 class ObserverConsumerMixin(metaclass=ObserverAPIConsumerMetaclass):
@@ -56,7 +77,7 @@ class ObserverModelInstanceMixin(ObserverConsumerMixin, RetrieveModelMixin):
 
         return None, status.HTTP_201_CREATED
 
-    @generic_model_observer
+    @_GenericModelObserver
     async def handle_instance_change(self, message, **kwargs):
         action = message.pop('action')
         message.pop('type')

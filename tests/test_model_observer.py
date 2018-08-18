@@ -130,9 +130,7 @@ async def test_observer_model_instance_mixin(settings):
         }
     )
 
-
     response = await communicator.receive_json_from()
-
 
     assert response == {
         "action": "subscribe_instance",
@@ -192,16 +190,113 @@ async def test_observer_model_instance_mixin(settings):
 
 
 @pytest.mark.django_db(transaction=True)
-def test_no_change_of_model():
-    class TestConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
+@pytest.mark.asyncio
+async def test_two_observer_model_instance_mixins(settings):
+    settings.CHANNEL_LAYERS={
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+            "TEST_CONFIG": {
+                "expiry": 100500,
+            },
+        },
+    }
+
+    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
+
+    class TestUserConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
 
         queryset = get_user_model().objects.all()
         serializer_class = UserSerializer
 
-        async def accept(self):
+        async def accept(self, subprotocol=None):
             await super().accept()
 
-    with pytest.raises(ValueError,
-                       match='Subclasses of observed consumers cant change the model class'):
-        class SubConsumer(TestConsumer):
-            queryset = TestModel.objects.all()
+        @action()
+        async def update_username(self, pk=None, username=None, **kwargs):
+            user = await database_sync_to_async(self.get_object)(pk=pk)
+            user.username = username
+            await database_sync_to_async(user.save)()
+            return {'pk': pk}, 200
+
+    class TestOtherConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
+
+        queryset = TestModel.objects.all()
+        serializer_class = UserSerializer
+
+        async def accept(self, subprotocol=None):
+            await super().accept()
+
+        @action()
+        async def update_username(self, pk=None, name=None, **kwargs):
+            tm = await database_sync_to_async(self.get_object)(pk=pk)
+            tm.name = name
+            await database_sync_to_async(tm.save)()
+            return {'pk': pk}, 200
+
+    assert not await database_sync_to_async(
+        get_user_model().objects.all().exists)()
+
+    # Test a normal connection
+    communicator1 = WebsocketCommunicator(TestOtherConsumer, "/testws/")
+    connected, _ = await communicator1.connect()
+    assert connected
+
+    # Test a normal connection
+    communicator2 = WebsocketCommunicator(TestUserConsumer, "/testws/")
+    connected, _ = await communicator2.connect()
+    assert connected
+
+    u1 = await database_sync_to_async(get_user_model().objects.create)(
+        username='test1', email='42@example.com'
+    )
+    t1 = await database_sync_to_async(TestModel.objects.create)(
+        name='test2'
+    )
+
+    await communicator1.send_json_to(
+        {
+            "action": "subscribe_instance",
+            "pk": t1.id,
+            "request_id": 4
+        }
+    )
+
+    response = await communicator1.receive_json_from()
+
+    assert response == {
+        "action": "subscribe_instance",
+        "errors": [],
+        "response_status": 201,
+        "request_id": 4,
+        "data": None
+    }
+
+    await communicator2.send_json_to(
+        {
+            "action": "subscribe_instance",
+            "pk": u1.id,
+            "request_id": 4
+        }
+    )
+
+    response = await communicator2.receive_json_from()
+
+    assert response == {
+        "action": "subscribe_instance",
+        "errors": [],
+        "response_status": 201,
+        "request_id": 4,
+        "data": None
+    }
+
+    # update the user
+
+    u1.username = 'no not a value'
+
+    await database_sync_to_async(u1.save)()
+
+    # user is updated
+    await communicator2.receive_json_from()
+
+    # test model is not
+    assert await communicator1.receive_nothing()
