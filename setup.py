@@ -18,9 +18,9 @@ setup(
     ],
     extras_require={
         'tests': [
-            'pytest~=3.3',
-            "pytest-django~=3.1",
-            "pytest-asyncio~=0.8",
+            'pytest~=3.7.1',
+            "pytest-django~=3.4.1",
+            "pytest-asyncio~=0.9",
             'coverage~=4.4',
         ],
     },
