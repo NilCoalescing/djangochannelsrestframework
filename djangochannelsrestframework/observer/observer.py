@@ -55,6 +55,10 @@ class BaseObserver:
         for group_name in self.group_names(*args, consumer=consumer, **kwargs):
             await consumer.add_group(group_name)
 
+    async def unsubscribe(self, consumer: AsyncAPIConsumer, *args, **kwargs):
+        for group_name in self.group_names(*args, consumer=consumer, **kwargs):
+            await consumer.remove_group(group_name)
+
     def group_names(self, *args, **kwargs) -> Generator[str, None, None]:
         if self._group_names:
             for group in self._group_names(*args, **kwargs):
