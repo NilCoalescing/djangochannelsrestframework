@@ -77,6 +77,17 @@ class ObserverModelInstanceMixin(ObserverConsumerMixin, RetrieveModelMixin):
 
         return None, status.HTTP_201_CREATED
 
+    @action()
+    async def unsubscribe_instance(self, request_id=None, **kwargs):
+        if request_id is None:
+            raise ValueError('request_id must have a value set')
+        # subscribe!
+        instance = await database_sync_to_async(self.get_object)(**kwargs)
+        await self.handle_instance_change.unsubscribe(instance=instance)
+        del self.subscribed_requests[self.__class__.handle_instance_change]
+
+        return None, status.HTTP_204_NO_CONTENT
+
     @_GenericModelObserver
     async def handle_instance_change(self, message, **kwargs):
         action = message.pop('action')
