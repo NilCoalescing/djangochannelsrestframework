@@ -178,7 +178,7 @@ class LiveConsumer(ListModelMixin, GenericAsyncAPIConsumer):
     serializer_class = serializers.UserPageGroupSerializer
     permission_classes = (permissions.IsAuthenticated,)
 
-	extracted_data, extracted_status = await self.list()
+    extracted_data, extracted_status = await self.list()
 
 This class utilizes the ListModelMixin to return all instances of the model to `extracted_data`, and the status of the extraction to `extracted_status`.
 
