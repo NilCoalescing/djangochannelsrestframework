@@ -175,7 +175,7 @@ from djangochannelsrestframework.mixins import (
 
 class LiveConsumer(ListModelMixin, GenericAsyncAPIConsumer):
     queryset = models.Test.objects.all()
-    serializer_class = serializers.UserPageGroupSerializer
+    serializer_class = serializers.TestSerializer
     permission_classes = (permissions.IsAuthenticated,)
 
     extracted_data, extracted_status = await self.list()
