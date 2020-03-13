@@ -155,3 +155,75 @@ Using your normal views over a websocket connection
       ),
    })
 
+
+Creating fully-functional custom Consumers
+------------------------------------------
+
+This package offers Django Rest Framework capabilities via mixins. To utilize these mixins, one must inherit from the GenericAsyncAPIConsumer. One may use the same exact querysets and serializer_classes utilized in their DRF Views. However, one must import djangochannelsrestframework's permissions, which provides the standard AllowAny and IsAuthenticated permissions.
+
+from . import models
+from . import serializers
+from djangochannelsrestframework import permissions
+from djangochannelsrestframework.generics import GenericAsyncAPIConsumer
+from djangochannelsrestframework.mixins import (
+    ListModelMixin,
+    PatchModelMixin,
+    UpdateModelMixin,
+    CreateModelMixin,
+    DeleteModelMixin,
+)
+
+class LiveConsumer(ListModelMixin, GenericAsyncAPIConsumer):
+    queryset = models.Test.objects.all()
+    serializer_class = serializers.UserPageGroupSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+	extracted_data, extracted_status = await self.list()
+
+This class utilizes the ListModelMixin to return all instances of the model to `extracted_data`, and the status of the extraction to `extracted_status`.
+
+
+Subscribing to all instances of a model
+---------------------------------------
+
+One can subscribe to all instances of a model by utilizing the model_observer.
+
+from djangochannelsrestframework.observer import model_observer
+
+    @model_observer(models.Test)
+    async def model_activity(self, message, observer=None, **kwargs):
+        # send activity to your frontend
+        await self.send_json(message)
+
+This function will send messages to the client on all CRUD operations made via Django Rest Framework.
+
+
+Creating consumer actions
+-------------------------
+
+To create consumer operations, one must choose between using the traditional receive/receive_json functions utilized in typical consumers or djangochannelsrestframework actions. Utilizing receive/receive_json will prevent the usage of all actions. Actions are created by adding the action <decorator> to a function.
+
+from djangochannelsrestframework.decorators import action
+
+    @action()
+    async def subscribe_to_model(self, pk=None, to=None, **kwargs):
+        await LiveConsumer.model_activity.subscribe(self)
+
+This action makes use of the model_activity function in the LiveConsumer class, referred to above, subscribing to all CRUD operations of the model specified in the @model_observer.
+
+
+Initiating operations on consumer connects
+------------------------------------------
+
+One may initiate operations on consumer connects by overriding the `websocket_connect` function.
+
+    async def websocket_connect(self, message):
+        try:
+            await self.accept()
+            await type(self).model_activity.subscribe(self)
+
+        except Exception as e:
+            await self.close()
+
+This function utilizes the previosly mentioned model_activity function to subscribe to all instances of the current Consumer's model. Notice the use of type(self), rather than `LiveConsumer`. This is a more dynamic approach, most likely used in a custom Consumer mixin, allowing one to subscribe to the current consumer rather than a specific one.
+
