@@ -7,8 +7,7 @@ python:
   - "3.8"
 
 env:
-  - DJANGO="Django>=1.11,<2.0"
-  - DJANGO="Django>=2.0,<3.0.0"
+  - DJANGO="Django>=2.2,<3.0.0"
   - DJANGO="Django>=3.0.4,<3.0.5"
 
 install:
