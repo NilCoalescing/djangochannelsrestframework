@@ -3,7 +3,8 @@ from typing import Type
 
 from django.db.models import Model
 
-from djangochannelsrestframework.observer.observer import ModelObserver, Observer
+from djangochannelsrestframework.observer.observer import Observer
+from djangochannelsrestframework.observer.model_observer import ModelObserver
 
 
 def observer(signal, **kwargs):

@@ -13,17 +13,13 @@ from djangochannelsrestframework.observer import ModelObserver
 
 
 class _GenericModelObserver:
-
     def __init__(self, func, **kwargs):
         self.func = func
         self._group_names = None
         self._serializer = None
 
     def bind_to_model(self, model_cls: Type[Model]) -> ModelObserver:
-        observer = ModelObserver(
-            func=self.func,
-            model_cls=model_cls
-        )
+        observer = ModelObserver(func=self.func, model_cls=model_cls)
         observer.groups(self._group_names)
         observer.serializer(self._serializer)
         return observer
@@ -40,20 +36,16 @@ class _GenericModelObserver:
 class ObserverAPIConsumerMetaclass(APIConsumerMetaclass):
     def __new__(mcs, name, bases, body) -> Type[GenericAsyncAPIConsumer]:
 
-        queryset = body.get('queryset', None)
+        queryset = body.get("queryset", None)
         if queryset is not None:
             for attr_name, attr in body.items():
                 if isinstance(attr, _GenericModelObserver):
-                    body[attr_name] = attr.bind_to_model(
-                        model_cls=queryset.model
-                    )
+                    body[attr_name] = attr.bind_to_model(model_cls=queryset.model)
             for base in bases:
                 for attr_name in dir(base):
                     attr = getattr(base, attr_name)
                     if isinstance(attr, _GenericModelObserver):
-                        body[attr_name] = attr.bind_to_model(
-                            model_cls=queryset.model
-                        )
+                        body[attr_name] = attr.bind_to_model(model_cls=queryset.model)
 
         return super().__new__(mcs, name, bases, body)
 
@@ -65,11 +57,10 @@ class ObserverConsumerMixin(metaclass=ObserverAPIConsumerMetaclass):
 
 
 class ObserverModelInstanceMixin(ObserverConsumerMixin, RetrieveModelMixin):
-
     @action()
     async def subscribe_instance(self, request_id=None, **kwargs):
         if request_id is None:
-            raise ValueError('request_id must have a value set')
+            raise ValueError("request_id must have a value set")
         # subscribe!
         instance = await database_sync_to_async(self.get_object)(**kwargs)
         await self.handle_instance_change.subscribe(instance=instance)
@@ -80,7 +71,7 @@ class ObserverModelInstanceMixin(ObserverConsumerMixin, RetrieveModelMixin):
     @action()
     async def unsubscribe_instance(self, request_id=None, **kwargs):
         if request_id is None:
-            raise ValueError('request_id must have a value set')
+            raise ValueError("request_id must have a value set")
         # subscribe!
         instance = await database_sync_to_async(self.get_object)(**kwargs)
         await self.handle_instance_change.unsubscribe(instance=instance)
@@ -90,8 +81,8 @@ class ObserverModelInstanceMixin(ObserverConsumerMixin, RetrieveModelMixin):
 
     @_GenericModelObserver
     async def handle_instance_change(self, message, **kwargs):
-        action = message.pop('action')
-        message.pop('type')
+        action = message.pop("action")
+        message.pop("type")
 
         await self.handle_observed_action(
             action=action,
@@ -104,20 +95,21 @@ class ObserverModelInstanceMixin(ObserverConsumerMixin, RetrieveModelMixin):
     @handle_instance_change.groups
     def handle_instance_change(self: ModelObserver, instance, *args, **kwargs):
 
-        model_label = '{}.{}'.format(
-            self.model_cls._meta.app_label.lower(),
-            self.model_cls._meta.object_name.lower()
-        ).lower().replace('_', '.')
-
-        # one channel for all updates.
-        yield '{}-model-{}-pk-{}'.format(
-            self.func.__name__.replace('_', '.'),
-            model_label,
-            instance.pk
+        model_label = (
+            "{}.{}".format(
+                self.model_cls._meta.app_label.lower(),
+                self.model_cls._meta.object_name.lower(),
+            )
+            .lower()
+            .replace("_", ".")
         )
 
-    async def handle_observed_action(self,
-                                     action: str, request_id: str, **kwargs):
+        # one channel for all updates.
+        yield "{}-model-{}-pk-{}".format(
+            self.func.__name__.replace("_", "."), model_label, instance.pk
+        )
+
+    async def handle_observed_action(self, action: str, request_id: str, **kwargs):
         """
         run the action.
         """
@@ -126,7 +118,7 @@ class ObserverModelInstanceMixin(ObserverConsumerMixin, RetrieveModelMixin):
 
             reply = partial(self.reply, action=action, request_id=request_id)
 
-            if action == 'delete':
+            if action == "delete":
                 await reply(data=kwargs, status=204)
                 # send the delete
                 return
@@ -134,21 +126,12 @@ class ObserverModelInstanceMixin(ObserverConsumerMixin, RetrieveModelMixin):
             # the @action decorator will wrap non-async action into async ones.
 
             response = await self.retrieve(
-                request_id=request_id,
-                action=action,
-                **kwargs
+                request_id=request_id, action=action, **kwargs
             )
 
             if isinstance(response, tuple):
                 data, status = response
-                await reply(
-                    data=data,
-                    status=status
-                )
+                await reply(data=data, status=status)
 
         except Exception as exc:
-            await self.handle_exception(
-                exc,
-                action=action,
-                request_id=request_id
-            )
+            await self.handle_exception(exc, action=action, request_id=request_id)
