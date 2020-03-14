@@ -1,4 +1,5 @@
 import pytest
+from channels.db import database_sync_to_async
 from channels.testing import WebsocketCommunicator
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
@@ -57,11 +58,13 @@ async def test_generic_consumer():
         "data": None,
     }
 
-    user = get_user_model().objects.create(username="test1", email="test@example.com")
+    user = await database_sync_to_async(get_user_model().objects.create)(
+        username="test1", email="test@example.com"
+    )
 
     pk = user.id
 
-    assert get_user_model().objects.filter(pk=pk).exists()
+    assert await database_sync_to_async(get_user_model().objects.filter(pk=pk).exists)()
 
     await communicator.disconnect()
 
@@ -103,7 +106,7 @@ async def test_create_mixin_consumer():
         queryset = get_user_model().objects.all()
         serializer_class = UserSerializer
 
-    assert not get_user_model().objects.all().exists()
+    assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
     # Test a normal connection
     communicator = WebsocketCommunicator(AConsumer, "/testws/")
@@ -119,7 +122,7 @@ async def test_create_mixin_consumer():
     )
 
     response = await communicator.receive_json_from()
-    user = get_user_model().objects.all().first()
+    user = await database_sync_to_async(get_user_model().objects.all().first)()
 
     assert user
     pk = user.id
@@ -149,7 +152,7 @@ async def test_list_mixin_consumer():
         queryset = get_user_model().objects.all()
         serializer_class = UserSerializer
 
-    assert not get_user_model().objects.all().exists()
+    assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
     # Test a normal connection
     communicator = WebsocketCommunicator(AConsumer, "/testws/")
@@ -168,8 +171,12 @@ async def test_list_mixin_consumer():
         "data": [],
     }
 
-    u1 = get_user_model().objects.create(username="test1", email="42@example.com")
-    u2 = get_user_model().objects.create(username="test2", email="45@example.com")
+    u1 = await database_sync_to_async(get_user_model().objects.create)(
+        username="test1", email="42@example.com"
+    )
+    u2 = await database_sync_to_async(get_user_model().objects.create)(
+        username="test2", email="45@example.com"
+    )
 
     await communicator.send_json_to({"action": "list", "request_id": 1})
 
@@ -203,7 +210,7 @@ async def test_retrieve_mixin_consumer():
         queryset = get_user_model().objects.all()
         serializer_class = UserSerializer
 
-    assert not get_user_model().objects.all().exists()
+    assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
     # Test a normal connection
     communicator = WebsocketCommunicator(AConsumer, "/testws/")
@@ -222,8 +229,12 @@ async def test_retrieve_mixin_consumer():
         "data": None,
     }
 
-    u1 = get_user_model().objects.create(username="test1", email="42@example.com")
-    u2 = get_user_model().objects.create(username="test2", email="45@example.com")
+    u1 = await database_sync_to_async(get_user_model().objects.create)(
+        username="test1", email="42@example.com"
+    )
+    u2 = await database_sync_to_async(get_user_model().objects.create)(
+        username="test2", email="45@example.com"
+    )
 
     # lookup a pk that is not there
     await communicator.send_json_to(
@@ -272,7 +283,7 @@ async def test_update_mixin_consumer():
         queryset = get_user_model().objects.all()
         serializer_class = UserSerializer
 
-    assert not get_user_model().objects.all().exists()
+    assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
     # Test a normal connection
     communicator = WebsocketCommunicator(AConsumer, "/testws/")
@@ -298,8 +309,12 @@ async def test_update_mixin_consumer():
         "data": None,
     }
 
-    u1 = get_user_model().objects.create(username="test1", email="42@example.com")
-    get_user_model().objects.create(username="test2", email="45@example.com")
+    u1 = await database_sync_to_async(get_user_model().objects.create)(
+        username="test1", email="42@example.com"
+    )
+    await database_sync_to_async(get_user_model().objects.create)(
+        username="test2", email="45@example.com"
+    )
 
     await communicator.send_json_to(
         {
@@ -320,7 +335,7 @@ async def test_update_mixin_consumer():
         "data": {"email": "42@example.com", "id": u1.id, "username": "test101"},
     }
 
-    u1 = get_user_model().objects.get(id=u1.id)
+    u1 = await database_sync_to_async(get_user_model().objects.get)(id=u1.id)
     assert u1.username == "test101"
     assert u1.email == "42@example.com"
 
@@ -341,7 +356,7 @@ async def test_patch_mixin_consumer():
         queryset = get_user_model().objects.all()
         serializer_class = UserSerializer
 
-    assert not get_user_model().objects.all().exists()
+    assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
     # Test a normal connection
     communicator = WebsocketCommunicator(AConsumer, "/testws/")
@@ -367,8 +382,12 @@ async def test_patch_mixin_consumer():
         "data": None,
     }
 
-    u1 = get_user_model().objects.create(username="test1", email="42@example.com")
-    get_user_model().objects.create(username="test2", email="45@example.com")
+    u1 = await database_sync_to_async(get_user_model().objects.create)(
+        username="test1", email="42@example.com"
+    )
+    await database_sync_to_async(get_user_model().objects.create)(
+        username="test2", email="45@example.com"
+    )
 
     await communicator.send_json_to(
         {
@@ -389,7 +408,7 @@ async def test_patch_mixin_consumer():
         "data": {"email": "00@example.com", "id": u1.id, "username": "test1"},
     }
 
-    u1 = get_user_model().objects.get(id=u1.id)
+    u1 = await database_sync_to_async(get_user_model().objects.get)(id=u1.id)
     assert u1.username == "test1"
     assert u1.email == "00@example.com"
 
@@ -410,7 +429,7 @@ async def test_delete_mixin_consumer():
         queryset = get_user_model().objects.all()
         serializer_class = UserSerializer
 
-    assert not get_user_model().objects.all().exists()
+    assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
     # Test a normal connection
     communicator = WebsocketCommunicator(AConsumer, "/testws/")
@@ -429,8 +448,12 @@ async def test_delete_mixin_consumer():
         "data": None,
     }
 
-    u1 = get_user_model().objects.create(username="test1", email="42@example.com")
-    get_user_model().objects.create(username="test2", email="45@example.com")
+    u1 = await database_sync_to_async(get_user_model().objects.create)(
+        username="test1", email="42@example.com"
+    )
+    await database_sync_to_async(get_user_model().objects.create)(
+        username="test2", email="45@example.com"
+    )
 
     await communicator.send_json_to(
         {"action": "delete", "pk": u1.id - 1, "request_id": 1}
@@ -458,4 +481,6 @@ async def test_delete_mixin_consumer():
         "data": None,
     }
 
-    assert not get_user_model().objects.filter(id=u1.id).exists()
+    assert not await database_sync_to_async(
+        get_user_model().objects.filter(id=u1.id).exists
+    )()

@@ -147,7 +147,7 @@ async def test_observer_model_instance_mixin(settings):
     }
 
     response = await communicator.receive_json_from()
-    print(response)
+
     assert response == {
         "action": "update",
         "errors": [],
