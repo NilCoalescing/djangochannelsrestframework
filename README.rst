@@ -191,6 +191,7 @@ Because this class uses the ListModelMixin, one has access to the `list` action.
 One can access this action from the client with a payload, or from within a method:
 
 .. code-block:: python
+
     # From Client payload:
     {action: "list", "request_id": 42}
 
