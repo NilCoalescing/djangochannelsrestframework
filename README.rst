@@ -243,10 +243,10 @@ Actions are created by adding the action <decorator> to a method.
         await LiveConsumer.model_activity.subscribe(self)
 
     async def receive_json(self, content):
-        super().receive_json
+        await super().receive_json
         await LiveConsumer.model_activity.subscribe(self)
 
-This action makes use of the model_activity method in the LiveConsumer class, referred to above, subscribing to all CRUD operations of the model specified in the @model_observer.
+Both the action and receive_json make use of the model_activity method in the LiveConsumer class, referred to above, subscribing to all CRUD operations of the model specified in the @model_observer.
 
 Note: If utilizing `receive_json`, one must `super().receive_json` to avoid the disruption of other actions not declared in the `receive_json`.
 
