@@ -161,7 +161,7 @@ Creating a fully-functional custom Consumer
 
 This package offers Django Rest Framework capabilities via mixins. To utilize these mixins, one must inherit from the `GenericAsyncAPIConsumer`.
 
-One may use the same exact querysets and serializer_classes utilized in their DRF Views, but must omit the DRF permissions. 
+One may use the same exact querysets and `serializer_classes` utilized in their DRF Views, but must omit the DRF permissions. 
 
 Permissions are to be imported from djangochannelsrestframework, which provides the standard `AllowAny` and `IsAuthenticated` permissions.
 
@@ -186,20 +186,20 @@ Permissions are to be imported from djangochannelsrestframework, which provides 
         permission_classes = (permissions.IsAuthenticated,)
 
 
-Because this class uses the ListModelMixin, one has access to the `list` action.
+Because this class uses the `ListModelMixin`, one has access to the `list` action.
 
 One can access this action from the client with a payload, or from within a method:
 
-Access action from Client payload: {action: "list", "request_id": 42}
+Access action from Client `payload: {action: "list", "request_id": 42}`
 
 Note: Mixin - available action
 
-ListModelMixin - `list`
-PatchModelMixin - `patch`
-CreateModelMixin - `create`
-RetrieveModelMixin - `retrieve`
-UpdateModelMixin - `update`
-DeleteModelMixin - `delete`
+`ListModelMixin` - `list`
+`PatchModelMixin` - `patch`
+`CreateModelMixin` - `create`
+`RetrieveModelMixin` - `retrieve`
+`UpdateModelMixin` - `update`
+`DeleteModelMixin` - `delete`
 
 
 Subscribing to all instances of a model
@@ -224,9 +224,9 @@ Note: These notifications do not include bulk updates, such as `models.Test.obje
 Creating consumer operation
 ---------------------------
 
-To create consumer operations, one can choose between using the traditional receive_json method utilized in typical consumers or djangochannelsrestframework actions. 
+To create consumer operations, one can choose between using the traditional `receive_json` method utilized in typical consumers or djangochannelsrestframework actions. 
 
-Actions are created by adding the action <decorator> to a method.
+Actions are created by adding the `action` <decorator> to a method.
 
 .. code-block:: python
 
@@ -242,7 +242,7 @@ Actions are created by adding the action <decorator> to a method.
         await super().receive_json(content)
         await LiveConsumer.model_activity.subscribe(self)
 
-Both the action and receive_json make use of the model_activity method in the LiveConsumer class, referred to above, subscribing to all CRUD operations of the model specified in the @model_observer.
+Both the action and `receive_json` make use of the `model_activity` method in the `LiveConsumer` class, referred to above, subscribing to all CRUD operations of the model specified in the `@model_observer`.
 
 Note: If utilizing `receive_json`, one must `super().receive_json(content)` to avoid the disruption of other actions not declared in the `receive_json`.
 
@@ -263,7 +263,7 @@ One may initiate operations on consumer connects by overriding the `websocket_co
         await type(self).activities_change.subscribe(self)
 
 
-This method utilizes the previously mentioned model_activity method to subscribe to all instances of the current Consumer's model. 
+This method utilizes the previously mentioned `model_activity` method to subscribe to all instances of the current Consumer's model. 
 
-Note: Notice the use of type(self), rather than `LiveConsumer`. This is a more dynamic approach, most likely used in a custom Consumer mixin, allowing one to subscribe to the current consumer rather than a specific one.
+Note: Notice the use of `type(self)`, rather than `LiveConsumer`. This is a more dynamic approach, most likely used in a custom Consumer mixin, allowing one to subscribe to the current consumer rather than a specific one.
 
