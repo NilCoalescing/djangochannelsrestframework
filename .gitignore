@@ -62,3 +62,7 @@ target/
 .ipynb_checkpoints
 .idea/
 .pytest_cache/
+
+### VisualStudioCode template
+.vscode/*
+
