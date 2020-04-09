@@ -15,7 +15,6 @@ jobs:
       fail-fast: false
       matrix:
         python:
-          - 3.7.5
           - 3.7.6
           - 3.8
           - 3.8.2
@@ -31,7 +30,8 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Install
         run: |
-          pip install ${{ matrix.django }} -e .[tests]
+          pip install ${{ matrix.django }}
+          pip install .[tests]
       - name: Freeze
         run: pip freeze
       - name: Tests
