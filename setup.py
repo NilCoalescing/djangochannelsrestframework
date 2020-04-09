@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="djangochannelsrestframework",
-    version="0.0.4",
+    version="0.0.5",
     url="https://github.com/hishnash/djangochannelsrestframework",
     author="Matthaus Woolard",
     author_email="matthaus.woolard@gmail.com",
@@ -21,7 +21,7 @@ setup(
         ],
     },
     classifiers=[
-        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.7.6",
         "Programming Language :: Python :: 3.8",
     ],
 )
