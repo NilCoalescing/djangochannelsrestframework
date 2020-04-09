@@ -3,8 +3,9 @@ sudo: false
 language: python
 
 python:
-  - "3.7"
+  - "3.7.6"
   - "3.8"
+  - "3.8.2"
 
 env:
   - DJANGO="Django>=2.2,<3.0.0"
