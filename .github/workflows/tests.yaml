@@ -26,9 +26,9 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - name: Set up Python
-          uses: actions/setup-python@v1.2.0
-          with:
-            python-version: ${{ matrix.python }}
+        uses: actions/setup-python@v1.2.0
+        with:
+          python-version: ${{ matrix.python }}
       - name: Install
         run: |
           pip install ${{ matrix.django }} -e .[tests]
