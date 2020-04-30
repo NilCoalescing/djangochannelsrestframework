@@ -16,7 +16,7 @@ setup(
         "tests": [
             "pytest~=3.7.1",
             "pytest-django~=3.4.1",
-            "pytest-asyncio~=0.9",
+            "pytest-asyncio==0.10.0",
             "coverage~=4.4",
         ],
     },
