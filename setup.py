@@ -14,9 +14,9 @@ setup(
     install_requires=["Django>=1.11", "channels>=2.1.1", "djangorestframework>=3.0"],
     extras_require={
         "tests": [
-            "pytest~=3.7.1",
+            "pytest~=5.4.0",
             "pytest-django~=3.4.1",
-            "pytest-asyncio~=0.9",
+            "pytest-asyncio~=0.11.0",
             "coverage~=4.4",
         ],
     },
