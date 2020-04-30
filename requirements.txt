@@ -2,4 +2,4 @@ django>=2.2
 djangorestframework>=3
 channels>=2.1.1
 pytest-django
-pytest-asyncio
+pytest-async==0.10.0
