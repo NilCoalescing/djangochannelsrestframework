@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 from django.db.models import Model
 from functools import partial
 from typing import Dict, Type
@@ -80,7 +82,8 @@ class ObserverModelInstanceMixin(ObserverConsumerMixin, RetrieveModelMixin):
         return None, status.HTTP_204_NO_CONTENT
 
     @_GenericModelObserver
-    async def handle_instance_change(self, message, **kwargs):
+    async def handle_instance_change(self, message: Dict, **kwargs):
+        message = deepcopy(message)
         action = message.pop("action")
         message.pop("type")
 
