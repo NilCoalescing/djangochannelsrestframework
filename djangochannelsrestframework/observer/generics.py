@@ -97,19 +97,9 @@ class ObserverModelInstanceMixin(ObserverConsumerMixin, RetrieveModelMixin):
 
     @handle_instance_change.groups
     def handle_instance_change(self: ModelObserver, instance, *args, **kwargs):
-
-        model_label = (
-            "{}.{}".format(
-                self.model_cls._meta.app_label.lower(),
-                self.model_cls._meta.object_name.lower(),
-            )
-            .lower()
-            .replace("_", ".")
-        )
-
         # one channel for all updates.
         yield "{}-model-{}-pk-{}".format(
-            self.func.__name__.replace("_", "."), model_label, instance.pk
+            self.func.__name__.replace("_", "."), self.model_label, instance.pk
         )
 
     async def handle_observed_action(self, action: str, request_id: str, **kwargs):
