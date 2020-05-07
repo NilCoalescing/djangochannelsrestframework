@@ -2,13 +2,13 @@
 Django Channels Rest Framework
 ==============================
 
-Django Channels Rest Framework provides a DRF like interface for building channels-v2 websocket consumers.
+Django Channels Rest Framework provides a DRF like interface for building channels-v2_ websocket consumers.
 
 
-This project can be used alongside HyperMediaChannels_ and ChannelsMultiplexer_ to create a Hyper Media Style api over websockets. However Django Channels Rest Framework is also a free standing framwork with the goal of providing an api that is familiar to DRF users. 
+This project can be used alongside HyperMediaChannels_ and ChannelsMultiplexer_ to create a Hyper Media Style api over websockets. However Django Channels Rest Framework is also a free standing framework with the goal of providing an api that is familiar to DRF users.
 
-.. _HyperMediaChannels: https://github.com/hishnash/hypermediachannels
-.. _ChannelsMultiplexer: https://github.com/hishnash/channelsmultiplexer
+theY4Kman_ has developed a useful Javascript client library dcrf-client_ to use with DCRF.
+
 
 .. image:: https://travis-ci.org/hishnash/djangochannelsrestframework.svg?branch=master
     :target: https://travis-ci.org/hishnash/djangochannelsrestframework
@@ -36,7 +36,7 @@ How to Use
 Observing a Model instance
 --------------------------
 
-Consumer that accepts subscribtions to an instance.
+Consumer that let you subscribe to changes on an instance:
 
 .. code-block:: python
 
@@ -44,9 +44,9 @@ Consumer that accepts subscribtions to an instance.
        queryset = get_user_model().objects.all()
        serializer_class = UserSerializer
 
-this exposes the `retrieve` and `subscribe_instance` actions to that instance.
+this exposes the `retrieve` and `subscribe_instance` actions.
 
-to subscribe send:
+To subscribe send:
 
 
 .. code-block:: python
@@ -62,13 +62,13 @@ Actions will be sent down out from the server:
 
 .. code-block:: python
 
-	{
-		"action": "update",
-		"errors": [],
-		"response_status": 200,
-		"request_id": 4,
-		"data": {'email': '42@example.com', 'id': 42, 'username': 'thenewname'},
-	}
+  {
+    "action": "update",
+    "errors": [],
+    "response_status": 200,
+    "request_id": 4,
+    "data": {'email': '42@example.com', 'id': 42, 'username': 'thenewname'},
+  }
 
 Adding Custom actions
 ---------------------
@@ -90,8 +90,8 @@ Adding Custom actions
        @action()  # if the method is not async it is already wrapped in `database_sync_to_async`
        def publish(self, pk=None, **kwargs):
            user = self.get_object(pk=pk)
-	   # ...
-	   return {'pk': pk}, 200
+     # ...
+     return {'pk': pk}, 200
 
 You can also use any of:
 
@@ -133,12 +133,12 @@ You can also create consumers that are not at all related to any models.
       @action()
       async def an_async_action(self, some=None, **kwargs):
           # do something async
-	  return {'response with': 'some message'}, 200
+          return {'response with': 'some message'}, 200
       
       @action()
       def a_sync_action(self, pk=None, **kwargs):
           # do something sync
-	  return {'response with': 'some message'}, 200
+          return {'response with': 'some message'}, 200
 
 Using your normal views over a websocket connection
 ---------------------------------------------------
@@ -150,8 +150,8 @@ Using your normal views over a websocket connection
   application = ProtocolTypeRouter({
       "websocket": AuthMiddlewareStack(
           URLRouter([
-	      url(r"^front(end)/$", view_as_consumer(YourDjangoView)),
-	  ])
+              url(r"^front(end)/$", view_as_consumer(YourDjangoView)),
+          ])
       ),
    })
 
@@ -194,12 +194,12 @@ Access action from Client ``payload: {action: "list", "request_id": 42}``
 
 Note: Mixin - available action
 
-``ListModelMixin`` - ``list``
-``PatchModelMixin`` - ``patch``
-``CreateModelMixin`` - ``create``
-``RetrieveModelMixin`` - ``retrieve``
-``UpdateModelMixin`` - ``update``
-``DeleteModelMixin`` - ``delete``
+* ``ListModelMixin`` - ``list``
+* ``PatchModelMixin`` - ``patch``
+* ``CreateModelMixin`` - ``create``
+* ``RetrieveModelMixin`` - ``retrieve``
+* ``UpdateModelMixin`` - ``update``
+* ``DeleteModelMixin`` - ``delete``
 
 
 Subscribing to all instances of a model
@@ -267,3 +267,9 @@ This method utilizes the previously mentioned ``model_activity`` method to subsc
 
 Note: Notice the use of ``type(self)``, rather than ``LiveConsumer``. This is a more dynamic approach, most likely used in a custom Consumer mixin, allowing one to subscribe to the current consumer rather than a specific one.
 
+
+.. _channels-v2: https://channels.readthedocs.io/en/latest/
+.. _dcrf-client: https://github.com/theY4Kman/dcrf-client
+.. _theY4Kman: https://github.com/theY4Kman
+.. _HyperMediaChannels: https://github.com/hishnash/hypermediachannels
+.. _ChannelsMultiplexer: https://github.com/hishnash/channelsmultiplexer
