@@ -1,4 +1,5 @@
-from typing import Any, Dict, Generator, Callable, NoReturn
+import hashlib
+from typing import Any, Dict, Generator, Callable
 from uuid import uuid4
 
 from djangochannelsrestframework.consumers import AsyncAPIConsumer
@@ -54,23 +55,23 @@ class BaseObserver:
             for group in self._group_names_for_consumer(
                 self, *args, consumer=consumer, **kwargs
             ):
-                yield "{}-{}".format(self._uuid, group)
+                yield self.clean_group_name("{}-{}".format(self._uuid, group))
             return
         for group in self.group_names(*args, **kwargs):
-            yield group
+            yield self.clean_group_name(group)
 
     def group_names_for_signal(self, *args, **kwargs) -> Generator[str, None, None]:
         if self._group_names_for_signal:
             for group in self._group_names_for_signal(self, *args, **kwargs):
-                yield "{}-{}".format(self._uuid, group)
+                yield self.clean_group_name("{}-{}".format(self._uuid, group))
             return
         for group in self.group_names(*args, **kwargs):
-            yield group
+            yield self.clean_group_name(group)
 
     def group_names(self, *args, **kwargs):
         raise NotImplementedError()
 
-    def groups_for_subscribe(
+    def groups_for_consumer(
         self,
         func: Callable[["BaseObserver", AsyncAPIConsumer], Generator[str, None, None]],
     ):
@@ -85,3 +86,7 @@ class BaseObserver:
         self._group_names_for_consumer = func
         self._group_names_for_signal = func
         return self
+
+    def clean_group_name(self, name):
+        # Some chanel layers have a max group name length.
+        return f"DCRF-{hashlib.sha256(name.encode()).hexdigest()}"
