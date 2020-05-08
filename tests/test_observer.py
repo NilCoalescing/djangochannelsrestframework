@@ -29,7 +29,7 @@ async def test_observer_wrapper(settings):
 
     class TestConsumer(AsyncAPIConsumer):
         async def accept(self):
-            await TestConsumer.handle_user_logged_in.subscribe(self)
+            await self.handle_user_logged_in.subscribe()
             await super().accept()
 
         @observer(user_logged_in)
