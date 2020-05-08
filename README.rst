@@ -126,8 +126,8 @@ Adding Custom actions
        @action()  # if the method is not async it is already wrapped in `database_sync_to_async`
        def publish(self, pk=None, **kwargs):
            user = self.get_object(pk=pk)
-     # ...
-     return {'pk': pk}, 200
+           # ...
+           return {'pk': pk}, 200
 
 Consumers that are not bound to Models
 --------------------------------------
