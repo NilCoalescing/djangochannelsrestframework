@@ -32,10 +32,6 @@ A Generic Api Consumer
 ----------------------
 In DCRF you can create a ``GenericAsyncAPIConsumer`` that works much like a GenericAPIView_ in DRF: For a more indeph look into Rest Like Websocket consumers read this blog post_.
 
-One may use the same exact querysets and ``serializer_classes`` utilized in their DRF Views, but must omit the DRF permissions.
-
-Permissions are to be imported from ``djangochannelsrestframework``, which provides the standard ``AllowAny`` and ``IsAuthenticated`` permissions.
-
 
 .. code-block:: python
 
@@ -59,9 +55,9 @@ Permissions are to be imported from ``djangochannelsrestframework``, which provi
 
 Because this class uses the ``ListModelMixin``, one has access to the ``list`` action.
 
-One can access this action from the client with a payload, or from within a method:
+One may use the same exact querysets and ``serializer_class`` utilized in their DRF Views, but must omit the DRF permissions. Permissions are to be imported from ``djangochannelsrestframework``, which provides the standard ``AllowAny`` and ``IsAuthenticated`` permissions.
 
-Access action from Client send: ``{action: "list", "request_id": 42}``
+To call an action from the client send a websocket message: ``{action: "list", "request_id": 42}``
 
 
 There are a selection of mixins that expose the common CURD actions:
@@ -85,10 +81,9 @@ Consumer that let you subscribe to changes on an instance:
        queryset = get_user_model().objects.all()
        serializer_class = UserSerializer
 
-this exposes the `retrieve` and `subscribe_instance` actions.
+this exposes the ``retrieve``, ``subscribe_instance`` and ``unsubscribe_instance`` actions.
 
 To subscribe send:
-
 
 .. code-block:: python
 
@@ -238,7 +233,7 @@ To do this we need to split the model updates into `groups` and then in the cons
         yield f'-pk__{instance.pk}'
 
     @classroom_change_handler.groups_for_consumer
-    def classroom_change_handler(self, school=None, classroom= None, **kwargs):
+    def classroom_change_handler(self, school=None, classroom=None, **kwargs):
         # This is called when you subscribe/unsubscribe
         if school is not None:
             yield f'-school__{school.pk}'
