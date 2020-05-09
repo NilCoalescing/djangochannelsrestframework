@@ -3,7 +3,7 @@ import warnings
 from collections import defaultdict
 from enum import Enum
 from functools import partial
-from typing import Type, Dict, Any, Set
+from typing import Type, Dict, Any, Set, overload
 from uuid import uuid4
 
 from asgiref.sync import async_to_sync
@@ -12,6 +12,7 @@ from django.db import transaction
 from django.db.models import Model
 from django.db.models.signals import post_delete, post_save, post_init
 
+from djangochannelsrestframework.consumers import AsyncAPIConsumer
 from djangochannelsrestframework.observer.base_observer import BaseObserver
 
 """
@@ -87,7 +88,7 @@ class ModelObserver(BaseObserver):
         if instance.pk is None:
             current_groups = set()
         else:
-            current_groups = set(self.group_names(instance))
+            current_groups = set(self.group_names_for_signal(instance=instance))
 
         self.get_observer_state(instance).current_groups = current_groups
 
@@ -136,7 +137,7 @@ class ModelObserver(BaseObserver):
         if action == Action.DELETE:
             new_group_names = set()
         else:
-            new_group_names = set(self.group_names(instance))
+            new_group_names = set(self.group_names_for_signal(instance=instance))
 
         self.get_observer_state(instance).current_groups = new_group_names
 
@@ -167,23 +168,9 @@ class ModelObserver(BaseObserver):
             async_to_sync(channel_layer.group_send)(group_name, message)
 
     def group_names(self, *args, **kwargs):
-        if self._group_names:
-            for group in self._group_names(self, *args, **kwargs):
-                yield "{}-{}".format(self._uuid, group)
-            return
-
-        model_label = (
-            "{}.{}".format(
-                self.model_cls._meta.app_label.lower(),
-                self.model_cls._meta.object_name.lower(),
-            )
-            .lower()
-            .replace("_", ".")
-        )
-
         # one channel for all updates.
         yield "{}-{}-model-{}".format(
-            self._uuid, self.func.__name__.replace("_", "."), model_label,
+            self._uuid, self.func.__name__.replace("_", "."), self.model_label,
         )
 
     def serialize(self, instance, action, **kwargs) -> Dict[str, Any]:
@@ -195,3 +182,15 @@ class ModelObserver(BaseObserver):
         message["type"] = self.func.__name__.replace("_", ".")
         message["action"] = action.value
         return message
+
+    @property
+    def model_label(self):
+        model_label = (
+            "{}.{}".format(
+                self.model_cls._meta.app_label.lower(),
+                self.model_cls._meta.object_name.lower(),
+            )
+            .lower()
+            .replace("_", ".")
+        )
+        return model_label

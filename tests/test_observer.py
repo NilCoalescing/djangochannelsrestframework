@@ -29,7 +29,7 @@ async def test_observer_wrapper(settings):
 
     class TestConsumer(AsyncAPIConsumer):
         async def accept(self):
-            await TestConsumer.handle_user_logged_in.subscribe(self)
+            await self.handle_user_logged_in.subscribe()
             await super().accept()
 
         @observer(user_logged_in)
@@ -325,6 +325,60 @@ async def test_model_observer_custom_groups_wrapper(settings):
                 yield "-instance-username-{}".format(slugify(username))
             else:
                 yield "-instance-username-{}".format(instance.username)
+
+    communicator = WebsocketCommunicator(TestConsumer, "/testws/")
+
+    connected, _ = await communicator.connect()
+
+    assert connected
+
+    user = await database_sync_to_async(get_user_model().objects.create)(
+        username="test", email="test@example.com"
+    )
+
+    response = await communicator.receive_json_from()
+
+    assert {"action": "create", "pk": user.pk, "type": "user.change"} == response
+
+    await communicator.disconnect()
+
+    user = await database_sync_to_async(get_user_model().objects.create)(
+        username="test2", email="test@example.com"
+    )
+
+    # no event since this is only subscribed to 'test'
+    with pytest.raises(asyncio.TimeoutError):
+        await communicator.receive_json_from()
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.asyncio
+async def test_model_observer_custom_groups_wrapper_with_split_function_api(settings):
+    settings.CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+            "TEST_CONFIG": {"expiry": 100500,},
+        },
+    }
+
+    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
+
+    class TestConsumer(AsyncAPIConsumer):
+        async def accept(self, **kwargs):
+            await self.user_change.subscribe(username="test")
+            await super().accept()
+
+        @model_observer(get_user_model())
+        async def user_change(self, message, **kwargs):
+            await self.send_json(message)
+
+        @user_change.groups_for_signal
+        def user_change(self, instance=None, **kwargs):
+            yield "-instance-username-{}".format(instance.username)
+
+        @user_change.groups_for_consumer
+        def user_change(self, username=None, **kwargs):
+            yield "-instance-username-{}".format(slugify(username))
 
     communicator = WebsocketCommunicator(TestConsumer, "/testws/")
 

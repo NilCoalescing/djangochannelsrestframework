@@ -18,14 +18,10 @@ class Observer(BaseObserver):
     def handle(self, signal, *args, **kwargs):
         message = self.serialize(signal, *args, **kwargs)
         channel_layer = get_channel_layer()
-        for group_name in self.group_names(*args, **kwargs):
+        for group_name in self.group_names_for_signal(*args, message=message, **kwargs):
             async_to_sync(channel_layer.group_send)(group_name, message)
 
     def group_names(self, *args, **kwargs):
-        if self._group_names:
-            for group in self._group_names(*args, **kwargs):
-                yield "{}-{}".format(self._uuid, group)
-            return
         yield "{}-{}-signal-{}".format(
             self._uuid,
             self.func.__name__.replace("_", "."),

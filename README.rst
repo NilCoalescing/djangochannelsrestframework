@@ -2,13 +2,13 @@
 Django Channels Rest Framework
 ==============================
 
-Django Channels Rest Framework provides a DRF like interface for building channels-v2 websocket consumers.
+Django Channels Rest Framework provides a DRF like interface for building channels-v2_ websocket consumers.
 
 
-This project can be used alongside HyperMediaChannels_ and ChannelsMultiplexer_ to create a Hyper Media Style api over websockets. However Django Channels Rest Framework is also a free standing framwork with the goal of providing an api that is familiar to DRF users. 
+This project can be used alongside HyperMediaChannels_ and ChannelsMultiplexer_ to create a Hyper Media Style api over websockets. However Django Channels Rest Framework is also a free standing framework with the goal of providing an api that is familiar to DRF users.
 
-.. _HyperMediaChannels: https://github.com/hishnash/hypermediachannels
-.. _ChannelsMultiplexer: https://github.com/hishnash/channelsmultiplexer
+theY4Kman_ has developed a useful Javascript client library dcrf-client_ to use with DCRF.
+
 
 .. image:: https://travis-ci.org/hishnash/djangochannelsrestframework.svg?branch=master
     :target: https://travis-ci.org/hishnash/djangochannelsrestframework
@@ -28,142 +28,9 @@ Install
   pip install djangochannelsrestframework
 
 
-How to Use
-==========
-
-
-
-Observing a Model instance
---------------------------
-
-Consumer that accepts subscribtions to an instance.
-
-.. code-block:: python
-
-   class TestConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
-       queryset = get_user_model().objects.all()
-       serializer_class = UserSerializer
-
-this exposes the `retrieve` and `subscribe_instance` actions to that instance.
-
-to subscribe send:
-
-
-.. code-block:: python
-
-   {
-       "action": "subscribe_instance",
-       "pk": 42,  # the id of the instance you are subscribing to
-       "request_id": 4  # this id will be used for all resultent updates.
-   }
-
-
-Actions will be sent down out from the server:
-
-.. code-block:: python
-
-	{
-		"action": "update",
-		"errors": [],
-		"response_status": 200,
-		"request_id": 4,
-		"data": {'email': '42@example.com', 'id': 42, 'username': 'thenewname'},
-	}
-
-Adding Custom actions
----------------------
-
-
-.. code-block:: python
-
-   class UserConsumer(GenericAsyncAPIConsumer):
-       queryset = get_user_model().objects.all()
-       serializer_class = UserSerializer
-
-       @action()
-       async def send_email(self, pk=None, to=None, **kwargs):
-           user = await database_sync_to_async(self.get_object)(pk=pk)
-           # ... do some stuff
-           # remember to wrap all db actions in `database_sync_to_async`
-           return {}, 200  # return the contenct and the response code.
-
-       @action()  # if the method is not async it is already wrapped in `database_sync_to_async`
-       def publish(self, pk=None, **kwargs):
-           user = self.get_object(pk=pk)
-	   # ...
-	   return {'pk': pk}, 200
-
-You can also use any of:
-
-*  ``CreateModelMixin``
-*  ``ListModelMixin``
-*  ``RetrieveModelMixin``
-*  ``UpdateModelMixin``
-*  ``PatchModelMixin``
-*  ``DeleteModelMixin``
-
-just as you would in DRF.
-
-.. code-block:: python
-
-  from djangochannelsrestframework.generics import GenericAsyncAPIConsumer
-  from djangochannelsrestframework.mixins import (
-      RetrieveModelMixin,
-      UpdateModelMixin
-  )
-
-  class UserConsumer(RetrieveModelMixin, UpdateModelMixin, GenericAsyncAPIConsumer):
-      queryset = get_user_model().objects.all()
-      serializer_class = UserSerializer
-
-
-Consumers that are not bound to Models
---------------------------------------
-
-
-You can also create consumers that are not at all related to any models.
-
-.. code-block:: python
-
-  from djangochannelsrestframework.decorators import action
-  from djangochannelsrestframework.consumers import AsyncAPIConsumer
-
-  class MyConsumer(AsyncAPIConsumer):
-
-      @action()
-      async def an_async_action(self, some=None, **kwargs):
-          # do something async
-	  return {'response with': 'some message'}, 200
-      
-      @action()
-      def a_sync_action(self, pk=None, **kwargs):
-          # do something sync
-	  return {'response with': 'some message'}, 200
-
-Using your normal views over a websocket connection
----------------------------------------------------
-
-.. code-block:: python
-  
-  from djangochannelsrestframework.consumers import view_as_consumer
-
-  application = ProtocolTypeRouter({
-      "websocket": AuthMiddlewareStack(
-          URLRouter([
-	      url(r"^front(end)/$", view_as_consumer(YourDjangoView)),
-	  ])
-      ),
-   })
-
-
-Creating a fully-functional custom Consumer
--------------------------------------------
-
-This package offers Django Rest Framework capabilities via mixins. To utilize these mixins, one must inherit from the ``GenericAsyncAPIConsumer``.
-
-One may use the same exact querysets and ``serializer_classes`` utilized in their DRF Views, but must omit the DRF permissions. 
-
-Permissions are to be imported from djangochannelsrestframework, which provides the standard ``AllowAny`` and ``IsAuthenticated`` permissions.
+A Generic Api Consumer
+----------------------
+In DCRF you can create a ``GenericAsyncAPIConsumer`` that works much like a GenericAPIView_ in DRF: For a more indeph look into Rest Like Websocket consumers read this blog post_.
 
 
 .. code-block:: python
@@ -188,18 +55,117 @@ Permissions are to be imported from djangochannelsrestframework, which provides 
 
 Because this class uses the ``ListModelMixin``, one has access to the ``list`` action.
 
-One can access this action from the client with a payload, or from within a method:
+One may use the same exact querysets and ``serializer_class`` utilized in their DRF Views, but must omit the DRF permissions. Permissions are to be imported from ``djangochannelsrestframework``, which provides the standard ``AllowAny`` and ``IsAuthenticated`` permissions.
 
-Access action from Client ``payload: {action: "list", "request_id": 42}``
+To call an action from the client send a websocket message: ``{action: "list", "request_id": 42}``
 
-Note: Mixin - available action
 
-``ListModelMixin`` - ``list``
-``PatchModelMixin`` - ``patch``
-``CreateModelMixin`` - ``create``
-``RetrieveModelMixin`` - ``retrieve``
-``UpdateModelMixin`` - ``update``
-``DeleteModelMixin`` - ``delete``
+There are a selection of mixins that expose the common CURD actions:
+
+* ``ListModelMixin`` - ``list``
+* ``PatchModelMixin`` - ``patch``
+* ``CreateModelMixin`` - ``create``
+* ``RetrieveModelMixin`` - ``retrieve``
+* ``UpdateModelMixin`` - ``update``
+* ``DeleteModelMixin`` - ``delete``
+
+
+Observing a Model instance
+--------------------------
+
+Consumer that let you subscribe to changes on an instance:
+
+.. code-block:: python
+
+   class TestConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
+       queryset = get_user_model().objects.all()
+       serializer_class = UserSerializer
+
+this exposes the ``retrieve``, ``subscribe_instance`` and ``unsubscribe_instance`` actions.
+
+To subscribe send:
+
+.. code-block:: python
+
+   {
+       "action": "subscribe_instance",
+       "pk": 42,  # the id of the instance you are subscribing to
+       "request_id": 4  # this id will be used for all resultent updates.
+   }
+
+
+Actions will be sent down out from the server:
+
+.. code-block:: python
+
+  {
+    "action": "update",
+    "errors": [],
+    "response_status": 200,
+    "request_id": 4,
+    "data": {'email': '42@example.com', 'id': 42, 'username': 'thenewname'},
+  }
+
+Adding Custom actions
+---------------------
+
+
+.. code-block:: python
+
+   class UserConsumer(GenericAsyncAPIConsumer):
+       queryset = get_user_model().objects.all()
+       serializer_class = UserSerializer
+
+       @action()
+       async def send_email(self, pk=None, to=None, **kwargs):
+           user = await database_sync_to_async(self.get_object)(pk=pk)
+           # ... do some stuff
+           # remember to wrap all db actions in `database_sync_to_async`
+           return {}, 200  # return the contenct and the response code.
+
+       @action()  # if the method is not async it is already wrapped in `database_sync_to_async`
+       def publish(self, pk=None, **kwargs):
+           user = self.get_object(pk=pk)
+           # ...
+           return {'pk': pk}, 200
+
+Consumers that are not bound to Models
+--------------------------------------
+
+You can also create consumers that are not at all related to any models.
+
+.. code-block:: python
+
+  from djangochannelsrestframework.decorators import action
+  from djangochannelsrestframework.consumers import AsyncAPIConsumer
+
+  class MyConsumer(AsyncAPIConsumer):
+
+      @action()
+      async def an_async_action(self, some=None, **kwargs):
+          # do something async
+          return {'response with': 'some message'}, 200
+      
+      @action()
+      def a_sync_action(self, pk=None, **kwargs):
+          # do something sync
+          return {'response with': 'some message'}, 200
+
+Using your normal views over a websocket connection
+---------------------------------------------------
+
+.. code-block:: python
+  
+  from djangochannelsrestframework.consumers import view_as_consumer
+
+  application = ProtocolTypeRouter({
+      "websocket": AuthMiddlewareStack(
+          URLRouter([
+              url(r"^front(end)/$", view_as_consumer(YourDjangoView)),
+          ])
+      ),
+   })
+
 
 
 Subscribing to all instances of a model
@@ -220,37 +186,10 @@ This method will send messages to the client on all CRUD operations made through
 
 Note: These notifications do not include bulk updates, such as ``models.Test.objects.filter(name="abc").update(name="newname")``
 
+Subscribing to a `model_observer`
+=================================
 
-Creating consumer operation
----------------------------
-
-To create consumer operations, one can choose between using the traditional ``receive_json`` method utilized in typical consumers or djangochannelsrestframework actions. 
-
-Actions are created by adding the ``action`` <decorator> to a method.
-
-.. code-block:: python
-
-    from djangochannelsrestframework.decorators import action
-
-    # Subscribe to model via action
-    @action()
-    async def subscribe_to_model(self, **kwargs):
-        await LiveConsumer.model_activity.subscribe(self)
-
-    # Subscribe to model via receive_json
-    async def receive_json(self, content):
-        await super().receive_json(content)
-        await LiveConsumer.model_activity.subscribe(self)
-
-Both the action and ``receive_json`` make use of the ``model_activity`` method in the ``LiveConsumer`` class, referred to above, subscribing to all CRUD operations of the model specified in the ``@model_observer``.
-
-Note: If utilizing ``receive_json``, one must ``super().receive_json(content)`` to avoid the disruption of other actions not declared in the ``receive_json``.
-
-
-Initiating operation on consumer connect
-----------------------------------------
-
-One may initiate operations on consumer connects by overriding the ``websocket_connect`` method.
+You can do this in a few placed, a common example is in the ``websocket_connect`` method.
 
 .. code-block:: python
 
@@ -260,10 +199,62 @@ One may initiate operations on consumer connects by overriding the ``websocket_c
         await super().websocket_connect(message)
 
         # Initialized operation
-        await type(self).activities_change.subscribe(self)
+        await self.activities_change.subscribe()
 
 
 This method utilizes the previously mentioned ``model_activity`` method to subscribe to all instances of the current Consumer's model. 
 
-Note: Notice the use of ``type(self)``, rather than ``LiveConsumer``. This is a more dynamic approach, most likely used in a custom Consumer mixin, allowing one to subscribe to the current consumer rather than a specific one.
+One can also subscribe by creating a custom action
 
+
+Subscribing to a filtered list of models
+========================================
+
+In most situations you want to filter the set of models that you subscribe to.
+
+To do this we need to split the model updates into `groups` and then in the consumer subscribe to the groups that we want/have permission to see.
+
+
+.. code-block:: python
+
+  class MyConsumer(AsyncAPIConsumer):
+
+    @model_observer(models.Classroom)
+    async def classroom_change_handler(self, message, observer=None, **kwargs):
+        # due to not being able to make DB QUERIES when selecting a group
+        # maybe do an extra check here to be sure the user has permission
+        # send activity to your frontend
+        await self.send_json(message)
+
+    @classroom_change_handler.groups_for_signal
+    def classroom_change_handler(self, instance: models.Classroom, **kwargs):
+        # this block of code is called very often *DO NOT make DB QUERIES HERE*
+        yield f'-school__{instance.school_id}'
+        yield f'-pk__{instance.pk}'
+
+    @classroom_change_handler.groups_for_consumer
+    def classroom_change_handler(self, school=None, classroom=None, **kwargs):
+        # This is called when you subscribe/unsubscribe
+        if school is not None:
+            yield f'-school__{school.pk}'
+        if classroom is not None:
+            yield f'-pk__{classroom.pk}'
+
+    @action()
+    async def subscribe_to_classrooms_in_school(self, school_pk, **kwargs):
+        # check user has permission to do this
+        await self.classroom_change_handler.subscribe(school=school)
+
+    @action()
+    async def subscribe_to_classroom(self, classroom_pk, **kwargs):
+        # check user has permission to do this
+        await self.classroom_change_handler.subscribe(classroom=classroom)
+
+
+.. _post: https://lostmoa.com/blog/DjangoChannelsRestFramework/
+.. _GenericAPIView: https://www.django-rest-framework.org/api-guide/generic-views/
+.. _channels-v2: https://channels.readthedocs.io/en/latest/
+.. _dcrf-client: https://github.com/theY4Kman/dcrf-client
+.. _theY4Kman: https://github.com/theY4Kman
+.. _HyperMediaChannels: https://github.com/hishnash/hypermediachannels
+.. _ChannelsMultiplexer: https://github.com/hishnash/channelsmultiplexer
