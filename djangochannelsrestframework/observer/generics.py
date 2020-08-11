@@ -20,8 +20,8 @@ class _GenericModelObserver:
         self._group_names = None
         self._serializer = None
 
-    def bind_to_model(self, model_cls: Type[Model]) -> ModelObserver:
-        observer = ModelObserver(func=self.func, model_cls=model_cls)
+    def bind_to_model(self, model_cls: Type[Model], name: str) -> ModelObserver:
+        observer = ModelObserver(func=self.func, model_cls=model_cls, partition=name)
         observer.groups(self._group_names)
         observer.serializer(self._serializer)
         return observer
@@ -42,12 +42,18 @@ class ObserverAPIConsumerMetaclass(APIConsumerMetaclass):
         if queryset is not None:
             for attr_name, attr in body.items():
                 if isinstance(attr, _GenericModelObserver):
-                    body[attr_name] = attr.bind_to_model(model_cls=queryset.model)
+                    body[attr_name] = attr.bind_to_model(
+                        model_cls=queryset.model,
+                        name=f"{body['__module__']}.{name}.{attr_name}"
+                    )
             for base in bases:
                 for attr_name in dir(base):
                     attr = getattr(base, attr_name)
                     if isinstance(attr, _GenericModelObserver):
-                        body[attr_name] = attr.bind_to_model(model_cls=queryset.model)
+                        body[attr_name] = attr.bind_to_model(
+                            model_cls=queryset.model,
+                            name=f"{body['__module__']}.{name}.{attr_name}"
+                        )
 
         return super().__new__(mcs, name, bases, body)
 

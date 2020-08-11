@@ -156,35 +156,40 @@ async def test_model_observer_delete_wrapper(settings):
 
     layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
 
-    class TestConsumer(AsyncAPIConsumer):
-        async def accept(self):
-            await TestConsumer.user_change.subscribe(self)
+    class TestConsumerObserverDelete(AsyncAPIConsumer):
+        async def accept(self, **kwargs):
+            await self.user_change_observer_delete.subscribe()
             await super().accept()
 
         @model_observer(get_user_model())
-        async def user_change(self, message, observer=None, **kwargs):
+        async def user_change_observer_delete(self, message, observer=None, **kwargs):
             await self.send_json(message)
 
-    communicator = WebsocketCommunicator(TestConsumer, "/testws/")
+    communicator = WebsocketCommunicator(TestConsumerObserverDelete, "/testws/")
 
     connected, _ = await communicator.connect()
 
     assert connected
+    await communicator.receive_nothing()
+
     user = await database_sync_to_async(get_user_model())(
         username="test", email="test@example.com"
     )
     await database_sync_to_async(user.save)()
 
     response = await communicator.receive_json_from()
+    await communicator.receive_nothing()
 
-    assert {"action": "create", "pk": user.pk, "type": "user.change"} == response
+    assert {"action": "create", "pk": user.pk, "type": "user.change.observer.delete"} == response
     pk = user.pk
 
     await database_sync_to_async(user.delete)()
 
     response = await communicator.receive_json_from()
 
-    assert {"action": "delete", "pk": pk, "type": "user.change"} == response
+    await communicator.receive_nothing()
+
+    assert {"action": "delete", "pk": pk, "type": "user.change.observer.delete"} == response
 
     await communicator.disconnect()
 
@@ -363,24 +368,24 @@ async def test_model_observer_custom_groups_wrapper_with_split_function_api(sett
 
     layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
 
-    class TestConsumer(AsyncAPIConsumer):
+    class TestConsumerObserverCustomGroups(AsyncAPIConsumer):
         async def accept(self, **kwargs):
-            await self.user_change.subscribe(username="test")
+            await self.user_change_custom_groups.subscribe(username="test")
             await super().accept()
 
         @model_observer(get_user_model())
-        async def user_change(self, message, **kwargs):
+        async def user_change_custom_groups(self, message, **kwargs):
             await self.send_json(message)
 
-        @user_change.groups_for_signal
-        def user_change(self, instance=None, **kwargs):
+        @user_change_custom_groups.groups_for_signal
+        def user_change_custom_groups(self, instance=None, **kwargs):
             yield "-instance-username-{}".format(instance.username)
 
-        @user_change.groups_for_consumer
-        def user_change(self, username=None, **kwargs):
+        @user_change_custom_groups.groups_for_consumer
+        def user_change_custom_groups(self, username=None, **kwargs):
             yield "-instance-username-{}".format(slugify(username))
 
-    communicator = WebsocketCommunicator(TestConsumer, "/testws/")
+    communicator = WebsocketCommunicator(TestConsumerObserverCustomGroups, "/testws/")
 
     connected, _ = await communicator.connect()
 
@@ -392,7 +397,7 @@ async def test_model_observer_custom_groups_wrapper_with_split_function_api(sett
 
     response = await communicator.receive_json_from()
 
-    assert {"action": "create", "pk": user.pk, "type": "user.change"} == response
+    assert {"action": "create", "pk": user.pk, "type": "user.change.custom.groups"} == response
 
     await communicator.disconnect()
 

@@ -3,7 +3,7 @@ import warnings
 from collections import defaultdict
 from enum import Enum
 from functools import partial
-from typing import Type, Dict, Any, Set, overload
+from typing import Type, Dict, Any, Set, overload, Optional
 from uuid import uuid4
 
 from asgiref.sync import async_to_sync
@@ -47,8 +47,8 @@ class ModelObserverInstanceState:
 
 
 class ModelObserver(BaseObserver):
-    def __init__(self, func, model_cls: Type[Model], **kwargs):
-        super().__init__(func)
+    def __init__(self, func, model_cls: Type[Model], partition: str = '*', **kwargs):
+        super().__init__(func, partition=partition)
         self._model_cls = None
         self.model_cls = model_cls  # type: Type[Model]
         self.id = uuid4()
@@ -170,7 +170,7 @@ class ModelObserver(BaseObserver):
     def group_names(self, *args, **kwargs):
         # one channel for all updates.
         yield "{}-{}-model-{}".format(
-            self._uuid, self.func.__name__.replace("_", "."), self.model_label,
+            self._stable_observer_id, self.func.__name__.replace("_", "."), self.model_label,
         )
 
     def serialize(self, instance, action, **kwargs) -> Dict[str, Any]:
