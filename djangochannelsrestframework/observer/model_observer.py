@@ -47,7 +47,7 @@ class ModelObserverInstanceState:
 
 
 class ModelObserver(BaseObserver):
-    def __init__(self, func, model_cls: Type[Model], partition: str = '*', **kwargs):
+    def __init__(self, func, model_cls: Type[Model], partition: str = "*", **kwargs):
         super().__init__(func, partition=partition)
         self._model_cls = None
         self.model_cls = model_cls  # type: Type[Model]
@@ -170,7 +170,9 @@ class ModelObserver(BaseObserver):
     def group_names(self, *args, **kwargs):
         # one channel for all updates.
         yield "{}-{}-model-{}".format(
-            self._stable_observer_id, self.func.__name__.replace("_", "."), self.model_label,
+            self._stable_observer_id,
+            self.func.__name__.replace("_", "."),
+            self.model_label,
         )
 
     def serialize(self, instance, action, **kwargs) -> Dict[str, Any]:

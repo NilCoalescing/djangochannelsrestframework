@@ -44,7 +44,7 @@ class ObserverAPIConsumerMetaclass(APIConsumerMetaclass):
                 if isinstance(attr, _GenericModelObserver):
                     body[attr_name] = attr.bind_to_model(
                         model_cls=queryset.model,
-                        name=f"{body['__module__']}.{name}.{attr_name}"
+                        name=f"{body['__module__']}.{name}.{attr_name}",
                     )
             for base in bases:
                 for attr_name in dir(base):
@@ -52,7 +52,7 @@ class ObserverAPIConsumerMetaclass(APIConsumerMetaclass):
                     if isinstance(attr, _GenericModelObserver):
                         body[attr_name] = attr.bind_to_model(
                             model_cls=queryset.model,
-                            name=f"{body['__module__']}.{name}.{attr_name}"
+                            name=f"{body['__module__']}.{name}.{attr_name}",
                         )
 
         return super().__new__(mcs, name, bases, body)
@@ -98,7 +98,7 @@ class ObserverModelInstanceMixin(ObserverConsumerMixin, RetrieveModelMixin):
             request_id=self.subscribed_requests.get(
                 self.__class__.handle_instance_change
             ),
-            **message
+            **message,
         )
 
     @handle_instance_change.groups

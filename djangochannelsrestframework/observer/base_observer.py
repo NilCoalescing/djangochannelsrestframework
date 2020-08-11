@@ -7,13 +7,13 @@ from djangochannelsrestframework.observer.utils import ObjPartial
 
 
 class BaseObserver:
-    def __init__(self, func, partition: str = '*'):
+    def __init__(self, func, partition: str = "*"):
         self.func = func
         self._serializer = None
         self._group_names_for_signal = None
         self._group_names_for_consumer = None
 
-        self._stable_observer_id = f'{partition}-{self.__class__.__name__}-{self.func.__module__}.{self.func.__name__}'
+        self._stable_observer_id = f"{partition}-{self.__class__.__name__}-{self.func.__module__}.{self.func.__name__}"
 
     async def __call__(self, *args, consumer=None, **kwargs):
         return await self.func(consumer, *args, observer=self, **kwargs)
@@ -55,7 +55,9 @@ class BaseObserver:
             for group in self._group_names_for_consumer(
                 self, *args, consumer=consumer, **kwargs
             ):
-                yield self.clean_group_name("{}-{}".format(self._stable_observer_id, group))
+                yield self.clean_group_name(
+                    "{}-{}".format(self._stable_observer_id, group)
+                )
             return
         for group in self.group_names(*args, **kwargs):
             yield self.clean_group_name(group)
@@ -63,7 +65,9 @@ class BaseObserver:
     def group_names_for_signal(self, *args, **kwargs) -> Generator[str, None, None]:
         if self._group_names_for_signal:
             for group in self._group_names_for_signal(self, *args, **kwargs):
-                yield self.clean_group_name("{}-{}".format(self._stable_observer_id, group))
+                yield self.clean_group_name(
+                    "{}-{}".format(self._stable_observer_id, group)
+                )
             return
         for group in self.group_names(*args, **kwargs):
             yield self.clean_group_name(group)

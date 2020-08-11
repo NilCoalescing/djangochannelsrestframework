@@ -6,7 +6,7 @@ from djangochannelsrestframework.observer.base_observer import BaseObserver
 
 
 class Observer(BaseObserver):
-    def __init__(self, func, signal: Signal = None, kwargs=None, partition: str = '*'):
+    def __init__(self, func, signal: Signal = None, kwargs=None, partition: str = "*"):
         super().__init__(func, partition=partition)
         if kwargs is None:
             kwargs = {}

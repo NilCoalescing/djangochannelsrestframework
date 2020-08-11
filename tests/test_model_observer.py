@@ -283,7 +283,7 @@ async def test_unsubscribe_observer_model_instance_mixin(settings):
 
     layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
 
-    class TestConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
+    class TestConsumerUnsubscribe(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
 
         queryset = get_user_model().objects.all()
         serializer_class = UserSerializer
@@ -301,7 +301,7 @@ async def test_unsubscribe_observer_model_instance_mixin(settings):
     assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(TestConsumer, "/testws/")
+    communicator = WebsocketCommunicator(TestConsumerUnsubscribe, "/testws/")
     connected, _ = await communicator.connect()
     assert connected
 
@@ -315,6 +315,7 @@ async def test_unsubscribe_observer_model_instance_mixin(settings):
     )
 
     response = await communicator.receive_json_from()
+    assert await communicator.receive_nothing()
 
     assert response == {
         "action": "subscribe_instance",
@@ -333,25 +334,25 @@ async def test_unsubscribe_observer_model_instance_mixin(settings):
         }
     )
 
-    response = await communicator.receive_json_from()
+    a = await communicator.receive_json_from()
 
-    assert response == {
+    b = await communicator.receive_json_from()
+
+    assert {
         "action": "update_username",
         "errors": [],
         "response_status": 200,
         "request_id": 5,
         "data": {"pk": u1.id},
-    }
+    } in [a, b]
 
-    response = await communicator.receive_json_from()
-
-    assert response == {
+    assert {
         "action": "update",
         "errors": [],
         "response_status": 200,
         "request_id": 4,
         "data": {"email": "42@example.com", "id": u1.pk, "username": "thenewname"},
-    }
+    } in [a, b]
 
     # unsubscribe
     # lookup up u1
@@ -369,6 +370,7 @@ async def test_unsubscribe_observer_model_instance_mixin(settings):
         "request_id": 4,
         "data": None,
     }
+    assert await communicator.receive_nothing()
 
     await communicator.send_json_to(
         {
