@@ -6,8 +6,8 @@ from djangochannelsrestframework.observer.base_observer import BaseObserver
 
 
 class Observer(BaseObserver):
-    def __init__(self, func, signal: Signal = None, kwargs=None):
-        super().__init__(func)
+    def __init__(self, func, signal: Signal = None, kwargs=None, partition: str = "*"):
+        super().__init__(func, partition=partition)
         if kwargs is None:
             kwargs = {}
         self.signal = signal
@@ -23,7 +23,7 @@ class Observer(BaseObserver):
 
     def group_names(self, *args, **kwargs):
         yield "{}-{}-signal-{}".format(
-            self._uuid,
+            self._stable_observer_id,
             self.func.__name__.replace("_", "."),
             ".".join(
                 arg.lower().replace("_", ".") for arg in self.signal.providing_args

@@ -186,6 +186,14 @@ This method will send messages to the client on all CRUD operations made through
 
 Note: These notifications do not include bulk updates, such as ``models.Test.objects.filter(name="abc").update(name="newname")``
 
+
+    **WARNING**
+    When using this to decorate a method to avoid the method firing multiple
+    times you should ensure that if there are multiple `@model_observer`
+    wrapped methods for the same model type within a single file that each
+    method has a different name.
+
+
 Subscribing to a `model_observer`
 =================================
 
@@ -205,6 +213,8 @@ You can do this in a few placed, a common example is in the ``websocket_connect`
 This method utilizes the previously mentioned ``model_activity`` method to subscribe to all instances of the current Consumer's model. 
 
 One can also subscribe by creating a custom action
+
+
 
 
 Subscribing to a filtered list of models
