@@ -220,7 +220,7 @@ Another way is override ``AsyncAPIConsumer.accept(self, **kwargs)``
 
     class ModelConsumerObserver(AsyncAPIConsumer):
         async def accept(self, **kwargs):
-            await super().accept()
+            await super().accept(** kwargs)
             await self.model_change.subscribe()
         
 
