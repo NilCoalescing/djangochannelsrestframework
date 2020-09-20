@@ -214,8 +214,19 @@ This method utilizes the previously mentioned ``model_activity`` method to subsc
 
 One can also subscribe by creating a custom action
 
+Another way is override ``AsyncAPIConsumer.accept(self, **kwargs)``
 
+.. code-block:: python
 
+    class ModelConsumerObserver(AsyncAPIConsumer):
+        async def accept(self, **kwargs):
+            await super().accept(** kwargs)
+            await self.model_change.subscribe()
+        
+
+        @model_observer(models.Test)
+        async def model_change(self, message, **kwargs):
+            await self.send_json(message)
 
 Subscribing to a filtered list of models
 ========================================
