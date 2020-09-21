@@ -34,7 +34,11 @@ async def test_no_action_keyword_request():
     response = await communicator.receive_json_from()
 
     assert response == {
-        "errors": ["The action keyword is missing"],
+        {
+            "errors": ['Method "None" not allowed.'],
+            "response_status": 405,
+            "request_id": 1,
+        }
     }
 
     await communicator.disconnect()
