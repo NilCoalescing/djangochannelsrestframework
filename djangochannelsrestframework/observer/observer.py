@@ -22,10 +22,7 @@ class Observer(BaseObserver):
             async_to_sync(channel_layer.group_send)(group_name, message)
 
     def group_names(self, *args, **kwargs):
-        yield "{}-{}-signal-{}".format(
+        yield "{}-{}-signal".format(
             self._stable_observer_id,
-            self.func.__name__.replace("_", "."),
-            ".".join(
-                arg.lower().replace("_", ".") for arg in self.signal.providing_args
-            ),
+            self.func.__name__.replace("_", ".")
         )

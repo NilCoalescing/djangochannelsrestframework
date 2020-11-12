@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="djangochannelsrestframework",
-    version="0.1.1",
+    version="0.1.2",
     url="https://github.com/hishnash/djangochannelsrestframework",
     author="Matthaus Woolard",
     author_email="matthaus.woolard@gmail.com",
@@ -11,7 +11,7 @@ setup(
     license="MIT",
     packages=find_packages(exclude=["tests"]),
     include_package_data=True,
-    install_requires=["Django>=1.11", "channels>=2.1.1", "djangorestframework>=3.0"],
+    install_requires=["Django>=3.*", "channels>=2.1.1,<3.0", "djangorestframework>=3.0"],
     extras_require={
         "tests": [
             "pytest~=5.4.0",

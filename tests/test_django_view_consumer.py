@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from djangochannelsrestframework.consumers import view_as_consumer
 
 
+@pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_view_as_consumer():
 
