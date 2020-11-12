@@ -4,7 +4,6 @@ import pytest
 from asgiref.sync import async_to_sync
 from channels import DEFAULT_CHANNEL_LAYER
 from channels.db import database_sync_to_async
-from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from channels.layers import channel_layers
 from channels.testing import WebsocketCommunicator
 from django.contrib.auth import user_logged_in, get_user_model
@@ -36,7 +35,7 @@ async def test_observer_wrapper(settings):
         async def handle_user_logged_in(self, *args, observer=None, **kwargs):
             await self.send_json({"message": kwargs, "observer": observer is not None})
 
-    communicator = WebsocketCommunicator(TestConsumer, "/testws/")
+    communicator = WebsocketCommunicator(TestConsumer(), "/testws/")
 
     connected, _ = await communicator.connect()
 
@@ -78,7 +77,7 @@ async def test_model_observer_wrapper(settings):
         async def user_change_observer_wrapper(self, message, observer=None, **kwargs):
             await self.send_json(message)
 
-    communicator = WebsocketCommunicator(TestConsumer, "/testws/")
+    communicator = WebsocketCommunicator(TestConsumer(), "/testws/")
 
     connected, _ = await communicator.connect()
 
@@ -122,7 +121,7 @@ async def test_model_observer_wrapper_in_transaction(settings):
         ):
             await self.send_json(message)
 
-    communicator = WebsocketCommunicator(TestConsumer, "/testws/")
+    communicator = WebsocketCommunicator(TestConsumer(), "/testws/")
 
     connected, _ = await communicator.connect()
 
@@ -175,7 +174,7 @@ async def test_model_observer_delete_wrapper(settings):
         async def user_change_observer_delete(self, message, observer=None, **kwargs):
             await self.send_json(message)
 
-    communicator = WebsocketCommunicator(TestConsumerObserverDelete, "/testws/")
+    communicator = WebsocketCommunicator(TestConsumerObserverDelete(), "/testws/")
 
     connected, _ = await communicator.connect()
 
@@ -233,13 +232,13 @@ async def test_model_observer_many_connections_wrapper(settings):
         async def user_change_many_connections_wrapper(self, message, **kwargs):
             await self.send_json(message)
 
-    communicator1 = WebsocketCommunicator(TestConsumer, "/testws/")
+    communicator1 = WebsocketCommunicator(TestConsumer(), "/testws/")
 
     connected, _ = await communicator1.connect()
 
     assert connected
 
-    communicator2 = WebsocketCommunicator(TestConsumer, "/testws/")
+    communicator2 = WebsocketCommunicator(TestConsumer(), "/testws/")
 
     connected, _ = await communicator2.connect()
 
@@ -300,13 +299,13 @@ async def test_model_observer_many_consumers_wrapper(settings):
         async def user_change_many_consumers_wrapper_2(self, message, **kwargs):
             await self.send_json(message)
 
-    communicator1 = WebsocketCommunicator(TestConsumer, "/testws/")
+    communicator1 = WebsocketCommunicator(TestConsumer(), "/testws/")
 
     connected, _ = await communicator1.connect()
 
     assert connected
 
-    communicator2 = WebsocketCommunicator(TestConsumer2, "/testws/")
+    communicator2 = WebsocketCommunicator(TestConsumer2(), "/testws/")
 
     connected, _ = await communicator2.connect()
 
@@ -367,7 +366,7 @@ async def test_model_observer_custom_groups_wrapper(settings):
             else:
                 yield "-instance-username-{}".format(instance.username)
 
-    communicator = WebsocketCommunicator(TestConsumer, "/testws/")
+    communicator = WebsocketCommunicator(TestConsumer(), "/testws/")
 
     connected, _ = await communicator.connect()
 
@@ -425,7 +424,7 @@ async def test_model_observer_custom_groups_wrapper_with_split_function_api(sett
         def user_change_custom_groups(self, username=None, **kwargs):
             yield "-instance-username-{}".format(slugify(username))
 
-    communicator = WebsocketCommunicator(TestConsumerObserverCustomGroups, "/testws/")
+    communicator = WebsocketCommunicator(TestConsumerObserverCustomGroups(), "/testws/")
 
     connected, _ = await communicator.connect()
 

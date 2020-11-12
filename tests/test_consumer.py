@@ -23,7 +23,7 @@ async def test_decorator():
             return {"pk": pk, "sync": True}, 200
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(AConsumer, "/testws/")
+    communicator = WebsocketCommunicator(AConsumer(), "/testws/")
 
     connected, _ = await communicator.connect()
 

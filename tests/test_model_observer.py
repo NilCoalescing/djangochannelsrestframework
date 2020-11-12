@@ -54,7 +54,7 @@ async def test_observer_model_instance_mixin(settings):
     assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(TestConsumer, "/testws/")
+    communicator = WebsocketCommunicator(TestConsumer(), "/testws/")
     connected, _ = await communicator.connect()
     assert connected
 
@@ -216,12 +216,12 @@ async def test_two_observer_model_instance_mixins(settings):
     assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
     # Test a normal connection
-    communicator1 = WebsocketCommunicator(TestOtherConsumer, "/testws/")
+    communicator1 = WebsocketCommunicator(TestOtherConsumer(), "/testws/")
     connected, _ = await communicator1.connect()
     assert connected
 
     # Test a normal connection
-    communicator2 = WebsocketCommunicator(TestUserConsumer, "/testws/")
+    communicator2 = WebsocketCommunicator(TestUserConsumer(), "/testws/")
     connected, _ = await communicator2.connect()
     assert connected
 
@@ -301,7 +301,7 @@ async def test_unsubscribe_observer_model_instance_mixin(settings):
     assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(TestConsumerUnsubscribe, "/testws/")
+    communicator = WebsocketCommunicator(TestConsumerUnsubscribe(), "/testws/")
     connected, _ = await communicator.connect()
     assert connected
 

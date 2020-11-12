@@ -269,7 +269,7 @@ class DjangoViewAsConsumer(AsyncAPIConsumer):
 def view_as_consumer(
     wrapped_view: typing.Callable[[HttpRequest], HttpResponse],
     mapped_actions: typing.Optional[typing.Dict[str, str]] = None,
-) -> Type[AsyncConsumer]:
+) -> DjangoViewAsConsumer:
     """
     Wrap a django View so that it will be triggered by actions over this json
      websocket consumer.
@@ -286,4 +286,4 @@ def view_as_consumer(
         view = wrapped_view
         actions = mapped_actions
 
-    return DjangoViewWrapper
+    return DjangoViewWrapper()
