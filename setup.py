@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     name="djangochannelsrestframework",
-    version="0.1.2",
+    version="0.2.0",
     url="https://github.com/hishnash/djangochannelsrestframework",
     author="Matthaus Woolard",
     author_email="matthaus.woolard@gmail.com",
