@@ -2,6 +2,8 @@
 Django Channels Rest Framework
 ==============================
 
+**Django Channels Rest Framework v1 requires channels v3 if you are still use version 0.1.2 for channels v2 support**
+
 Django Channels Rest Framework provides a DRF like interface for building channels-v2_ websocket consumers.
 
 
@@ -12,6 +14,7 @@ theY4Kman_ has developed a useful Javascript client library dcrf-client_ to use 
 
 .. image:: https://travis-ci.org/hishnash/djangochannelsrestframework.svg?branch=master
     :target: https://travis-ci.org/hishnash/djangochannelsrestframework
+
 
 Thanks to
 ---------

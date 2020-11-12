@@ -8,8 +8,8 @@ python:
   - "3.8.2"
 
 env:
-  - DJANGO="Django>=2.2,<3.0.0"
   - DJANGO="Django>=3.0.4,<3.0.5"
+  - DJANGO="Django~=3.1.0"
 
 install:
   - pip install $DJANGO -e .[tests]
