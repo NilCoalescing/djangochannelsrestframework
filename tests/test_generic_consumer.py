@@ -40,7 +40,7 @@ async def test_generic_consumer():
             return s.data, 200
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(AConsumer, "/testws/")
+    communicator = WebsocketCommunicator(AConsumer(), "/testws/")
     connected, _ = await communicator.connect()
     assert connected
 
@@ -68,7 +68,7 @@ async def test_generic_consumer():
 
     await communicator.disconnect()
 
-    communicator = WebsocketCommunicator(AConsumer, "/testws/")
+    communicator = WebsocketCommunicator(AConsumer(), "/testws/")
     connected, _ = await communicator.connect()
 
     assert connected
@@ -109,7 +109,7 @@ async def test_create_mixin_consumer():
     assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(AConsumer, "/testws/")
+    communicator = WebsocketCommunicator(AConsumer(), "/testws/")
     connected, _ = await communicator.connect()
     assert connected
 
@@ -155,7 +155,7 @@ async def test_list_mixin_consumer():
     assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(AConsumer, "/testws/")
+    communicator = WebsocketCommunicator(AConsumer(), "/testws/")
     connected, _ = await communicator.connect()
     assert connected
 
@@ -213,7 +213,7 @@ async def test_retrieve_mixin_consumer():
     assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(AConsumer, "/testws/")
+    communicator = WebsocketCommunicator(AConsumer(), "/testws/")
     connected, _ = await communicator.connect()
     assert connected
 
@@ -286,7 +286,7 @@ async def test_update_mixin_consumer():
     assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(AConsumer, "/testws/")
+    communicator = WebsocketCommunicator(AConsumer(), "/testws/")
     connected, _ = await communicator.connect()
     assert connected
 
@@ -359,7 +359,7 @@ async def test_patch_mixin_consumer():
     assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(AConsumer, "/testws/")
+    communicator = WebsocketCommunicator(AConsumer(), "/testws/")
     connected, _ = await communicator.connect()
     assert connected
 
@@ -432,7 +432,7 @@ async def test_delete_mixin_consumer():
     assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(AConsumer, "/testws/")
+    communicator = WebsocketCommunicator(AConsumer(), "/testws/")
     connected, _ = await communicator.connect()
     assert connected
 
