@@ -227,6 +227,11 @@ Another way is override ``AsyncAPIConsumer.accept(self, **kwargs)``
         @model_observer(models.Test)
         async def model_change(self, message, **kwargs):
             await self.send_json(message)
+        
+        ''' If you want the data serializeded instead of pk '''
+        @model_change.serializer
+        def model_serialize(self, instance, action, **kwargs):
+            return TestSerializer(instance).data
 
 Subscribing to a filtered list of models
 ========================================
