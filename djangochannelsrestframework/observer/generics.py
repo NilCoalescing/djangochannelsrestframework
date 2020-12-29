@@ -2,7 +2,7 @@ from copy import deepcopy
 
 from django.db.models import Model
 from functools import partial
-from typing import Dict, Type
+from typing import Dict, Type, Optional, Set, List
 
 from channels.db import database_sync_to_async
 from rest_framework import status
@@ -61,7 +61,31 @@ class ObserverAPIConsumerMetaclass(APIConsumerMetaclass):
 class ObserverConsumerMixin(metaclass=ObserverAPIConsumerMetaclass):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.subscribed_requests = {}  # type: Dict[function, str]
+        self.subscribed_requests = {}  # type: Dict[str, Set[str]]
+
+    def _subscribe(self, request_id: str, groups: Set[str]):
+        for group in groups:
+            request_ids = self.subscribed_requests.get(group, set())
+            request_ids.add(request_id)
+            self.subscribed_requests[group] = request_ids
+
+    def _unsubscribe(self, request_id: str):
+        to_remove = []
+        for group, request_ids in self.subscribed_requests.items():
+            request_ids.remove(request_id)
+            if not request_ids:
+                to_remove.append(group)
+
+        for group in to_remove:
+            self.subscribed_requests.pop(group)
+
+    def _requests_for(self, group: Optional[str]):
+        all_request_ids = set()
+        if not group:
+            for request_ids in self.subscribed_requests.values():
+                all_request_ids = all_request_ids.union(request_ids)
+            return all_request_ids
+        return self.subscribed_requests.get(group, set())
 
 
 class ObserverModelInstanceMixin(ObserverConsumerMixin, RetrieveModelMixin):
@@ -71,8 +95,8 @@ class ObserverModelInstanceMixin(ObserverConsumerMixin, RetrieveModelMixin):
             raise ValueError("request_id must have a value set")
         # subscribe!
         instance = await database_sync_to_async(self.get_object)(**kwargs)
-        await self.handle_instance_change.subscribe(instance=instance)
-        self.subscribed_requests[self.__class__.handle_instance_change] = request_id
+        groups = set(await self.handle_instance_change.subscribe(instance=instance))
+        self._subscribe(request_id, groups)
 
         return None, status.HTTP_201_CREATED
 
@@ -83,22 +107,16 @@ class ObserverModelInstanceMixin(ObserverConsumerMixin, RetrieveModelMixin):
         # subscribe!
         instance = await database_sync_to_async(self.get_object)(**kwargs)
         await self.handle_instance_change.unsubscribe(instance=instance)
-        del self.subscribed_requests[self.__class__.handle_instance_change]
+        self._unsubscribe(request_id)
 
         return None, status.HTTP_204_NO_CONTENT
 
     @_GenericModelObserver
-    async def handle_instance_change(self, message: Dict, **kwargs):
-        message = deepcopy(message)
-        action = message.pop("action")
-        message.pop("type")
-
+    async def handle_instance_change(
+        self, message: Dict, group=None, action=None, **kwargs
+    ):
         await self.handle_observed_action(
-            action=action,
-            request_id=self.subscribed_requests.get(
-                self.__class__.handle_instance_change
-            ),
-            **message,
+            action=action, group=group, **message,
         )
 
     @handle_instance_change.groups
@@ -108,29 +126,34 @@ class ObserverModelInstanceMixin(ObserverConsumerMixin, RetrieveModelMixin):
             self.func.__name__.replace("_", "."), self.model_label, instance.pk
         )
 
-    async def handle_observed_action(self, action: str, request_id: str, **kwargs):
+    async def handle_observed_action(
+        self, action: str, group: Optional[str] = None, **kwargs
+    ):
         """
         run the action.
         """
         try:
             await self.check_permissions(action, **kwargs)
-
-            reply = partial(self.reply, action=action, request_id=request_id)
-
-            if action == "delete":
-                await reply(data=kwargs, status=204)
-                # send the delete
-                return
-
-            # the @action decorator will wrap non-async action into async ones.
-
-            response = await self.retrieve(
-                request_id=request_id, action=action, **kwargs
-            )
-
-            if isinstance(response, tuple):
-                data, status = response
-                await reply(data=data, status=status)
-
         except Exception as exc:
-            await self.handle_exception(exc, action=action, request_id=request_id)
+            await self.handle_exception(exc, action=action, request_id=None)
+
+        for request_id in self._requests_for(group):
+            print(request_id)
+            try:
+                reply = partial(self.reply, action=action, request_id=request_id)
+
+                if action == "delete":
+                    await reply(data=kwargs, status=204)
+                    # send the delete
+                    continue
+
+                # the @action decorator will wrap non-async action into async ones.
+                response = await self.retrieve(
+                    request_id=request_id, action=action, **kwargs
+                )
+
+                if isinstance(response, tuple):
+                    data, status = response
+                    await reply(data=data, status=status)
+            except Exception as exc:
+                await self.handle_exception(exc, action=action, request_id=request_id)

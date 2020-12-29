@@ -178,11 +178,11 @@ One can subscribe to all instances of a model by utilizing the ``model_observer`
     from djangochannelsrestframework.observer import model_observer
 
     @model_observer(models.Test)
-    async def model_activity(self, message, observer=None, **kwargs):
+    async def model_activity(self, message, observer=None, action=None, **kwargs):
         # send activity to your frontend
         await self.send_json(message)
 
-This method will send messages to the client on all CRUD operations made through the Django ORM.
+This method will send messages to the client on all CRUD operations made through the Django ORM. The `action` arg here it will take values such as `create`, `delete` and `update` you should consider passing this to your frontend client.
 
 Note: These notifications do not include bulk updates, such as ``models.Test.objects.filter(name="abc").update(name="newname")``
 
@@ -210,7 +210,7 @@ You can do this in a few placed, a common example is in the ``websocket_connect`
         await self.activities_change.subscribe()
 
 
-This method utilizes the previously mentioned ``model_activity`` method to subscribe to all instances of the current Consumer's model. 
+This method utilizes the previously mentioned ``model_activity`` method to subscribe to all instances of the current Consumer's model.
 
 One can also subscribe by creating a custom action
 
@@ -225,7 +225,7 @@ Another way is override ``AsyncAPIConsumer.accept(self, **kwargs)``
         
 
         @model_observer(models.Test)
-        async def model_change(self, message, **kwargs):
+        async def model_change(self, message, action=None, **kwargs):
             await self.send_json(message)
         
         ''' If you want the data serializeded instead of pk '''
@@ -246,11 +246,11 @@ To do this we need to split the model updates into `groups` and then in the cons
   class MyConsumer(AsyncAPIConsumer):
 
     @model_observer(models.Classroom)
-    async def classroom_change_handler(self, message, observer=None, **kwargs):
+    async def classroom_change_handler(self, message, observer=None, action=None, **kwargs):
         # due to not being able to make DB QUERIES when selecting a group
         # maybe do an extra check here to be sure the user has permission
         # send activity to your frontend
-        await self.send_json(message)
+        await self.send_json(dict(body=message, action=action))
 
     @classroom_change_handler.groups_for_signal
     def classroom_change_handler(self, instance: models.Classroom, **kwargs):
