@@ -28,6 +28,12 @@ Install
   pip install djangochannelsrestframework
 
 
+.. warning ::
+
+			In your application definition when you declare your consumers it is very important to use the `.as_asgi()` class method. Eg `MyConsumer.as_asgi()` you **should not** have any instances of `MyConsumer()` in your code base.
+
+
+
 A Generic Api Consumer
 ----------------------
 In DCRF you can create a ``GenericAsyncAPIConsumer`` that works much like a GenericAPIView_ in DRF: For a more indeph look into Rest Like Websocket consumers read this blog post_.
