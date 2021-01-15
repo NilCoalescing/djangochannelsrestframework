@@ -231,7 +231,7 @@ Another way is override ``AsyncAPIConsumer.accept(self, **kwargs)``
         ''' If you want the data serializeded instead of pk '''
         @model_change.serializer
         def model_serialize(self, instance, action, **kwargs):
-            return TestSerializer(instance).data
+            return {"data":TestSerializer(instance).data, "action":action.name}
 
 Subscribing to a filtered list of models
 ========================================
