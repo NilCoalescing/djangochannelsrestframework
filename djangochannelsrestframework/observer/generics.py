@@ -116,7 +116,9 @@ class ObserverModelInstanceMixin(ObserverConsumerMixin, RetrieveModelMixin):
         self, message: Dict, group=None, action=None, **kwargs
     ):
         await self.handle_observed_action(
-            action=action, group=group, **message,
+            action=action,
+            group=group,
+            **message,
         )
 
     @handle_instance_change.groups

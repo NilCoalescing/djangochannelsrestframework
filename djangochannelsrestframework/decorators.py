@@ -42,17 +42,24 @@ def action(atomic=None, **kwargs):
     """
 
     def decorator(func):
-        if atomic is None:
-            _atomic = getattr(settings, "ATOMIC_REQUESTS", False)
-        else:
+        _atomic = False
+
+        if atomic is not None:
             _atomic = atomic
 
         func.action = True
         func.kwargs = kwargs
+
         if asyncio.iscoroutinefunction(func):
             if _atomic:
                 raise ValueError("Only synchronous actions can be atomic")
             return func
+
+        # Read out default atomic state from DB connection
+        if atomic is None:
+            databases = getattr(settings, "DATABASES", {})
+            database = databases.get("default", {})
+            _atomic = database.get("ATOMIC_REQUESTS", False)
 
         if _atomic:
             # wrap function in atomic wrapper
