@@ -20,7 +20,9 @@ async def test_observer_wrapper(settings):
     settings.CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {"expiry": 100500,},
+            "TEST_CONFIG": {
+                "expiry": 100500,
+            },
         },
     }
 
@@ -62,7 +64,9 @@ async def test_model_observer_wrapper(settings):
     settings.CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {"expiry": 100500,},
+            "TEST_CONFIG": {
+                "expiry": 100500,
+            },
         },
     }
 
@@ -106,7 +110,9 @@ async def test_model_observer_wrapper_in_transaction(settings):
     settings.CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {"expiry": 100500,},
+            "TEST_CONFIG": {
+                "expiry": 100500,
+            },
         },
     }
 
@@ -161,7 +167,9 @@ async def test_model_observer_delete_wrapper(settings):
     settings.CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {"expiry": 100500,},
+            "TEST_CONFIG": {
+                "expiry": 100500,
+            },
         },
     }
 
@@ -221,7 +229,9 @@ async def test_model_observer_many_connections_wrapper(settings):
     settings.CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {"expiry": 100500,},
+            "TEST_CONFIG": {
+                "expiry": 100500,
+            },
         },
     }
 
@@ -281,7 +291,9 @@ async def test_model_observer_many_consumers_wrapper(settings):
     settings.CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {"expiry": 100500,},
+            "TEST_CONFIG": {
+                "expiry": 100500,
+            },
         },
     }
 
@@ -352,7 +364,9 @@ async def test_model_observer_custom_groups_wrapper(settings):
     settings.CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {"expiry": 100500,},
+            "TEST_CONFIG": {
+                "expiry": 100500,
+            },
         },
     }
 
@@ -413,7 +427,9 @@ async def test_model_observer_custom_groups_wrapper_with_split_function_api(sett
     settings.CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {"expiry": 100500,},
+            "TEST_CONFIG": {
+                "expiry": 100500,
+            },
         },
     }
 

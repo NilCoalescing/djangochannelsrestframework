@@ -11,6 +11,10 @@ def pytest_configure():
             "tests",
         ),
         SECRET_KEY="dog",
-        DATABASES={"default": {"ENGINE": "django.db.backends.sqlite3",}},
+        DATABASES={
+            "default": {
+                "ENGINE": "django.db.backends.sqlite3",
+            }
+        },
         MIDDLEWARE_CLASSES=[],
     )

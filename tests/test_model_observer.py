@@ -30,7 +30,9 @@ async def test_observer_model_instance_mixin(settings):
     settings.CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {"expiry": 100500,},
+            "TEST_CONFIG": {
+                "expiry": 100500,
+            },
         },
     }
 
@@ -177,7 +179,9 @@ async def test_two_observer_model_instance_mixins(settings):
     settings.CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {"expiry": 100500,},
+            "TEST_CONFIG": {
+                "expiry": 100500,
+            },
         },
     }
 
@@ -277,7 +281,9 @@ async def test_unsubscribe_observer_model_instance_mixin(settings):
     settings.CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {"expiry": 100500,},
+            "TEST_CONFIG": {
+                "expiry": 100500,
+            },
         },
     }
 
