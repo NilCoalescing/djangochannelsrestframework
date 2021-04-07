@@ -9,10 +9,6 @@ This project can be used alongside HyperMediaChannels_ and ChannelsMultiplexer_ 
 
 theY4Kman_ has developed a useful Javascript client library dcrf-client_ to use with DCRF.
 
-
-.. image:: https://travis-ci.org/hishnash/djangochannelsrestframework.svg?branch=master
-    :target: https://travis-ci.org/hishnash/djangochannelsrestframework
-
 Thanks to
 ---------
 
