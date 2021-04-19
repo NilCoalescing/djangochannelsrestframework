@@ -11,6 +11,7 @@ Welcome to djangochannelsrestframework's documentation!
    :caption: Contents:
 
    mixins
+   permissions
    tutorial/index
 
 Indices and tables
