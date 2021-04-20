@@ -1,5 +1,5 @@
-Consumers
-=========
+Decorators
+==========
 
-.. automodule:: djangochannelsrestframework.consumers
+.. automodule:: djangochannelsrestframework.decorators
     :members:

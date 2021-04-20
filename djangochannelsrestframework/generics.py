@@ -10,6 +10,12 @@ from djangochannelsrestframework.consumers import AsyncAPIConsumer
 class GenericAsyncAPIConsumer(AsyncAPIConsumer):
     """
     Base class for all other generic views.
+
+    Attributes:
+        queryset: will be accesed when the method `get_queryset` is called.
+        serializer_class: it should correspond with the `queryset` model, it will be useded for the return response.
+        lookup_field: field used in the `get_object` method. Optional.
+        lookup_url_kwarg: url parameter used it for the lookup. 
     """
 
     # You'll need to either set these attributes,
@@ -170,7 +176,7 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
         Returns:
             Filtered queryset.
 
-        Todo:
+        Todos:
             Implement
         """
         # TODO filter_backends

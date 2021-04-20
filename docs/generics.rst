@@ -1,5 +1,5 @@
-Decorators
-======
+Generics
+========
 
-.. automodule:: djangochannelsrestframework.decorators
+.. automodule:: djangochannelsrestframework.generics
     :members:

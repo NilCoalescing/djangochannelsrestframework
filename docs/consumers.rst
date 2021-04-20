@@ -1,5 +1,5 @@
-Generics
-======
+Consumers
+=========
 
 .. automodule:: djangochannelsrestframework.consumers
     :members:
