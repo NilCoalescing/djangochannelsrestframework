@@ -1,5 +1,5 @@
 Generics
 ======
 
-.. automodule:: djangochannelsrestframework.generics
+.. automodule:: djangochannelsrestframework.consumers
     :members:
