@@ -1,5 +1,5 @@
-Generics
-======
+Permissions
+===========
 
-.. automodule:: djangochannelsrestframework.generics
+.. automodule:: djangochannelsrestframework.permissions
     :members:

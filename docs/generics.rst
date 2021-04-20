@@ -1,5 +1,5 @@
-Permissions
+Decorators
 ======
 
-.. automodule:: djangochannelsrestframework.permissions
+.. automodule:: djangochannelsrestframework.decorators
     :members:

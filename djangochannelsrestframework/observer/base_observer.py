@@ -7,6 +7,8 @@ from djangochannelsrestframework.observer.utils import ObjPartial
 
 
 class BaseObserver:
+    """Base observer class"""
+
     def __init__(self, func, partition: str = "*"):
         self.func = func
         self._serializer = None
@@ -33,6 +35,26 @@ class BaseObserver:
         return message
 
     def serializer(self, func):
+        """Adds a Serializer to the model observer return.
+
+        Examples:
+            .. code-bloc:: python
+                class MyConsumer(GeneriicAsyncAPIConsumer):
+                    queryset = User.objects.all()
+                    serializer_class = UserSerializer
+                    
+                    @model_observer(Comments)
+                    async def comment_activity(self, message, observer=None, **kwargs):
+                        await self.send_json(message)
+
+                    @comment_activity.serializer
+                    def comment_activity(self, instance: Comment, action, **kwargs):
+                        return CommentSerializer(instance).data
+
+                    @action()
+                    async def subscribe_to_comment_activity(self, **kwargs):
+                        await self.comment_activity.subscribe()
+        """
         self._serializer = func
         return self
 
