@@ -2,7 +2,7 @@ import asyncio
 import json
 import typing
 from functools import partial
-from typing import List, Type
+from typing import Dict, List, Type
 
 from channels.consumer import AsyncConsumer
 from channels.db import database_sync_to_async
