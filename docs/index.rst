@@ -7,15 +7,15 @@ Welcome to djangochannelsrestframework's documentation!
 =======================================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents:
 
    consumers
-   decorators
-   mixins
    generics
-   permissions
+   mixins
    observer/base_observer
+   decorators
+   permissions
    tutorial/index
 
 Indices and tables
