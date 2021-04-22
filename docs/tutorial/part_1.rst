@@ -179,13 +179,13 @@ In the ``consumers.py`` file we will create only the room consumer for:
 
         @message_activity.groups_for_signal
         def message_activity(self, instance: Message, **kwargs):
-            yield 'room__%s' % instance.room_id
-            yield 'pk__%s' % instance.pk
+            yield 'room__{instance.room_id}'
+            yield f'pk__{instance.pk}'
 
         @message_activity.groups_for_consumer
         def message_activity(self, room=None, **kwargs):
             if room is not None:
-                yield 'room__%s' % room
+                yield f'room__{room}'
 
         @message_activity.serializer
         def message_activiy(self, instance:Message, action, **kwargs):
