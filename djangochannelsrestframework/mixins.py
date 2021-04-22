@@ -280,7 +280,7 @@ class PatchModelMixin:
 
     @action()
     def patch(self, data: dict, **kwargs) -> Tuple[ReturnDict, int]:
-        """Retrieve action.
+        """Patch action.
 
         Returns:
             Tuple with the serializer data and the status code.
