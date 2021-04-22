@@ -39,6 +39,8 @@ class BaseObserver:
             This is meant to use as a decorator.
 
         Examples:
+            TODO path to examples?
+
             .. code-block:: python
                 
                 # models.py
@@ -52,7 +54,6 @@ class BaseObserver:
                     text = models.TextField()
                     user = models.ForeignKey(User, related_name="comments", on_delete=models.CASCADE)
                     date = models.DatetimeField(auto_now_add=True)
-
 
             .. code-block:: python
 
@@ -102,7 +103,7 @@ class BaseObserver:
 
             .. code-block:: javascript
 
-                const ws = new WebSocket("ws://localhost:8000/ws/my-consumer/)
+                const ws = new WebSocket("ws://localhost:8000/ws/my-consumer/")
                 const ws.onopen = function(){
                     ws.send(JSON.stringify({
                         action: "subscribe_to_comment_activity",
@@ -138,8 +139,11 @@ class BaseObserver:
                         user: 1,
                     },
                 }
+
             Now we will create a comment with the user 2.
+
             >>> Comment.objects.create(text="user 2 creates a second comment", user=user_2)
+
             In the consol log we will se something like this:
 
             .. code-block:: json
@@ -155,6 +159,7 @@ class BaseObserver:
                         user: 2,
                     },
                 }
+
             As you can see in this example, we are subscribe to **ALL ACTIVITY** of the comment model.
         """
         self._serializer = func
