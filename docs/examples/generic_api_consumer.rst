@@ -94,7 +94,7 @@ First we will create the web socket instance in ``javascript``.
 .. note::
     We must have a few users in our database for testing, if not, create them.
 
-1. List action.
+1. :doc:`List action<../mixins>`.
 
 .. code-block:: javascript
 
@@ -116,7 +116,7 @@ First we will create the web socket instance in ``javascript``.
     }
     */
 
-2. Retrieve action.
+2. :doc:`Retrieve action.<../mixins>`
 
 .. code-block:: javascript
 
@@ -135,7 +135,7 @@ First we will create the web socket instance in ``javascript``.
         }
     */
 
-3. Patch action.
+3. :doc:`Patch action.<../mixins>`
 
 .. code-block:: javascript
 
@@ -158,7 +158,7 @@ First we will create the web socket instance in ``javascript``.
     */
 
 
-4. Update action.
+4. :doc:`Update action.<../mixins>`
 
 .. code-block:: javascript
 
@@ -180,7 +180,7 @@ First we will create the web socket instance in ``javascript``.
         }
     */
 
-5. Create action.
+5. :doc:`Create action.<../mixins>`
 
 .. code-block:: javascript
 
@@ -204,7 +204,7 @@ First we will create the web socket instance in ``javascript``.
         }
     */
 
-6. Delete action.
+6. :doc:`Delete action.<../mixins>`
 
 .. code-block:: javascript
 
