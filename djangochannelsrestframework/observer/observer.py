@@ -42,7 +42,7 @@ class Observer(BaseObserver):
         for group_name in self.group_names_for_signal(*args, message=message, **kwargs):
             async_to_sync(channel_layer.group_send)(group_name, message)
 
-    def group_names(self, *args, **kwargs) -> Generator[str]:
+    def group_names(self, *args, **kwargs) -> Generator[str, None, None]:
         """Generator for each signal and group.
 
         Return:

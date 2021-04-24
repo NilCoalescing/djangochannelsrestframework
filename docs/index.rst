@@ -10,6 +10,11 @@ Welcome to djangochannelsrestframework's documentation!
    :maxdepth: 4
    :caption: Contents:
 
+   introduction
+
+   examples
+   observer/examples/index
+   
    consumers
    generics
    mixins
@@ -18,7 +23,6 @@ Welcome to djangochannelsrestframework's documentation!
    permissions
    tutorial/index
 
-   observer/examples/index
 
 Indices and tables
 ==================
