@@ -19,6 +19,15 @@ class ListModelMixin:
     @action()
     def list(self, **kwargs):
         queryset = self.filter_queryset(self.get_queryset(**kwargs), **kwargs)
+        page = self.paginate_queryset(queryset, **kwargs)
+        if page is not None:
+            serializer = self.get_serializer(
+                instance=page, 
+                many=True, 
+                action_kwargs=kwargs
+            )
+            return self.get_paginated_response(serializer.data), status.HTTP_200_OK
+
         serializer = self.get_serializer(
             instance=queryset, many=True, action_kwargs=kwargs
         )
