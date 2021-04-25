@@ -3,6 +3,7 @@ from channels.db import database_sync_to_async
 from channels.testing import WebsocketCommunicator
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
+from djangochannelsrestframework.pagination import WebsocketLimitOffsetPagination
 
 from djangochannelsrestframework.decorators import action
 from djangochannelsrestframework.generics import GenericAsyncAPIConsumer
@@ -193,6 +194,85 @@ async def test_list_mixin_consumer():
         ],
     }
 
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.asyncio
+async def test_list_mixin_consumer_with_pagination():
+    class UserSerializer(serializers.ModelSerializer):
+        class Meta:
+            model = get_user_model()
+            fields = (
+                "id",
+                "username",
+                "email",
+            )
+
+    class TempClass(WebsocketLimitOffsetPagination):
+        '''Didn't found a way to override the PAGE_SIZE settings correctly'''
+        default_limit = 1
+        
+    class AConsumer(ListModelMixin, GenericAsyncAPIConsumer):
+        queryset = get_user_model().objects.all()
+        serializer_class = UserSerializer
+        pagination_class = TempClass
+
+    assert not await database_sync_to_async(get_user_model().objects.all().exists)()
+
+    # Test a normal connection
+    communicator = WebsocketCommunicator(AConsumer(), "/testws/")
+    connected, _ = await communicator.connect()
+    assert connected
+
+    await communicator.send_json_to({"action": "list", "request_id": 1})
+
+    response = await communicator.receive_json_from()
+
+    assert response == {
+        "action": "list",
+        "errors": [],
+        "response_status": 200,
+        "request_id": 1,
+        "data": {
+            "results": [],
+        },
+    }
+
+    u1 = await database_sync_to_async(get_user_model().objects.create)(
+        username="test1", email="42@example.com"
+    )
+    u2 = await database_sync_to_async(get_user_model().objects.create)(
+        username="test2", email="45@example.com"
+    )
+
+    await communicator.send_json_to({"action": "list", "request_id": 1,})
+
+    response = await communicator.receive_json_from()
+
+    assert response == {
+        "action": "list",
+        "errors": [],
+        "response_status": 200,
+        "request_id": 1,
+        "data": {
+            "results": [
+                {"email": "42@example.com", "id": u1.id, "username": "test1"},
+            ]
+        },
+    }
+    await communicator.send_json_to({"action": "list", "request_id": 1, "offset": 1})
+
+    response = await communicator.receive_json_from()
+
+    assert response == {
+        "action": "list",
+        "errors": [],
+        "response_status": 200,
+        "request_id": 1,
+        "data": {
+            "results": [
+                {"email": "45@example.com", "id": u2.id, "username": "test2"},
+            ]
+        },
+    }
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
