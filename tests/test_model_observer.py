@@ -158,6 +158,8 @@ async def test_observer_model_instance_mixin(settings):
         "data": {"email": "42@example.com", "id": u1.id, "username": "thenewname"},
     }
 
+    u1_pk = u1.pk
+
     await database_sync_to_async(u1.delete)()
 
     response = await communicator.receive_json_from()
@@ -167,7 +169,7 @@ async def test_observer_model_instance_mixin(settings):
         "errors": [],
         "response_status": 204,
         "request_id": 4,
-        "data": {"pk": 13},
+        "data": {"pk": u1_pk},
     }
 
     await communicator.disconnect()
