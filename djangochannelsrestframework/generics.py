@@ -1,8 +1,9 @@
-from typing import Dict, Type, Optional
+from typing import Dict, List, OrderedDict, Type, Optional, Union
 
 from django.db.models import QuerySet, Model
 from rest_framework.generics import get_object_or_404
 from rest_framework.serializers import Serializer
+from rest_framework.utils.serializer_helpers import ReturnDict, ReturnList
 
 from djangochannelsrestframework.consumers import AsyncAPIConsumer
 from djangochannelsrestframework.settings import api_settings
@@ -135,7 +136,12 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
         return queryset
 
     @property
-    def paginator(self):
+    def paginator(self) -> Optional[any]:
+        """Gets the paginator class
+        
+        Returns:
+            Pagination class. Optional.
+        """
         if not hasattr(self, "_paginator"):
             if self.pagination_class is None:
                 self._paginator = None
@@ -143,13 +149,13 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
                 self._paginator = self.pagination_class()
         return self._paginator
 
-    def paginate_queryset(self, queryset, **kwargs):
+    def paginate_queryset(self, queryset: QuerySet[Model], **kwargs: Dict) -> List[Model]:
         if self.paginator is None:
             return None
         return self.paginator.paginate_queryset(
             queryset, self.scope, view=self, **kwargs
         )
 
-    def get_paginated_response(self, data):
+    def get_paginated_response(self, data: Union[ReturnDict, ReturnList]) -> OrderedDict:
         assert self.paginator is not None
         return self.paginator.get_paginated_response(data)
