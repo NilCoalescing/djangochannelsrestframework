@@ -16,7 +16,7 @@ Welcome to djangochannelsrestframework's documentation!
    introduction
 
    examples
-   observer/examples/index
+   .. observer/examples/index
    
 
 .. toctree::
