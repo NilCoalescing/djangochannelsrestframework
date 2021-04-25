@@ -1,6 +1,7 @@
 import threading
 import warnings
 from collections import defaultdict
+from copy import deepcopy
 from enum import Enum
 from functools import partial
 from typing import Type, Dict, Any, Set, overload, Optional
@@ -36,9 +37,7 @@ class Action(Enum):
 
 
 class UnsupportedWarning(Warning):
-    """
-
-    """
+    """"""
 
 
 class ModelObserverInstanceState:
@@ -164,8 +163,14 @@ class ModelObserver(BaseObserver):
             return
         message = self.serialize(instance, action, **kwargs)
         channel_layer = get_channel_layer()
+
         for group_name in group_names:
-            async_to_sync(channel_layer.group_send)(group_name, message)
+            message_to_send = deepcopy(message)
+
+            # Include the group name in the message being sent
+            message_to_send["group"] = group_name
+
+            async_to_sync(channel_layer.group_send)(group_name, message_to_send)
 
     def group_names(self, *args, **kwargs):
         # one channel for all updates.
@@ -176,13 +181,18 @@ class ModelObserver(BaseObserver):
         )
 
     def serialize(self, instance, action, **kwargs) -> Dict[str, Any]:
-        message = {}
+        message_body = {}
         if self._serializer:
-            message = self._serializer(self, instance, action, **kwargs)
+            message_body = self._serializer(self, instance, action, **kwargs)
         else:
-            message["pk"] = instance.pk
-        message["type"] = self.func.__name__.replace("_", ".")
-        message["action"] = action.value
+            message_body["pk"] = instance.pk
+
+        message = dict(
+            type=self.func.__name__.replace("_", "."),
+            body=message_body,
+            action=action.value,
+        )
+
         return message
 
     @property

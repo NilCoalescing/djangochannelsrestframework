@@ -1,4 +1,5 @@
 from copy import deepcopy
+
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.dispatch import Signal
@@ -40,7 +41,9 @@ class Observer(BaseObserver):
         message = self.serialize(signal, *args, **kwargs)
         channel_layer = get_channel_layer()
         for group_name in self.group_names_for_signal(*args, message=message, **kwargs):
-            async_to_sync(channel_layer.group_send)(group_name, message)
+            message_to_send = deepcopy(message)
+            message_to_send["group"] = group_name
+            async_to_sync(channel_layer.group_send)(group_name, message_to_send)
 
     def group_names(self, *args, **kwargs) -> Generator[str, None, None]:
         """Generator for each signal and group.
@@ -49,6 +52,5 @@ class Observer(BaseObserver):
             Formated group name for the signal and observer.
         """
         yield "{}-{}-signal".format(
-            self._stable_observer_id,
-            self.func.__name__.replace("_", ".")
+            self._stable_observer_id, self.func.__name__.replace("_", ".")
         )
