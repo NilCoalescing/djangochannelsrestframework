@@ -5,6 +5,7 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.serializers import Serializer
 
 from djangochannelsrestframework.consumers import AsyncAPIConsumer
+from djangochannelsrestframework.settings import api_settings
 
 
 class GenericAsyncAPIConsumer(AsyncAPIConsumer):
@@ -26,6 +27,8 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
     # For more complex lookup requirements override `get_object()`.
     lookup_field = "pk"  # type: str
     lookup_url_kwarg = None  # type: Optional[str]
+
+    pagination_class = api_settings.DEFAULT_PAGINATION_CLASS
 
     # TODO filter_backends
 
@@ -130,3 +133,21 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
         # TODO filter_backends
 
         return queryset
+
+    @property
+    def paginator(self):
+        if not hasattr(self, "_paginator"):
+            if self.pagination_class is None:
+                self._paginator = None
+            else:
+                self._paginator = self.pagination_class()
+        return self._paginator
+
+    def paginate_queryset(self, queryset, **kwargs):
+        if self.paginator is None:
+            return None
+        return self.paginator.paginate_queryset(queryset, self.scope, view=self, **kwargs)
+
+    def get_paginated_response(self, data):
+        assert self.paginator is not None
+        return self.paginator.get_paginated_response(data)
