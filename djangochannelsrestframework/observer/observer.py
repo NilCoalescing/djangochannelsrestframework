@@ -1,11 +1,11 @@
 from copy import deepcopy
-from typing import Dict, Generator, Optional
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.dispatch import Signal
 
 from djangochannelsrestframework.observer.base_observer import BaseObserver
 
+from typing import Dict, Generator, Optional
 
 class Observer(BaseObserver):
     """Observer
