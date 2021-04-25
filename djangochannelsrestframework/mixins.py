@@ -22,9 +22,7 @@ class ListModelMixin:
         page = self.paginate_queryset(queryset, **kwargs)
         if page is not None:
             serializer = self.get_serializer(
-                instance=page, 
-                many=True, 
-                action_kwargs=kwargs
+                instance=page, many=True, action_kwargs=kwargs
             )
             return self.get_paginated_response(serializer.data), status.HTTP_200_OK
 

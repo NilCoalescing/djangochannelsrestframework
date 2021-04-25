@@ -6,7 +6,7 @@ DEFAULTS = {
     "DEFAULT_PAGE_SIZE": 25,
     "DEFAULT_PERMISSION_CLASSES": ("djangochannelsrestframework.permissions.AllowAny",),
     "DEFAULT_PAGINATION_CLASS": None,
-    'PAGE_SIZE': None,
+    "PAGE_SIZE": None,
 }
 IMPORT_STRINGS = ("DEFAULT_PERMISSION_CLASSES",)
 

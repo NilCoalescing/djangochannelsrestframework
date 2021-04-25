@@ -146,7 +146,9 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
     def paginate_queryset(self, queryset, **kwargs):
         if self.paginator is None:
             return None
-        return self.paginator.paginate_queryset(queryset, self.scope, view=self, **kwargs)
+        return self.paginator.paginate_queryset(
+            queryset, self.scope, view=self, **kwargs
+        )
 
     def get_paginated_response(self, data):
         assert self.paginator is not None

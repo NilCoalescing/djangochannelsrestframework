@@ -15,21 +15,18 @@ def _positive_int(integer_string, strict=False, cutoff=None):
         return min(ret, cutoff)
     return ret
 
+
 class WebsocketLimitOffsetPagination(LimitOffsetPagination):
-    
+
     default_limit = api_settings.PAGE_SIZE
-    
+
     def get_paginated_response(self, data):
         # TODO
-        return OrderedDict([
-            ("results", data),
-        ])
-        return Response(OrderedDict([
-            # ('next', self.get_next_link()),
-            # ('previous', self.get_previous_link()),
-            ('results', data)
-        ]))
-
+        return OrderedDict(
+            [
+                ("results", data),
+            ]
+        )
 
     def paginate_queryset(self, queryset, scope, view=None, **kwargs):
         self.count = self.get_count(queryset)
@@ -44,22 +41,19 @@ class WebsocketLimitOffsetPagination(LimitOffsetPagination):
 
         if self.count == 0 or self.offset > self.count:
             return []
-        return list(queryset[self.offset:self.offset + self.limit])
+        return list(queryset[self.offset : self.offset + self.limit])
 
     def get_limit(self, **kwargs):
         limit_query_param = kwargs.get("limit", self.default_limit)
         if self.limit_query_param:
             try:
                 return _positive_int(
-                    limit_query_param,
-                    strict=True,
-                    cutoff=self.max_limit
+                    limit_query_param, strict=True, cutoff=self.max_limit
                 )
             except (KeyError, ValueError):
                 pass
 
         return self.default_limit
-
 
     def get_offset(self, **kwargs):
         offset_query_param = kwargs.get("offset", 0)

@@ -194,6 +194,7 @@ async def test_list_mixin_consumer():
         ],
     }
 
+
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_list_mixin_consumer_with_pagination():
@@ -207,9 +208,10 @@ async def test_list_mixin_consumer_with_pagination():
             )
 
     class TempClass(WebsocketLimitOffsetPagination):
-        '''Didn't found a way to override the PAGE_SIZE settings correctly'''
+        """Didn't found a way to override the PAGE_SIZE settings correctly"""
+
         default_limit = 1
-        
+
     class AConsumer(ListModelMixin, GenericAsyncAPIConsumer):
         queryset = get_user_model().objects.all()
         serializer_class = UserSerializer
@@ -243,7 +245,12 @@ async def test_list_mixin_consumer_with_pagination():
         username="test2", email="45@example.com"
     )
 
-    await communicator.send_json_to({"action": "list", "request_id": 1,})
+    await communicator.send_json_to(
+        {
+            "action": "list",
+            "request_id": 1,
+        }
+    )
 
     response = await communicator.receive_json_from()
 
@@ -273,6 +280,7 @@ async def test_list_mixin_consumer_with_pagination():
             ]
         },
     }
+
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
