@@ -36,8 +36,10 @@ class WebsocketLimitOffsetPagination(LimitOffsetPagination):
         # TODO
         return OrderedDict(
             [
-                ('count', self.count),
+                ("count", self.count),
                 ("results", data),
+                ("limit", self.limit),
+                ("offset", self.offset),
             ]
         )
 

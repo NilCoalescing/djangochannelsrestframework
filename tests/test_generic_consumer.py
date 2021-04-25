@@ -236,6 +236,8 @@ async def test_list_mixin_consumer_with_pagination():
         "data": {
             "results": [],
             "count": 0,
+            "limit": 1,
+            "offset": 0,
         },
     }
 
@@ -262,6 +264,8 @@ async def test_list_mixin_consumer_with_pagination():
         "request_id": 1,
         "data": {
             "count": 2,
+            "limit": 1,
+            "offset": 0,
             "results": [
                 {"email": "42@example.com", "id": u1.id, "username": "test1"},
             ]
@@ -278,9 +282,27 @@ async def test_list_mixin_consumer_with_pagination():
         "request_id": 1,
         "data": {
             "count": 2,
+            "limit": 1,
+            "offset": 1,
             "results": [
                 {"email": "45@example.com", "id": u2.id, "username": "test2"},
             ]
+        },
+    }
+    await communicator.send_json_to({"action": "list", "request_id": 1, "offset": 2})
+
+    response = await communicator.receive_json_from()
+
+    assert response == {
+        "action": "list",
+        "errors": [],
+        "response_status": 200,
+        "request_id": 1,
+        "data": {
+            "count": 2,
+            "limit": 1,
+            "offset": 2,
+            "results": []
         },
     }
 
