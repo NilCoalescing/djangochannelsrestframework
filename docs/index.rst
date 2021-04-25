@@ -6,8 +6,11 @@
 Welcome to djangochannelsrestframework's documentation!
 =======================================================
 
+.. include:: introduction.rst
+
 .. toctree::
    :maxdepth: 4
+   :hidden:
    :caption: Contents:
 
    introduction
@@ -15,6 +18,12 @@ Welcome to djangochannelsrestframework's documentation!
    examples
    observer/examples/index
    
+
+.. toctree::
+   :maxdepth: 4
+   :hidden:
+   :caption: Clases:
+
    consumers
    generics
    mixins
