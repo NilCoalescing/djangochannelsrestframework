@@ -30,7 +30,9 @@ async def test_observer_model_instance_mixin(settings):
     settings.CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {"expiry": 100500,},
+            "TEST_CONFIG": {
+                "expiry": 100500,
+            },
         },
     }
 
@@ -177,7 +179,9 @@ async def test_two_observer_model_instance_mixins(settings):
     settings.CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {"expiry": 100500,},
+            "TEST_CONFIG": {
+                "expiry": 100500,
+            },
         },
     }
 
@@ -277,7 +281,9 @@ async def test_unsubscribe_observer_model_instance_mixin(settings):
     settings.CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {"expiry": 100500,},
+            "TEST_CONFIG": {
+                "expiry": 100500,
+            },
         },
     }
 
@@ -389,6 +395,147 @@ async def test_unsubscribe_observer_model_instance_mixin(settings):
         "response_status": 200,
         "request_id": 5,
         "data": {"pk": u1.id},
+    }
+
+    await communicator.disconnect()
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.asyncio
+async def test_observer_model_instance_mixin_with_many_subs(settings):
+    """
+    This tests when there are 2 instances subscribed to on the same consumer.
+    """
+
+    settings.CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+            "TEST_CONFIG": {"expiry": 100500},
+        },
+    }
+
+    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
+
+    class TestConsumerMultipleSubs(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
+
+        queryset = get_user_model().objects.all()
+        serializer_class = UserSerializer
+
+        async def accept(self, subprotocol=None):
+            await super().accept()
+
+        @action()
+        async def update_username(self, pk=None, username=None, **kwargs):
+            user = await database_sync_to_async(self.get_object)(pk=pk)
+            user.username = username
+            await database_sync_to_async(user.save)()
+            return {"pk": pk}, 200
+
+    assert not await database_sync_to_async(get_user_model().objects.all().exists)()
+
+    # Test a normal connection
+    communicator = WebsocketCommunicator(TestConsumerMultipleSubs(), "/testws/")
+    connected, _ = await communicator.connect()
+    assert connected
+
+    u1 = await database_sync_to_async(get_user_model().objects.create)(
+        username="test1", email="42@example.com"
+    )
+
+    u2 = await database_sync_to_async(get_user_model().objects.create)(
+        username="test2", email="45@example.com"
+    )
+
+    # Subscribe to instance user 1
+    await communicator.send_json_to(
+        {"action": "subscribe_instance", "pk": u1.id, "request_id": 4}
+    )
+
+    response = await communicator.receive_json_from()
+
+    assert response == {
+        "action": "subscribe_instance",
+        "errors": [],
+        "response_status": 201,
+        "request_id": 4,
+        "data": None,
+    }
+
+    # Subscribe to instance user 2
+    await communicator.send_json_to(
+        {"action": "subscribe_instance", "pk": u2.id, "request_id": 5}
+    )
+
+    response = await communicator.receive_json_from()
+
+    assert response == {
+        "action": "subscribe_instance",
+        "errors": [],
+        "response_status": 201,
+        "request_id": 5,
+        "data": None,
+    }
+
+    # lookup up u1
+    await communicator.send_json_to(
+        {
+            "action": "update_username",
+            "pk": u1.id,
+            "username": "new name",
+            "request_id": 10,
+        }
+    )
+
+    response = await communicator.receive_json_from()
+
+    assert response == {
+        "action": "update_username",
+        "errors": [],
+        "response_status": 200,
+        "request_id": 10,
+        "data": {"pk": u1.id},
+    }
+
+    response = await communicator.receive_json_from()
+
+    assert response == {
+        "action": "update",
+        "errors": [],
+        "response_status": 200,
+        "request_id": 4,
+        "data": {"email": "42@example.com", "id": u1.id, "username": "new name"},
+    }
+
+    assert await communicator.receive_nothing()
+
+    # Update U2
+    await communicator.send_json_to(
+        {
+            "action": "update_username",
+            "pk": u2.id,
+            "username": "the new name 2",
+            "request_id": 11,
+        }
+    )
+
+    response = await communicator.receive_json_from()
+
+    assert response == {
+        "action": "update_username",
+        "errors": [],
+        "response_status": 200,
+        "request_id": 11,
+        "data": {"pk": u2.id},
+    }
+
+    response = await communicator.receive_json_from()
+
+    assert response == {
+        "action": "update",
+        "errors": [],
+        "response_status": 200,
+        "request_id": 5,
+        "data": {"email": "45@example.com", "id": u2.id, "username": "the new name 2"},
     }
 
     await communicator.disconnect()

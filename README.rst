@@ -2,16 +2,12 @@
 Django Channels Rest Framework
 ==============================
 
-Django Channels Rest Framework provides a DRF like interface for building channels-v2_ websocket consumers.
+Django Channels Rest Framework provides a DRF like interface for building channels-v3_ websocket consumers.
 
 
 This project can be used alongside HyperMediaChannels_ and ChannelsMultiplexer_ to create a Hyper Media Style api over websockets. However Django Channels Rest Framework is also a free standing framework with the goal of providing an api that is familiar to DRF users.
 
 theY4Kman_ has developed a useful Javascript client library dcrf-client_ to use with DCRF.
-
-
-.. image:: https://travis-ci.org/hishnash/djangochannelsrestframework.svg?branch=master
-    :target: https://travis-ci.org/hishnash/djangochannelsrestframework
 
 Thanks to
 ---------
@@ -26,6 +22,12 @@ Install
 .. code-block:: bash
   
   pip install djangochannelsrestframework
+
+
+.. warning ::
+
+			In your application definition when you declare your consumers it is very important to use the `.as_asgi()` class method. Eg `MyConsumer.as_asgi()` you **should not** have any instances of `MyConsumer()` in your code base.
+
 
 
 A Generic Api Consumer
@@ -178,11 +180,11 @@ One can subscribe to all instances of a model by utilizing the ``model_observer`
     from djangochannelsrestframework.observer import model_observer
 
     @model_observer(models.Test)
-    async def model_activity(self, message, observer=None, **kwargs):
+    async def model_activity(self, message, observer=None, action=None, **kwargs):
         # send activity to your frontend
         await self.send_json(message)
 
-This method will send messages to the client on all CRUD operations made through the Django ORM.
+This method will send messages to the client on all CRUD operations made through the Django ORM. The `action` arg here it will take values such as `create`, `delete` and `update` you should consider passing this to your frontend client.
 
 Note: These notifications do not include bulk updates, such as ``models.Test.objects.filter(name="abc").update(name="newname")``
 
@@ -210,7 +212,7 @@ You can do this in a few placed, a common example is in the ``websocket_connect`
         await self.activities_change.subscribe()
 
 
-This method utilizes the previously mentioned ``model_activity`` method to subscribe to all instances of the current Consumer's model. 
+This method utilizes the previously mentioned ``model_activity`` method to subscribe to all instances of the current Consumer's model.
 
 One can also subscribe by creating a custom action
 
@@ -246,11 +248,11 @@ To do this we need to split the model updates into `groups` and then in the cons
   class MyConsumer(AsyncAPIConsumer):
 
     @model_observer(models.Classroom)
-    async def classroom_change_handler(self, message, observer=None, **kwargs):
+    async def classroom_change_handler(self, message, observer=None, action=None, **kwargs):
         # due to not being able to make DB QUERIES when selecting a group
         # maybe do an extra check here to be sure the user has permission
         # send activity to your frontend
-        await self.send_json(message)
+        await self.send_json(dict(body=message, action=action))
 
     @classroom_change_handler.groups_for_signal
     def classroom_change_handler(self, instance: models.Classroom, **kwargs):
@@ -279,7 +281,7 @@ To do this we need to split the model updates into `groups` and then in the cons
 
 .. _post: https://lostmoa.com/blog/DjangoChannelsRestFramework/
 .. _GenericAPIView: https://www.django-rest-framework.org/api-guide/generic-views/
-.. _channels-v2: https://channels.readthedocs.io/en/latest/
+.. _channels-v3: https://channels.readthedocs.io/en/latest/
 .. _dcrf-client: https://github.com/theY4Kman/dcrf-client
 .. _theY4Kman: https://github.com/theY4Kman
 .. _HyperMediaChannels: https://github.com/hishnash/hypermediachannels

@@ -1,6 +1,6 @@
 import hashlib
-from typing import Any, Dict, Generator, Callable, Optional
-from uuid import uuid4
+from copy import deepcopy
+from typing import Any, Dict, Generator, Callable, Iterable
 
 from djangochannelsrestframework.consumers import AsyncAPIConsumer
 from djangochannelsrestframework.observer.utils import ObjPartial
@@ -13,10 +13,26 @@ class BaseObserver:
         self._group_names_for_signal = None
         self._group_names_for_consumer = None
 
-        self._stable_observer_id = f"{partition}-{self.__class__.__name__}-{self.func.__module__}.{self.func.__name__}"
+        self._stable_observer_id = (
+            f"{partition}-"
+            f"{self.__class__.__name__}-"
+            f"{self.func.__module__}."
+            f"{self.func.__name__}"
+        )
 
-    async def __call__(self, *args, consumer=None, **kwargs):
-        return await self.func(consumer, *args, observer=self, **kwargs)
+    async def __call__(self, message, consumer=None, **kwargs):
+        message = deepcopy(message)
+        message_body = message.pop("body", {})
+        message_type = message.pop("type")
+
+        return await self.func(
+            consumer,
+            message_body,
+            observer=self,
+            message_type=message_type,
+            **message,
+            **kwargs,
+        )
 
     def __get__(self, parent, objtype):
         if parent is None:
@@ -25,10 +41,11 @@ class BaseObserver:
         return ObjPartial(self, consumer=parent)
 
     def serialize(self, signal, *args, **kwargs) -> Dict[str, Any]:
-        message = {}
+        message_body = {}
         if self._serializer:
-            message = self._serializer(self, signal, *args, **kwargs)
-        message["type"] = self.func.__name__.replace("_", ".")
+            message_body = self._serializer(self, signal, *args, **kwargs)
+
+        message = dict(type=self.func.__name__.replace("_", "."), body=message_body)
 
         return message
 
@@ -165,17 +182,24 @@ class BaseObserver:
         self._serializer = func
         return self
 
-    async def subscribe(self, consumer: AsyncAPIConsumer, *args, **kwargs):
-        for group_name in self.group_names_for_consumer(
-            *args, consumer=consumer, **kwargs
-        ):
-            await consumer.add_group(group_name)
+    async def subscribe(
+        self, consumer: AsyncAPIConsumer, *args, **kwargs
+    ) -> Iterable[str]:
+        groups = list(self.group_names_for_consumer(*args, consumer=consumer, **kwargs))
 
-    async def unsubscribe(self, consumer: AsyncAPIConsumer, *args, **kwargs):
-        for group_name in self.group_names_for_consumer(
-            *args, consumer=consumer, **kwargs
-        ):
+        for group_name in groups:
+            await consumer.add_group(group_name)
+        return groups
+
+    async def unsubscribe(
+        self, consumer: AsyncAPIConsumer, *args, **kwargs
+    ) -> Iterable[str]:
+        groups = list(self.group_names_for_consumer(*args, consumer=consumer, **kwargs))
+
+        for group_name in groups:
             await consumer.remove_group(group_name)
+
+        return groups
 
     def group_names_for_consumer(
         self, consumer: AsyncAPIConsumer, *args, **kwargs
