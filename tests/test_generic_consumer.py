@@ -235,6 +235,7 @@ async def test_list_mixin_consumer_with_pagination():
         "request_id": 1,
         "data": {
             "results": [],
+            "count": 0,
         },
     }
 
@@ -260,6 +261,7 @@ async def test_list_mixin_consumer_with_pagination():
         "response_status": 200,
         "request_id": 1,
         "data": {
+            "count": 2,
             "results": [
                 {"email": "42@example.com", "id": u1.id, "username": "test1"},
             ]
@@ -275,6 +277,7 @@ async def test_list_mixin_consumer_with_pagination():
         "response_status": 200,
         "request_id": 1,
         "data": {
+            "count": 2,
             "results": [
                 {"email": "45@example.com", "id": u2.id, "username": "test2"},
             ]
