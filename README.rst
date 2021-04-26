@@ -15,6 +15,10 @@ Thanks to
 
 DCRF is based of a fork of `Channels Api <https://github.com/linuxlewis/channels-api>`_ and of course inspired by `Django Rest Framework <http://www.django-rest-framework.org/>`_.
 
+Documentation
+-------------
+doc_
+
 
 Install
 -------
@@ -279,6 +283,7 @@ To do this we need to split the model updates into `groups` and then in the cons
         await self.classroom_change_handler.subscribe(classroom=classroom)
 
 
+.. _doc: https://djangochannelsrestframework.readthedocs.io/en/latest/
 .. _post: https://lostmoa.com/blog/DjangoChannelsRestFramework/
 .. _GenericAPIView: https://www.django-rest-framework.org/api-guide/generic-views/
 .. _channels-v3: https://channels.readthedocs.io/en/latest/
