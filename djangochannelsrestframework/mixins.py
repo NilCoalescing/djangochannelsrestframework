@@ -40,7 +40,13 @@ class PaginatedMixin:
         assert self.paginator is not None
         return self.paginator.get_paginated_response(data)
 
-
+class StreamedPaginatedListMixin(PaginatedMixin):
+    
+    async def handle_action(self, action: str, request_id: str, **kwargs):
+        # TODO how do I get the ammount left to send
+        await super().handle_action(action, request_id, **kwargs)
+        kwargs["offset"] = 1
+        await super().handle_action(action, request_id, **kwargs)
 
 class CreateModelMixin:
     @action()
