@@ -1,6 +1,45 @@
+from typing import Dict, Optional, OrderedDict, Union
+from rest_framework.utils.serializer_helpers import ReturnDict, ReturnList
+from django.db.models import Model, QuerySet 
 from rest_framework import status
 
 from .decorators import action
+from djangochannelsrestframework.settings import api_settings
+
+
+class PaginatedMixin:
+    
+    pagination_class = api_settings.DEFAULT_PAGINATION_CLASS
+
+    @property
+    def paginator(self) -> Optional[any]:
+        """Gets the paginator class
+
+        Returns:
+            Pagination class. Optional.
+        """
+        if not hasattr(self, "_paginator"):
+            if self.pagination_class is None:
+                self._paginator = None
+            else:
+                self._paginator = self.pagination_class()
+        return self._paginator
+
+    def paginate_queryset(
+        self, queryset: QuerySet[Model], **kwargs: Dict
+    ) -> Optional[QuerySet]:
+        if self.paginator is None:
+            return None
+        return self.paginator.paginate_queryset(
+            queryset, self.scope, view=self, **kwargs
+        )
+
+    def get_paginated_response(
+        self, data: Union[ReturnDict, ReturnList]
+    ) -> OrderedDict:
+        assert self.paginator is not None
+        return self.paginator.get_paginated_response(data)
+
 
 
 class CreateModelMixin:
@@ -19,12 +58,14 @@ class ListModelMixin:
     @action()
     def list(self, **kwargs):
         queryset = self.filter_queryset(self.get_queryset(**kwargs), **kwargs)
-        page = self.paginate_queryset(queryset, **kwargs)
-        if page is not None:
-            serializer = self.get_serializer(
-                instance=page, many=True, action_kwargs=kwargs
-            )
-            return self.get_paginated_response(serializer.data), status.HTTP_200_OK
+
+        if hasattr(self, "paginate_queryset"):
+            page = self.paginate_queryset(queryset, **kwargs)
+            if page is not None:
+                serializer = self.get_serializer(
+                    instance=page, many=True, action_kwargs=kwargs
+                )
+                return self.get_paginated_response(serializer.data), status.HTTP_200_OK
 
         serializer = self.get_serializer(
             instance=queryset, many=True, action_kwargs=kwargs

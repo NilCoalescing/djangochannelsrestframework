@@ -29,7 +29,6 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
     lookup_field = "pk"  # type: str
     lookup_url_kwarg = None  # type: Optional[str]
 
-    pagination_class = api_settings.DEFAULT_PAGINATION_CLASS
 
     # TODO filter_backends
 
@@ -134,32 +133,3 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
         # TODO filter_backends
 
         return queryset
-
-    @property
-    def paginator(self) -> Optional[any]:
-        """Gets the paginator class
-
-        Returns:
-            Pagination class. Optional.
-        """
-        if not hasattr(self, "_paginator"):
-            if self.pagination_class is None:
-                self._paginator = None
-            else:
-                self._paginator = self.pagination_class()
-        return self._paginator
-
-    def paginate_queryset(
-        self, queryset: QuerySet[Model], **kwargs: Dict
-    ) -> Optional[QuerySet]:
-        if self.paginator is None:
-            return None
-        return self.paginator.paginate_queryset(
-            queryset, self.scope, view=self, **kwargs
-        )
-
-    def get_paginated_response(
-        self, data: Union[ReturnDict, ReturnList]
-    ) -> OrderedDict:
-        assert self.paginator is not None
-        return self.paginator.get_paginated_response(data)

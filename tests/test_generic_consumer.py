@@ -14,6 +14,7 @@ from djangochannelsrestframework.mixins import (
     UpdateModelMixin,
     PatchModelMixin,
     DeleteModelMixin,
+    PaginatedMixin,
 )
 
 
@@ -212,7 +213,7 @@ async def test_list_mixin_consumer_with_pagination():
 
         default_limit = 1
 
-    class AConsumer(ListModelMixin, GenericAsyncAPIConsumer):
+    class AConsumer(PaginatedMixin, ListModelMixin, GenericAsyncAPIConsumer):
         queryset = get_user_model().objects.all()
         serializer_class = UserSerializer
         pagination_class = TempClass
