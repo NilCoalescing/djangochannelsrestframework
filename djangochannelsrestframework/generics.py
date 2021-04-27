@@ -138,7 +138,7 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
     @property
     def paginator(self) -> Optional[any]:
         """Gets the paginator class
-        
+
         Returns:
             Pagination class. Optional.
         """
@@ -149,13 +149,17 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
                 self._paginator = self.pagination_class()
         return self._paginator
 
-    def paginate_queryset(self, queryset: QuerySet[Model], **kwargs: Dict) -> List[Model]:
+    def paginate_queryset(
+        self, queryset: QuerySet[Model], **kwargs: Dict
+    ) -> Optional[QuerySet]:
         if self.paginator is None:
             return None
         return self.paginator.paginate_queryset(
             queryset, self.scope, view=self, **kwargs
         )
 
-    def get_paginated_response(self, data: Union[ReturnDict, ReturnList]) -> OrderedDict:
+    def get_paginated_response(
+        self, data: Union[ReturnDict, ReturnList]
+    ) -> OrderedDict:
         assert self.paginator is not None
         return self.paginator.get_paginated_response(data)

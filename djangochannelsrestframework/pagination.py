@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import Dict, List, Union
+from typing import Dict, List, Optional, Union
 from django.db.models import QuerySet, Model
 
 from rest_framework.utils.serializer_helpers import ReturnDict, ReturnList
@@ -24,9 +24,11 @@ class WebsocketLimitOffsetPagination(LimitOffsetPagination):
 
     default_limit = api_settings.PAGE_SIZE
 
-    def get_paginated_response(self, data: Union[ReturnDict, ReturnList]) -> OrderedDict:
+    def get_paginated_response(
+        self, data: Union[ReturnDict, ReturnList]
+    ) -> OrderedDict:
         """Get the paginated response data
-        
+
         Args:
             data: serializer data paginated.
 
@@ -43,7 +45,13 @@ class WebsocketLimitOffsetPagination(LimitOffsetPagination):
             ]
         )
 
-    def paginate_queryset(self, queryset: QuerySet[Model], scope: Dict[any, any], view=None, **kwargs: Dict[any, any]) -> List[Model]:
+    def paginate_queryset(
+        self,
+        queryset: QuerySet[Model],
+        scope: Dict[any, any],
+        view=None,
+        **kwargs: Dict[any, any]
+    ) -> Optional[List[Optional[Model]]]:
         """Paginates a given queryset, based on the kwargs `limit` and `offset`.
 
         Args:
@@ -71,7 +79,7 @@ class WebsocketLimitOffsetPagination(LimitOffsetPagination):
 
     def get_limit(self, **kwargs: Dict) -> int:
         """Gets the limit from the websocket message.
-        
+
         Args:
             kwargs: keyworded argument dictionary.
 
@@ -92,7 +100,7 @@ class WebsocketLimitOffsetPagination(LimitOffsetPagination):
 
     def get_offset(self, **kwargs: Dict) -> int:
         """Gets the offset from the websocket message
-        
+
         Args:
             kwargs: keyworded argument dictionary.
 
