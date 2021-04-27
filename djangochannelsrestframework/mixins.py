@@ -43,10 +43,14 @@ class PaginatedMixin:
 class StreamedPaginatedListMixin(PaginatedMixin):
     
     async def handle_action(self, action: str, request_id: str, **kwargs):
-        # TODO how do I get the ammount left to send
         await super().handle_action(action, request_id, **kwargs)
-        kwargs["offset"] = 1
-        await super().handle_action(action, request_id, **kwargs)
+        while self.paginator.offset < self.paginator.count:
+            count = self.paginator.count
+            limit = self.paginator.limit
+            offset = self.paginator.offset
+            kwargs["offset"] = limit + offset
+            
+            await super().handle_action(action, request_id, **kwargs)
 
 class CreateModelMixin:
     @action()

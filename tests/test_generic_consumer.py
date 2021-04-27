@@ -344,6 +344,9 @@ async def test_stream_paginated_list_mixin():
     u2 = await database_sync_to_async(get_user_model().objects.create)(
         username="test2", email="45@example.com"
     )
+    u3 = await database_sync_to_async(get_user_model().objects.create)(
+        username="test3", email="46@example.com"
+    )
 
     await communicator.send_json_to(
         {
@@ -360,7 +363,7 @@ async def test_stream_paginated_list_mixin():
         "response_status": 200,
         "request_id": 1,
         "data": {
-            "count": 2,
+            "count": 3,
             "limit": 1,
             "offset": 0,
             "results": [
@@ -377,7 +380,7 @@ async def test_stream_paginated_list_mixin():
         "response_status": 200,
         "request_id": 1,
         "data": {
-            "count": 2,
+            "count": 3,
             "limit": 1,
             "offset": 1,
             "results": [
@@ -385,7 +388,6 @@ async def test_stream_paginated_list_mixin():
             ]
         },
     }
-    await communicator.send_json_to({"action": "list", "request_id": 1, "offset": 2})
 
     response = await communicator.receive_json_from()
 
@@ -395,10 +397,12 @@ async def test_stream_paginated_list_mixin():
         "response_status": 200,
         "request_id": 1,
         "data": {
-            "count": 2,
+            "count": 3,
             "limit": 1,
             "offset": 2,
-            "results": []
+            "results": [
+                {"email": "46@example.com", "id": u3.id, "username": "test3"},
+            ]
         },
     }
 
