@@ -1,7 +1,7 @@
 from djangochannelsrestframework.observer.model_observer import Action
 from typing import Dict, Optional, OrderedDict, Union
 from rest_framework.utils.serializer_helpers import ReturnDict, ReturnList
-from django.db.models import Model, QuerySet 
+from django.db.models import Model, QuerySet
 from rest_framework import status
 
 from .decorators import action
@@ -106,7 +106,7 @@ class DeleteModelMixin:
 
 
 class PaginatedModelListMixin(ListModelMixin):
-    
+
     pagination_class = api_settings.DEFAULT_PAGINATION_CLASS
 
     @property
@@ -138,8 +138,8 @@ class PaginatedModelListMixin(ListModelMixin):
         assert self.paginator is not None
         return self.paginator.get_paginated_response(data)
 
+
 class StreamedPaginatedListMixin(PaginatedModelListMixin):
-    
     async def handle_action(self, action: str, request_id: str, **kwargs):
         await super().handle_action(action, request_id, **kwargs)
         while action == "list" and self.paginator.offset < self.paginator.count:
@@ -147,5 +147,5 @@ class StreamedPaginatedListMixin(PaginatedModelListMixin):
             limit = self.paginator.limit
             offset = self.paginator.offset
             kwargs["offset"] = limit + offset
-            
+
             await super().handle_action(action, request_id, **kwargs)

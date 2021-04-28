@@ -23,9 +23,9 @@ def _positive_int(integer_string, strict=False, cutoff=None):
 class WebsocketLimitOffsetPagination(LimitOffsetPagination):
 
     default_limit = api_settings.PAGE_SIZE
-    count : int
-    limit : int
-    offset : int
+    count: int
+    limit: int
+    offset: int
 
     def get_paginated_response(
         self, data: Union[ReturnDict, ReturnList]

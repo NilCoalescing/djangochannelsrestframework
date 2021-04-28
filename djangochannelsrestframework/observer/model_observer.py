@@ -37,7 +37,7 @@ class Action(Enum):
 
 
 class UnsupportedWarning(Warning):
-    """"""
+    """ """
 
 
 class ModelObserverInstanceState:

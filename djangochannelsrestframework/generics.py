@@ -29,7 +29,6 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
     lookup_field = "pk"  # type: str
     lookup_url_kwarg = None  # type: Optional[str]
 
-
     # TODO filter_backends
 
     # TODO pagination_class

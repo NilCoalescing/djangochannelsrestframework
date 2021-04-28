@@ -270,7 +270,7 @@ async def test_list_mixin_consumer_with_pagination():
             "offset": 0,
             "results": [
                 {"email": "42@example.com", "id": u1.id, "username": "test1"},
-            ]
+            ],
         },
     }
     await communicator.send_json_to({"action": "list", "request_id": 1, "offset": 1})
@@ -288,7 +288,7 @@ async def test_list_mixin_consumer_with_pagination():
             "offset": 1,
             "results": [
                 {"email": "45@example.com", "id": u2.id, "username": "test2"},
-            ]
+            ],
         },
     }
     await communicator.send_json_to({"action": "list", "request_id": 1, "offset": 2})
@@ -300,13 +300,9 @@ async def test_list_mixin_consumer_with_pagination():
         "errors": [],
         "response_status": 200,
         "request_id": 1,
-        "data": {
-            "count": 2,
-            "limit": 1,
-            "offset": 2,
-            "results": []
-        },
+        "data": {"count": 2, "limit": 1, "offset": 2, "results": []},
     }
+
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
@@ -325,7 +321,9 @@ async def test_stream_paginated_list_mixin():
 
         default_limit = 1
 
-    class AConsumer(StreamedPaginatedListMixin, ListModelMixin, GenericAsyncAPIConsumer):
+    class AConsumer(
+        StreamedPaginatedListMixin, ListModelMixin, GenericAsyncAPIConsumer
+    ):
         queryset = get_user_model().objects.all()
         serializer_class = UserSerializer
         pagination_class = TempClass
@@ -367,7 +365,7 @@ async def test_stream_paginated_list_mixin():
             "offset": 0,
             "results": [
                 {"email": "42@example.com", "id": u1.id, "username": "test1"},
-            ]
+            ],
         },
     }
 
@@ -384,7 +382,7 @@ async def test_stream_paginated_list_mixin():
             "offset": 1,
             "results": [
                 {"email": "45@example.com", "id": u2.id, "username": "test2"},
-            ]
+            ],
         },
     }
 
@@ -401,7 +399,7 @@ async def test_stream_paginated_list_mixin():
             "offset": 2,
             "results": [
                 {"email": "46@example.com", "id": u3.id, "username": "test3"},
-            ]
+            ],
         },
     }
 
