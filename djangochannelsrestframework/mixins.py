@@ -7,51 +7,6 @@ from .decorators import action
 from djangochannelsrestframework.settings import api_settings
 
 
-class PaginatedMixin:
-    
-    pagination_class = api_settings.DEFAULT_PAGINATION_CLASS
-
-    @property
-    def paginator(self) -> Optional[any]:
-        """Gets the paginator class
-
-        Returns:
-            Pagination class. Optional.
-        """
-        if not hasattr(self, "_paginator"):
-            if self.pagination_class is None:
-                self._paginator = None
-            else:
-                self._paginator = self.pagination_class()
-        return self._paginator
-
-    def paginate_queryset(
-        self, queryset: QuerySet[Model], **kwargs: Dict
-    ) -> Optional[QuerySet]:
-        if self.paginator is None:
-            return None
-        return self.paginator.paginate_queryset(
-            queryset, self.scope, view=self, **kwargs
-        )
-
-    def get_paginated_response(
-        self, data: Union[ReturnDict, ReturnList]
-    ) -> OrderedDict:
-        assert self.paginator is not None
-        return self.paginator.get_paginated_response(data)
-
-class StreamedPaginatedListMixin(PaginatedMixin):
-    
-    async def handle_action(self, action: str, request_id: str, **kwargs):
-        await super().handle_action(action, request_id, **kwargs)
-        while self.paginator.offset < self.paginator.count:
-            count = self.paginator.count
-            limit = self.paginator.limit
-            offset = self.paginator.offset
-            kwargs["offset"] = limit + offset
-            
-            await super().handle_action(action, request_id, **kwargs)
-
 class CreateModelMixin:
     @action()
     def create(self, data, **kwargs):
@@ -147,3 +102,49 @@ class DeleteModelMixin:
 
     def perform_delete(self, instance, **kwargs):
         instance.delete()
+
+
+class PaginatedModelListMixin(ListModelMixin):
+    
+    pagination_class = api_settings.DEFAULT_PAGINATION_CLASS
+
+    @property
+    def paginator(self) -> Optional[any]:
+        """Gets the paginator class
+
+        Returns:
+            Pagination class. Optional.
+        """
+        if not hasattr(self, "_paginator"):
+            if self.pagination_class is None:
+                self._paginator = None
+            else:
+                self._paginator = self.pagination_class()
+        return self._paginator
+
+    def paginate_queryset(
+        self, queryset: QuerySet[Model], **kwargs: Dict
+    ) -> Optional[QuerySet]:
+        if self.paginator is None:
+            return None
+        return self.paginator.paginate_queryset(
+            queryset, self.scope, view=self, **kwargs
+        )
+
+    def get_paginated_response(
+        self, data: Union[ReturnDict, ReturnList]
+    ) -> OrderedDict:
+        assert self.paginator is not None
+        return self.paginator.get_paginated_response(data)
+
+class StreamedPaginatedListMixin(PaginatedModelListMixin):
+    
+    async def handle_action(self, action: str, request_id: str, **kwargs):
+        await super().handle_action(action, request_id, **kwargs)
+        while self.paginator.offset < self.paginator.count:
+            count = self.paginator.count
+            limit = self.paginator.limit
+            offset = self.paginator.offset
+            kwargs["offset"] = limit + offset
+            
+            await super().handle_action(action, request_id, **kwargs)
