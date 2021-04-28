@@ -1,3 +1,4 @@
+from djangochannelsrestframework.observer.model_observer import Action
 from typing import Dict, Optional, OrderedDict, Union
 from rest_framework.utils.serializer_helpers import ReturnDict, ReturnList
 from django.db.models import Model, QuerySet 
@@ -141,7 +142,7 @@ class StreamedPaginatedListMixin(PaginatedModelListMixin):
     
     async def handle_action(self, action: str, request_id: str, **kwargs):
         await super().handle_action(action, request_id, **kwargs)
-        while self.paginator.offset < self.paginator.count:
+        while action == "list" and self.paginator.offset < self.paginator.count:
             count = self.paginator.count
             limit = self.paginator.limit
             offset = self.paginator.offset

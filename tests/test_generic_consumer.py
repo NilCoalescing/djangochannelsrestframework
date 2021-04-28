@@ -308,7 +308,6 @@ async def test_list_mixin_consumer_with_pagination():
         },
     }
 
-@pytest.mark.skip
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_stream_paginated_list_mixin():
