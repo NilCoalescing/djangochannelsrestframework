@@ -27,4 +27,20 @@ class Migration(migrations.Migration):
                 ("name", models.CharField(max_length=255)),
             ],
         ),
+        migrations.CreateModel(
+            name="TestRelatedModel",
+            fields=[
+                (
+                    "id",
+                    models.AutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("name", models.CharField(max_length=255)),
+                ("fk", models.ForeignKey("TestModel", related_name="test_related", on_delete=models.CASCADE))
+            ],
+        ),
     ]
