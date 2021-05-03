@@ -40,7 +40,14 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("name", models.CharField(max_length=255)),
-                ("fk", models.ForeignKey("TestModel", related_name="test_related", on_delete=models.CASCADE))
+                (
+                    "fk",
+                    models.ForeignKey(
+                        "TestModel",
+                        related_name="test_related",
+                        on_delete=models.CASCADE,
+                    ),
+                ),
             ],
         ),
     ]
