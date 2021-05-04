@@ -6,7 +6,7 @@ from djangochannelsrestframework.extras import (
     post_bulk_update,
     pre_bulk_update,
 )
-
+from django.utils.translation import gettext as _
 
 class BulkManager(Manager):
     """Bulk manager for sending bulk signals."""
@@ -21,6 +21,8 @@ class BulkManager(Manager):
         Notes:
             The ID is currently returned only in `PostgresSQL` or `MariaDB 10.5+`.
         """
+        if not len(objs) > 0:
+            raise ValueError(_(f"'objs' must be a not empty Iterable"))
         pre_bulk_create.send(
             sender=objs[0].__class__, instances=objs, created=True, **kwargs
         )
@@ -40,6 +42,8 @@ class BulkManager(Manager):
         Notes:
             The ID is currently returned only in `PostgresSQL` or `MariaDB 10.5+`.
         """
+        if not len(objs) > 0:
+            raise ValueError(_(f"'objs' must be a not empty Iterable"))
         pre_bulk_update.send(
             sender=objs[0].__class__,
             instances=objs,
