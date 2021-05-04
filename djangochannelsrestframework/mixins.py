@@ -4,7 +4,7 @@ from rest_framework.utils.serializer_helpers import ReturnDict, ReturnList
 from django.db.models import Model, QuerySet
 from rest_framework import status
 
-from .decorators import action
+from .decorators import action  
 from djangochannelsrestframework.settings import api_settings
 
 
@@ -21,7 +21,7 @@ class CreateModelMixin:
 
 
 class ListModelMixin:
-    @action()
+    @action(detail=False)
     def list(self, **kwargs):
         queryset = self.filter_queryset(self.get_queryset(**kwargs), **kwargs)
         serializer = self.get_serializer(
@@ -29,17 +29,15 @@ class ListModelMixin:
         )
         return serializer.data, status.HTTP_200_OK
 
-
 class RetrieveModelMixin:
-    @action()
+    @action(detail=True)
     def retrieve(self, **kwargs):
         instance = self.get_object(**kwargs)
         serializer = self.get_serializer(instance=instance, action_kwargs=kwargs)
         return serializer.data, status.HTTP_200_OK
 
-
 class UpdateModelMixin:
-    @action()
+    @action(detail=True)
     def update(self, data, **kwargs):
         instance = self.get_object(data=data, **kwargs)
 
@@ -62,7 +60,7 @@ class UpdateModelMixin:
 
 
 class PatchModelMixin:
-    @action()
+    @action(detail=True)
     def patch(self, data, **kwargs):
         instance = self.get_object(data=data, **kwargs)
 
@@ -85,7 +83,7 @@ class PatchModelMixin:
 
 
 class DeleteModelMixin:
-    @action()
+    @action(detail=True)
     def delete(self, **kwargs):
         instance = self.get_object(**kwargs)
 
@@ -148,7 +146,9 @@ class PaginatedModelListMixin(ListModelMixin):
 class StreamedPaginatedListMixin(PaginatedModelListMixin):
     async def handle_action(self, action: str, request_id: str, **kwargs):
         await super().handle_action(action, request_id, **kwargs)
-        while action == "list" and self.paginator.offset < self.paginator.count:
+        method_name = self.available_actions[action]
+        method = getattr(self, method_name)
+        while method.detail == False and self.paginator.offset < self.paginator.count:
             count = self.paginator.count
             limit = self.paginator.limit
             offset = self.paginator.offset

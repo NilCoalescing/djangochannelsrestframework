@@ -47,6 +47,9 @@ def action(atomic=None, **kwargs):
         if atomic is not None:
             _atomic = atomic
 
+        detail = kwargs.pop("detail", False)
+        
+        func.detail = detail
         func.action = True
         func.kwargs = kwargs
 
