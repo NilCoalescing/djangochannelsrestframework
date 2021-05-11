@@ -1,5 +1,5 @@
+from typing import Tuple, Dict, Optional, OrderedDict, Union
 from djangochannelsrestframework.observer.model_observer import Action
-from typing import Dict, Optional, OrderedDict, Union
 from rest_framework.utils.serializer_helpers import ReturnDict, ReturnList
 from django.db.models import Model, QuerySet
 from rest_framework import status
@@ -160,5 +160,5 @@ class StreamedPaginatedListMixin(PaginatedModelListMixin):
 
         if offset < count:
             kwargs["offset"] = limit + offset
-            
+
             await self.list(action=action, request_id=request_id, **kwargs)

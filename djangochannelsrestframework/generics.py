@@ -1,4 +1,4 @@
-from typing import Dict, List, OrderedDict, Type, Optional, Union
+from typing import Any, Dict, Type, Optional, List, OrderedDict, Union
 
 from django.db.models import QuerySet, Model
 from rest_framework.generics import get_object_or_404
