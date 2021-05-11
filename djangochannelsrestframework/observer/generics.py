@@ -140,7 +140,6 @@ class ObserverModelInstanceMixin(ObserverConsumerMixin, RetrieveModelMixin):
             await self.handle_exception(exc, action=action, request_id=None)
 
         for request_id in self._requests_for(group):
-            print(request_id)
             try:
                 reply = partial(self.reply, action=action, request_id=request_id)
 

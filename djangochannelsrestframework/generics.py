@@ -12,6 +12,12 @@ from djangochannelsrestframework.settings import api_settings
 class GenericAsyncAPIConsumer(AsyncAPIConsumer):
     """
     Base class for all other generic views.
+
+    Attributes:
+        queryset: will be accesed when the method `get_queryset` is called.
+        serializer_class: it should correspond with the `queryset` model, it will be useded for the return response.
+        lookup_field: field used in the `get_object` method. Optional.
+        lookup_url_kwarg: url parameter used it for the lookup. 
     """
 
     # You'll need to either set these attributes,
@@ -47,6 +53,12 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
         querysets depending on the incoming request.
 
         (Eg. return a list of items that is specific to the user)
+
+        Args:
+            kwargs: keyworded dictionary.
+        
+        Returns:
+            Queryset attribute.
         """
         assert self.queryset is not None, (
             "'%s' should either include a `queryset` attribute, "
@@ -66,6 +78,15 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
         You may want to override this if you need to provide non-standard
         queryset lookups.  Eg if objects are referenced using multiple
         keyword arguments in the url conf.
+
+        Args:
+            kwargs: keyworded dictionary, it can be use it for filtering the queryset.
+
+        Returns:
+            :obj:`Model` object class.
+
+        Examples:
+            >>> filtered_queryset = self.get_object(**{"field__gte": value})  # this way you could filter from the frontend.
         """
         queryset = self.filter_queryset(queryset=self.get_queryset(**kwargs), **kwargs)
 
@@ -90,6 +111,15 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
         """
         Return the serializer instance that should be used for validating and
         deserializing input, and for serializing output.
+
+        Args:
+            action_kwargs: keyworded dictionary from the action.
+            args: listed arguments.
+            kwargs: keyworded dictionary arguments.
+
+        Returns:
+            Model serializer.
+
         """
         serializer_class = self.get_serializer_class(**action_kwargs)
 
@@ -106,6 +136,12 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
         serializations depending on the incoming request.
 
         (Eg. admins get full serialization, others get basic serialization)
+
+        Args:
+            kwargs: keyworded dictionary arguments.
+
+        Returns:
+            Model serializer class.
         """
         assert self.serializer_class is not None, (
             "'%s' should either include a `serializer_class` attribute, "
@@ -114,13 +150,19 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
 
         return self.serializer_class
 
-    def get_serializer_context(self, **kwargs):
+    def get_serializer_context(self, **kwargs) -> Dict[str, Any]:
         """
         Extra context provided to the serializer class.
+
+        Args:
+            kwargs: keyworded dictionary arguments.
+
+        Returns:
+            Context dictionary, containing the scope and the consumer instance.
         """
         return {"scope": self.scope, "consumer": self}
 
-    def filter_queryset(self, queryset: QuerySet, **kwargs):
+    def filter_queryset(self, queryset: QuerySet, **kwargs) -> QuerySet:
         """
         Given a queryset, filter it with whichever filter backend is in use.
 
@@ -128,6 +170,16 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
         to call it either from a list view, or from a custom `get_object`
         method if you want to apply the configured filtering backend to the
         default queryset.
+
+        Args:
+            queryset: cached queryset to filter.
+            kwargs: keyworded dictionary arguments.
+
+        Returns:
+            Filtered queryset.
+
+        Todos:
+            Implement
         """
         # TODO filter_backends
 
