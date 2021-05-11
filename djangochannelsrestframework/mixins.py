@@ -4,7 +4,7 @@ from rest_framework.utils.serializer_helpers import ReturnDict, ReturnList
 from django.db.models import Model, QuerySet
 from rest_framework import status
 
-from .decorators import action  
+from .decorators import action
 from djangochannelsrestframework.settings import api_settings
 
 
@@ -29,12 +29,14 @@ class ListModelMixin:
         )
         return serializer.data, status.HTTP_200_OK
 
+
 class RetrieveModelMixin:
     @action()
     def retrieve(self, **kwargs):
         instance = self.get_object(**kwargs)
         serializer = self.get_serializer(instance=instance, action_kwargs=kwargs)
         return serializer.data, status.HTTP_200_OK
+
 
 class UpdateModelMixin:
     @action()
@@ -144,14 +146,19 @@ class PaginatedModelListMixin(ListModelMixin):
 
 
 class StreamedPaginatedListMixin(PaginatedModelListMixin):
-
     @action()
     async def list(self, action, request_id, **kwargs):
-        data, status = await super().list(action=action, request_id=request_id, **kwargs)
+        data, status = await super().list(
+            action=action, request_id=request_id, **kwargs
+        )
+
         await self.reply(action=action, data=data, status=status, request_id=request_id)
+
         count = data.get("count", 0)
         limit = data.get("limit", 0)
         offset = data.get("offset", 0)
+
         if offset < count:
             kwargs["offset"] = limit + offset
+            
             await self.list(action=action, request_id=request_id, **kwargs)
