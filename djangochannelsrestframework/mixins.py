@@ -148,14 +148,10 @@ class StreamedPaginatedListMixin(PaginatedModelListMixin):
     @action()
     async def list(self, action, request_id, **kwargs):
         data, status = await super().list(action=action, request_id=request_id, **kwargs)
-
         await self.reply(action=action, data=data, status=status, request_id=request_id)
-        
-        while self.paginator.offset < self.paginator.count:
-            count = self.paginator.count
-            limit = self.paginator.limit
-            offset = self.paginator.offset
+        count = data.get("count", 0)
+        limit = data.get("limit", 0)
+        offset = data.get("offset", 0)
+        if offset < count:
             kwargs["offset"] = limit + offset
-            
-            data, status = await super().list(action=action, request_id=request_id, **kwargs)
-            await self.reply(action=action, data=data, status=status, request_id=request_id)
+            data, status = await self.list(action=action, request_id=request_id, **kwargs)
