@@ -1,10 +1,12 @@
-from typing import Any, Dict, Type, Optional
+from typing import Any, Dict, Type, Optional, List, OrderedDict, Union
 
 from django.db.models import QuerySet, Model
 from rest_framework.generics import get_object_or_404
 from rest_framework.serializers import Serializer
+from rest_framework.utils.serializer_helpers import ReturnDict, ReturnList
 
 from djangochannelsrestframework.consumers import AsyncAPIConsumer
+from djangochannelsrestframework.settings import api_settings
 
 
 class GenericAsyncAPIConsumer(AsyncAPIConsumer):
