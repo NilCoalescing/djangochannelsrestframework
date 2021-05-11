@@ -62,27 +62,3 @@ async def test_sync_action_users_settings(settings, atomic):
 
     result, _ = await simple_action(None)
     assert result == atomic
-
-
-@pytest.mark.django_db(transaction=True)
-@pytest.mark.asyncio
-async def test_action_with_detail_true(settings):
-    settings.DATABASES["default"]["ATOMIC_REQUESTS"] = True
-
-    @action(detail=True)
-    async def simple_action():
-        return True
-
-    assert simple_action.detail == True
-
-
-@pytest.mark.django_db(transaction=True)
-@pytest.mark.asyncio
-async def test_action_with_detail_false(settings):
-    settings.DATABASES["default"]["ATOMIC_REQUESTS"] = True
-
-    @action(detail=False)
-    async def simple_action():
-        return True
-
-    assert simple_action.detail == False

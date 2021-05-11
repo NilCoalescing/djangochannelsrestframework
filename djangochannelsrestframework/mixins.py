@@ -21,7 +21,7 @@ class CreateModelMixin:
 
 
 class ListModelMixin:
-    @action(detail=False)
+    @action()
     def list(self, **kwargs):
         queryset = self.filter_queryset(self.get_queryset(**kwargs), **kwargs)
         serializer = self.get_serializer(
@@ -30,14 +30,14 @@ class ListModelMixin:
         return serializer.data, status.HTTP_200_OK
 
 class RetrieveModelMixin:
-    @action(detail=True)
+    @action()
     def retrieve(self, **kwargs):
         instance = self.get_object(**kwargs)
         serializer = self.get_serializer(instance=instance, action_kwargs=kwargs)
         return serializer.data, status.HTTP_200_OK
 
 class UpdateModelMixin:
-    @action(detail=True)
+    @action()
     def update(self, data, **kwargs):
         instance = self.get_object(data=data, **kwargs)
 
@@ -60,7 +60,7 @@ class UpdateModelMixin:
 
 
 class PatchModelMixin:
-    @action(detail=True)
+    @action()
     def patch(self, data, **kwargs):
         instance = self.get_object(data=data, **kwargs)
 
@@ -83,7 +83,7 @@ class PatchModelMixin:
 
 
 class DeleteModelMixin:
-    @action(detail=True)
+    @action()
     def delete(self, **kwargs):
         instance = self.get_object(**kwargs)
 
