@@ -1,7 +1,6 @@
-from typing import Tuple, Dict, Optional, OrderedDict, Union
+from typing import Any, Tuple, Dict, Optional, OrderedDict, Union
 from djangochannelsrestframework.observer.model_observer import Action
 from rest_framework.utils.serializer_helpers import ReturnDict, ReturnList
-from django.db.models import Model, QuerySet
 from rest_framework import status
 from rest_framework.utils.serializer_helpers import ReturnDict, ReturnList
 
@@ -453,8 +452,8 @@ class PaginatedModelListMixin(ListModelMixin):
         return self._paginator
 
     def paginate_queryset(
-        self, queryset: QuerySet[Model], **kwargs: Dict
-    ) -> Optional[QuerySet]:
+        self, queryset, **kwargs: Dict
+    ) -> Optional[Any]:
         if self.paginator is None:
             return None
         return self.paginator.paginate_queryset(

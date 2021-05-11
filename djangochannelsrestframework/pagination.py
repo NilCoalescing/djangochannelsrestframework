@@ -1,6 +1,5 @@
 from collections import OrderedDict
-from typing import Dict, List, Optional, Union
-from django.db.models import QuerySet, Model
+from typing import Any, Dict, List, Optional, Union
 
 from rest_framework.utils.serializer_helpers import ReturnDict, ReturnList
 from djangochannelsrestframework.settings import api_settings
@@ -50,11 +49,11 @@ class WebsocketLimitOffsetPagination(LimitOffsetPagination):
 
     def paginate_queryset(
         self,
-        queryset: QuerySet[Model],
+        queryset,
         scope: Dict[any, any],
         view=None,
         **kwargs: Dict[any, any]
-    ) -> Optional[List[Optional[Model]]]:
+    ) -> Optional[List[Optional[Any]]]:
         """Paginates a given queryset, based on the kwargs `limit` and `offset`.
 
         Args:
