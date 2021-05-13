@@ -480,7 +480,7 @@ class StreamedPaginatedListMixin(PaginatedModelListMixin):
         limit = data.get("limit", 0)
         offset = data.get("offset", 0)
 
-        if offset < count:
+        if offset < (count - limit):
             kwargs["offset"] = limit + offset
 
             await self.list(action=action, request_id=request_id, **kwargs)
