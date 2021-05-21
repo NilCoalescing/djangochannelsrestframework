@@ -2,17 +2,17 @@ Generic Api Consumer
 ====================
 
 In DCRF you can create a GenericAsyncAPIConsumer that works much like a GenericAPIView in DRF: 
-For a more indeph look into Rest Like Websocket consumers read this blog post.
+For a more indepth look into Rest Like Websocket consumers read this blog post.
 
-We have a set of mixins for the consumer, that add diferent accions based on the CRUD
+We have a set of mixins for the consumer, that add different actions based on the CRUD
 operations.
 
-* ``ListModelMixin`` this mixin add the action ``list``, allows to retrieve all instances of a model class.
-* ``RetrieveModelMixin`` this mixin add the action ``retrieve`` allows to retrieve an object based on the pk sent.
-* ``PatchModelMixin`` this mixin add the action ``patch``, allows to patch an instance of a model.
-* ``UpdateModelMixin`` this mixin add the action ``update``, allows to update a model instance.
-* ``CreateModelMixin`` this mixin add the action ``create``, allows to create an instance based on the data sent.
-* ``DeleteModelMixin`` this mixin add the action ``delete``, allows to delete an instance based on the pk sent.
+* ``ListModelMixin`` this mixin adds the action ``list``, allows to retrieve all instances of a model class.
+* ``RetrieveModelMixin`` this mixin adds the action ``retrieve`` allows to retrieve an object based on the pk sent.
+* ``PatchModelMixin`` this mixin adds the action ``patch``, allows to patch an instance of a model.
+* ``UpdateModelMixin`` this mixin adds the action ``update``, allows to update a model instance.
+* ``CreateModelMixin`` this mixin adds the action ``create``, allows to create an instance based on the data sent.
+* ``DeleteModelMixin`` this mixin adds the action ``delete``, allows to delete an instance based on the pk sent.
 
 Example
 -------
