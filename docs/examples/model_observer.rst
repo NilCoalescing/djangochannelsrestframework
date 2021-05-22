@@ -74,10 +74,10 @@ Manual testing the output.
 --------------------------
 
 Now we will have a websocket client in javascript listening to the messages, after subscribing to the comment activity.
-This codeblock can be used it in the browser console.
+This codeblock can be used in the browser console.
 
 .. note::
-    In producction the ``ws:`` is ``wss:``, we can check it with the following code:
+    In production the ``ws:`` is ``wss:``, we can check it with the following code:
         .. code-block:: javascript
             
             const ws_schema = window.location.protocol === "http:" ? "ws:" : "wss:";
@@ -95,7 +95,7 @@ This codeblock can be used it in the browser console.
         console.log(e)
     }
 
-In the IPython shell we will create some comments for differnt users and in the browser console we will se the log.
+In the IPython shell we will create some comments for different users and in the browser console we will see the log.
 
 .. warning::
     At this point we should have some users in our database, otherwise create them
@@ -109,7 +109,7 @@ We will create a comment using the ``ùser_1`` and we will see the log in the br
     >>> user_2 = User.objects.get(pk=2)
     >>> Comment.objects.create(text="user 1 creates a new comment", user=user_1)
 
-In the console log we will se something like this:
+In the console log we will see something like this:
 
 .. code-block:: javascript
 
@@ -131,7 +131,7 @@ Now we will create a comment with the ``user 2``.
 
     >>> Comment.objects.create(text="user 2 creates a second comment", user=user_2)
 
-In the console log we will se something like this:
+In the console log we will see something like this:
 
 .. code-block:: javascript
 
@@ -150,5 +150,5 @@ In the console log we will se something like this:
 Conclusions
 -----------
 
-In this example we subscribe to **all instances** of the comment model, 
-in the next secction we will see how to filter this.
+In this example we subscribed to **all instances** of the comment model, 
+in the next section we will see how to filter them.
