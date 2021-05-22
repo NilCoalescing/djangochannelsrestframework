@@ -5,7 +5,7 @@ Custom actions
 Consumer that aren't bound to a Model.
 --------------------------------------
 
-We may want a consumer for handling certain acctions that are not refer to any Django model. Maybe for 
+We may want a consumer for handling certain actions that are not referred to any Django model. Maybe for 
 fetching data from an external api service, using ``requests`` library or another async request lib.
 
 
