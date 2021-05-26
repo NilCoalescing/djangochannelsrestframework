@@ -66,10 +66,10 @@ Manual testing the output.
 --------------------------
 
 Now we will have a websocket client in javascript listening to the messages, after subscribing to the comment activity.
-This codeblock can be used it in the browser console.
+This codeblock can be used in the browser console.
 
 .. note::
-    In producction the ``ws:`` is ``wss:``, we can check it with the following code:
+    In production the ``ws:`` is ``wss:``, we can check it with the following code:
         .. code-block:: javascript
             
             const ws_schema = window.location.protocol === "http:" ? "ws:" : "wss:";
