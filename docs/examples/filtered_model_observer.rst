@@ -43,7 +43,7 @@ These are the important methods of the class.
     serializer based on the instance.
 
 .. warning::
-    The user must be loged to subscribe this method, because we will access the ``self.scope["user"]``
+    The user must be logged to subscribe this method, because we will access the ``self.scope["user"]``
 
 .. code-block:: python
 
@@ -86,7 +86,7 @@ These are the important methods of the class.
                 await self.comment_activity.subscribe()
 
 .. note::
-    With out been loged we will have to access the ``user`` using the pk or any other unique field.
+    Without logging in we will have to access the ``user`` using the pk or any other unique field.
     Example:
         .. code-block:: python
 
@@ -105,7 +105,7 @@ Manual testing the output.
 --------------------------
 
 Now we will have a websocket client in javascript listening to the messages, after subscribing to the comment activity.
-This codeblock can be used it in the browser console.
+This codeblock can be used in the browser console.
 
 .. note::
     In producction the ``ws:`` is ``wss:``, we can check it with the following code:
@@ -127,7 +127,7 @@ This codeblock can be used it in the browser console.
     }
 
 .. note::
-    If we use a the subscribe method that doesn't require been log:
+    The subscribe method doesn't require being logged:
         .. code-block:: javascript
             
             const ws = new WebSocket("ws://localhost:8000/ws/my-consumer/")
@@ -143,7 +143,7 @@ This codeblock can be used it in the browser console.
                 console.log(e)
             }
 
-In the IPython shell we will create some comments for differnt users and in the browser console we will se the log.
+In the IPython shell we will create some comments for different users and in the browser console we will see the log.
 
 .. warning::
     At this point we should have some users in our database, otherwise create them
