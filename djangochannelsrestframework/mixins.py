@@ -34,8 +34,8 @@ class CreateModelMixin:
                 class LiveConsumer(CreateModelMixin, GenericAsyncAPIConsumer):
                     queryset = User.objects.all()
                     serializer_class = UserSerializer
-                    permission_classes = (permissions.AllowAny,) 
-            
+                    permission_classes = (permissions.AllowAny,)
+
             .. code-block:: python
 
                 #! routing.py
@@ -67,7 +67,7 @@ class CreateModelMixin:
                     "request_id": 150060530,
                     "data": {'username': 'test', 'id': 42,},
                 }
-                */ 
+                */
         """
 
         serializer = self.get_serializer(data=data, action_kwargs=kwargs)
@@ -81,7 +81,7 @@ class CreateModelMixin:
 
 class ListModelMixin:
     """List model mixin"""
-    
+
     @action()
     def list(self, **kwargs) -> Tuple[ReturnList, int]:
         """List action.
@@ -102,8 +102,8 @@ class ListModelMixin:
                 class LiveConsumer(ListModelMixin, GenericAsyncAPIConsumer):
                     queryset = User.objects.all()
                     serializer_class = UserSerializer
-                    permission_classes = (permissions.AllowAny,) 
-            
+                    permission_classes = (permissions.AllowAny,)
+
             .. code-block:: python
 
                 #! routing.py
@@ -133,7 +133,7 @@ class ListModelMixin:
                         {"email": "45@example.com", "id": 2, "username": "test2"},
                     ],
                 }
-                */ 
+                */
         """
         queryset = self.filter_queryset(self.get_queryset(**kwargs), **kwargs)
         serializer = self.get_serializer(
@@ -144,7 +144,7 @@ class ListModelMixin:
 
 class RetrieveModelMixin:
     """Retrieve model mixin"""
-    
+
     @action()
     def retrieve(self, **kwargs) -> Tuple[ReturnDict, int]:
         """Retrieve action.
@@ -165,8 +165,8 @@ class RetrieveModelMixin:
                 class LiveConsumer(RetrieveModelMixin, GenericAsyncAPIConsumer):
                     queryset = User.objects.all()
                     serializer_class = UserSerializer
-                    permission_classes = (permissions.AllowAny,) 
-            
+                    permission_classes = (permissions.AllowAny,)
+
             .. code-block:: python
 
                 #! routing.py
@@ -194,7 +194,7 @@ class RetrieveModelMixin:
                     "request_id": 1500000,
                     "data": {"email": "42@example.com", "id": 1, "username": "test1"},
                 }
-                */ 
+                */
         """
         instance = self.get_object(**kwargs)
         serializer = self.get_serializer(instance=instance, action_kwargs=kwargs)
@@ -224,8 +224,8 @@ class UpdateModelMixin:
                 class LiveConsumer(UpdateModelMixin, GenericAsyncAPIConsumer):
                     queryset = User.objects.all()
                     serializer_class = UserSerializer
-                    permission_classes = (permissions.AllowAny,) 
-            
+                    permission_classes = (permissions.AllowAny,)
+
             .. code-block:: python
 
                 #! routing.py
@@ -256,7 +256,7 @@ class UpdateModelMixin:
                     "request_id": 1500000,
                     "data": {"email": "42@example.com", "id": 1, "username": "test edited"},
                 }
-                */ 
+                */
         """
         instance = self.get_object(data=data, **kwargs)
 
@@ -301,8 +301,8 @@ class PatchModelMixin:
                 class LiveConsumer(PatchModelMixin, GenericAsyncAPIConsumer):
                     queryset = User.objects.all()
                     serializer_class = UserSerializer
-                    permission_classes = (permissions.AllowAny,) 
-            
+                    permission_classes = (permissions.AllowAny,)
+
             .. code-block:: python
 
                 #! routing.py
@@ -333,7 +333,7 @@ class PatchModelMixin:
                     "request_id": 150000,
                     "data": {"email": "00@example.com", "id": 1, "username": "test1"},
                 }
-                */ 
+                */
         """
         instance = self.get_object(data=data, **kwargs)
 
@@ -378,8 +378,8 @@ class DeleteModelMixin:
                 class LiveConsumer(DeleteModelMixin, GenericAsyncAPIConsumer):
                     queryset = User.objects.all()
                     serializer_class = UserSerializer
-                    permission_classes = (permissions.AllowAny,) 
-            
+                    permission_classes = (permissions.AllowAny,)
+
             .. code-block:: python
 
                 #! routing.py
@@ -407,7 +407,7 @@ class DeleteModelMixin:
                     "request_id": 150000,
                     "data": null,
                 }
-                */ 
+                */
         """
         instance = self.get_object(**kwargs)
 
@@ -451,9 +451,7 @@ class PaginatedModelListMixin(ListModelMixin):
                 self._paginator = self.pagination_class()
         return self._paginator
 
-    def paginate_queryset(
-        self, queryset, **kwargs: Dict
-    ) -> Optional[Any]:
+    def paginate_queryset(self, queryset, **kwargs: Dict) -> Optional[Any]:
         if self.paginator is None:
             return None
         return self.paginator.paginate_queryset(

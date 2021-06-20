@@ -8,16 +8,17 @@ from djangochannelsrestframework.observer.base_observer import BaseObserver
 
 from typing import Dict, Generator, Optional
 
+
 class Observer(BaseObserver):
     """Observer
-    
+
     Attributes:
         signal: signal that is fired by django signals.
         signal_kwargs: the keyworded dictionary  for the signal connection.
     """
 
-    signal : Signal
-    signal_kwargs : Optional[Dict]
+    signal: Signal
+    signal_kwargs: Optional[Dict]
 
     def __init__(self, func, signal: Signal = None, kwargs=None, partition: str = "*"):
         super().__init__(func, partition=partition)
@@ -32,7 +33,7 @@ class Observer(BaseObserver):
         """Handler method pass to the signal connection
 
         This method if fired by the signal, it sends the serialized message, to each group name.
-        
+
         Args:
             signal: signal instance # TODO
             args: listed arguments.
