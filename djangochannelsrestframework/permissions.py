@@ -5,13 +5,14 @@ from channels.consumer import AsyncConsumer
 
 class BasePermission:
     """Base permision class
-    
+
     Notes:
         You should extend this class and overide the `has_permision` method to create your own permission class.
 
     Methods:
-        async has_permision (scope, consumer, action, **kwargs) 
+        async has_permision (scope, consumer, action, **kwargs)
     """
+
     async def has_permission(
         self, scope: Dict[str, Any], consumer: AsyncConsumer, action: str, **kwargs
     ) -> bool:
@@ -20,6 +21,7 @@ class BasePermission:
 
 class AllowAny(BasePermission):
     """Allow any permision class"""
+
     async def has_permission(
         self, scope: Dict[str, Any], consumer: AsyncConsumer, action: str, **kwargs
     ) -> bool:
@@ -28,6 +30,7 @@ class AllowAny(BasePermission):
 
 class IsAuthenticated(BasePermission):
     """Allow authenticated only class"""
+
     async def has_permission(
         self, scope: Dict[str, Any], consumer: AsyncConsumer, action: str, **kwargs
     ) -> bool:

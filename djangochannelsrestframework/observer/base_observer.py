@@ -4,6 +4,8 @@ from typing import Any, Dict, Generator, Callable, Iterable
 
 from djangochannelsrestframework.consumers import AsyncAPIConsumer
 from djangochannelsrestframework.observer.utils import ObjPartial
+
+
 class BaseObserver:
     """Base observer class"""
 
@@ -59,7 +61,7 @@ class BaseObserver:
             TODO path to examples?
 
             .. code-block:: python
-                
+
                 # models.py
                 from django.db import models
                 from django.contrib.auth.models import AbstractUser
@@ -102,7 +104,7 @@ class BaseObserver:
                 class MyConsumer(GenericAsyncAPIConsumer):
                     queryset = User.objects.all()
                     serializer_class = UserSerializer
-                    
+
                     @model_observer(Comments)
                     async def comment_activity(self, message, observer=None, **kwargs):
                         await self.send_json(message)
@@ -132,7 +134,7 @@ class BaseObserver:
                 }
 
             In the IPython shell we will create some comments for differnt users and in the browser console we will se the log.
-            
+
             .. note::
                 At this point we should have some users in our database, otherwise create them
 

@@ -48,11 +48,7 @@ class WebsocketLimitOffsetPagination(LimitOffsetPagination):
         )
 
     def paginate_queryset(
-        self,
-        queryset,
-        scope: Dict[any, any],
-        view=None,
-        **kwargs: Dict[any, any]
+        self, queryset, scope: Dict[any, any], view=None, **kwargs: Dict[any, any]
     ) -> Optional[List[Optional[Any]]]:
         """Paginates a given queryset, based on the kwargs `limit` and `offset`.
 
