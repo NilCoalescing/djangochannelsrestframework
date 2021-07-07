@@ -173,6 +173,55 @@ Using your normal views over a websocket connection
    })
 
 
+Subscribing to a signal.
+------------------------
+
+One can subscribe to a custom ``Signal`` utilizing the ``observer`` decorator.
+
+Here we have a custom signal that will be triggered when a user join a chat.
+.. code-block:: python
+	
+	# signals.py
+	from django.dispatch.dispatcher import Signal
+
+	joined_chat_signal = Signal()
+
+Now we will create the consumer with two actions, one for subscribing to our custom signal for specific chat, and another one 
+for manually trigger the signal.
+
+.. code-block:: python
+
+	# consumers.py
+	from djangochannelsrestframework.consumers import AsyncAPIConsumer
+	from djangochannelsrestframework.decorators import action
+	from djangochannelsrestframework.observer import observer
+	from rest_framework import status
+	from .signals import joined_chat_singal
+	
+	class TestConsumer(AsyncAPIConsumer):
+		
+		@action()
+		def join_chat(self, chat_id, **kwargs):
+			joined_chat_signal.send(sender='join_chat', instance=chat_id, **kwargs)
+			return {}, status.HTTP_204_NO_CONTENT
+		
+		@observer(signal=joined_chat_signal)
+		async def joined_chat_handler(self, data, observer=None, action=None, **kwargs):
+			await self.reply(action, data=self.scope['user'].username, status=status.HTTP_200_OK)
+
+		@joined_chat_handler.groups_for_signal
+		def joined_chat_handler(self, instance, **kwargs):
+			yield f'chat__{instance}'
+
+		@joined_chat_handler.groups_for_consumer
+		def joined_chat_handler(self, chat, **kwargs):
+			if chat:
+				yield f'chat__{chat}'
+
+		@action()
+		async def subscribe_joined(self, chat_id, **kwargs):
+			await self.joined_chat_handler.subscribe(chat_id)
+
 
 Subscribing to all instances of a model
 ---------------------------------------
