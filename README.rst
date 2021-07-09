@@ -197,17 +197,23 @@ for manually trigger the signal.
 	from djangochannelsrestframework.observer import observer
 	from rest_framework import status
 	from .signals import joined_chat_singal
+	from .serializers import UserSerializer
 	
 	class TestConsumer(AsyncAPIConsumer):
 		
 		@action()
 		def join_chat(self, chat_id, **kwargs):
-			joined_chat_signal.send(sender='join_chat', instance=chat_id, **kwargs)
+			serializer = UserSerializer(instance=self.scope['user'])
+			joined_chat_signal.send(sender='join_chat', data=serializer.data, **kwargs)
 			return {}, status.HTTP_204_NO_CONTENT
 		
 		@observer(signal=joined_chat_signal)
 		async def joined_chat_handler(self, data, observer=None, action=None, **kwargs):
-			await self.reply(action, data=self.scope['user'].username, status=status.HTTP_200_OK)
+			await self.reply(action='joined_chat', data=data, status=status.HTTP_200_OK)
+
+		@joined_chat_handler.serializer
+		def join_chat_handler(self, sender, data, **kwargs): # the data comes from the signal.send and will be available in the observer
+			return data
 
 		@joined_chat_handler.groups_for_signal
 		def joined_chat_handler(self, instance, **kwargs):
