@@ -31,7 +31,7 @@ also gives you access to the ``retrieve`` action.
     from django.contrib.auth.models import User
     from .serializers import UserSerilizer
     from djangochannelsrestframework.generics import GenericAsyncAPIConsumer
-    from djangochannelsrestframework.observer import ObserverModelInstanceMixin
+    from djangochannelsrestframework.observer.generics import ObserverModelInstanceMixin
 
     class UserConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
         queryset = User.objects.all()
