@@ -470,7 +470,39 @@ async def test_model_observer_with_class_serializer(settings):
             "username": user.username,
         },
     } == response
+
+    user.username = "test updated"
+    await database_sync_to_async(user.save)()
+
+    response = await communicator.receive_json_from()
+
+    assert {
+        "action": "update",
+        "response_status": 200,
+        "request_id": None,
+        "errors": [],
+        "data": {
+            "id": user.pk,
+            "username": user.username,
+        },
+    } == response
     
+    pk = user.pk
+    await database_sync_to_async(user.delete)()
+
+    response = await communicator.receive_json_from()
+
+    assert {
+        "action": "delete",
+        "response_status": 200,
+        "request_id": None,
+        "errors": [],
+        "data": {
+            "id": pk,
+            "username": user.username,
+        },
+    } == response
+
     await communicator.disconnect()
 
 
