@@ -12,6 +12,7 @@ from channels.layers import get_channel_layer
 from django.db import transaction
 from django.db.models import Model
 from django.db.models.signals import post_delete, post_save, post_init
+from rest_framework.serializers import Serializer
 
 from djangochannelsrestframework.consumers import AsyncAPIConsumer
 from djangochannelsrestframework.observer.base_observer import BaseObserver
@@ -48,6 +49,8 @@ class ModelObserverInstanceState:
 class ModelObserver(BaseObserver):
     def __init__(self, func, model_cls: Type[Model], partition: str = "*", **kwargs):
         super().__init__(func, partition=partition)
+        self._serializer_class = kwargs['kwargs'].get('serializer_class') if 'kwargs' in kwargs else None  # type: Optional[Serializer]
+        self._serializer = None
         self._model_cls = None
         self.model_cls = model_cls  # type: Type[Model]
         self.id = uuid4()
@@ -184,6 +187,8 @@ class ModelObserver(BaseObserver):
         message_body = {}
         if self._serializer:
             message_body = self._serializer(self, instance, action, **kwargs)
+        elif self._serializer_class:
+            message_body = self._serializer_class(instance).data
         else:
             message_body["pk"] = instance.pk
 

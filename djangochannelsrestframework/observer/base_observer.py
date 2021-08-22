@@ -117,6 +117,28 @@ class BaseObserver:
                     async def subscribe_to_comment_activity(self, **kwargs):
                         await self.comment_activity.subscribe()
 
+
+            .. note::
+
+                New feature! This can be rewriting as
+                    .. code-block:: python
+
+                        ...
+
+                        class MyConsumer(GenericAsyncAPIConsumer):
+                            queryset = User.objects.all()
+                            serializer_class = UserSerializer
+
+                            @model_observer(Comments, serializer_class=CommentSerializer)
+                            async def comment_activity(self, message, action, **kwargs):
+                                await self.reply(data=message, action=action)
+
+                            @action()
+                            async def subscribe_to_comment_activity(self, **kwargs):
+                                await self.comment_activity.subscribe()
+
+
+
             Now we will have a websocket client in javascript listening to the messages, after subscribing to the comment activity.
             This codeblock can be used it in the browser console.
 

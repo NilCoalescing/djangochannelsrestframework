@@ -13,6 +13,7 @@ from django.utils.text import slugify
 from djangochannelsrestframework.consumers import AsyncAPIConsumer
 from djangochannelsrestframework.observer import observer, model_observer
 
+from rest_framework import serializers
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
@@ -419,6 +420,90 @@ async def test_model_observer_custom_groups_wrapper(settings):
     # no event since this is only subscribed to 'test'
     with pytest.raises(asyncio.TimeoutError):
         await communicator.receive_json_from()
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.asyncio
+async def test_model_observer_with_class_serializer(settings):
+    settings.CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+            "TEST_CONFIG": {"expiry": 100500,},
+        },
+    }
+
+    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
+
+    class UserSerializer(serializers.ModelSerializer):
+        class Meta:
+            model = get_user_model()
+            fields = ['id', 'username']
+
+
+    class TestConsumerObserverUsers(AsyncAPIConsumer):
+        async def accept(self, **kwargs):
+            await self.users_changes.subscribe()
+            await super().accept()
+
+        @model_observer(get_user_model(), serializer_class=UserSerializer)
+        async def users_changes(self, message, action, **kwargs):
+            await self.reply(data=message, action=action)
+
+    communicator = WebsocketCommunicator(TestConsumerObserverUsers(), "/testws/")
+
+    connected, _ = await communicator.connect()
+
+    assert connected
+
+    user = await database_sync_to_async(get_user_model().objects.create)(
+        username="test", email="test@example.com"
+    )
+
+    response = await communicator.receive_json_from()
+    
+    assert {
+        "action": "create",
+        "response_status": 200,
+        "request_id": None,
+        "errors": [],
+        "data": {
+            "id": user.pk,
+            "username": user.username,
+        },
+    } == response
+
+    user.username = "test updated"
+    await database_sync_to_async(user.save)()
+
+    response = await communicator.receive_json_from()
+
+    assert {
+        "action": "update",
+        "response_status": 200,
+        "request_id": None,
+        "errors": [],
+        "data": {
+            "id": user.pk,
+            "username": user.username,
+        },
+    } == response
+    
+    pk = user.pk
+    await database_sync_to_async(user.delete)()
+
+    response = await communicator.receive_json_from()
+
+    assert {
+        "action": "delete",
+        "response_status": 200,
+        "request_id": None,
+        "errors": [],
+        "data": {
+            "id": pk,
+            "username": user.username,
+        },
+    } == response
+
+    await communicator.disconnect()
 
 
 @pytest.mark.django_db(transaction=True)

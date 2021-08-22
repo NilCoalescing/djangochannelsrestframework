@@ -294,6 +294,23 @@ Another way is override ``AsyncAPIConsumer.accept(self, **kwargs)``
         def model_serialize(self, instance, action, **kwargs):
             return TestSerializer(instance).data
 
+.. note::
+
+    New Feature!
+    Now you can rewrite this as:
+    .. code-block:: python
+
+        class ModelConsumerObserver(AsyncAPIConsumer):
+            async def accept(self, **kwargs):
+                await super().accept(** kwargs)
+                await self.model_change.subscribe()
+            
+
+            @model_observer(models.Test, serializer_class=TestSerializer)
+            async def model_change(self, message, action=None, **kwargs):
+                await self.reply(data=message, action=action)
+
+
 Subscribing to a filtered list of models
 ========================================
 
