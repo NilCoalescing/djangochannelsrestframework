@@ -226,3 +226,188 @@ First we will create the web socket instance in ``javascript``.
     */
 
 
+Full example
+-------------
+
+.. code-block:: text
+
+
+    mysite/
+        manage.py
+        mysite/
+            __init__.py
+            asgi.py
+            settings.py
+            urls.py
+            wsgi.py
+        example/
+            __init__.py
+            consumers.py
+            models.py
+            serializers.py
+            routing.py
+            templates/
+                example/
+                    index.html
+            tests.py
+            urls.py
+            views.py
+
+.. code-block:: python
+
+    # serializers.py
+    from rest_framework import serializers
+    from django.contrib.auth.models import User
+
+
+    class UserSerializer(serializers.ModelSerializer):
+
+        class Meta:
+            model = User
+            fields = ["id", "username", "email", "password"]
+            extra_kwargs = {'password': {'write_only': True}}
+
+        def create(self, validated_data):
+            user = User(
+                email=validated_data['email'],
+                username=validated_data['username']
+            )
+            user.set_password(validated_data['password'])
+            user.save()
+            return user
+
+.. code-block:: python
+
+    # consumers.py
+    from django.contrib.auth.models import User
+    from .serializers import UserSerializer
+    from djangochannelsrestframework.generics import GenericAsyncAPIConsumer
+    from djangochannelsrestframework.mixins import (
+        ListModelMixin,
+        RetrieveModelMixin,
+        PatchModelMixin,
+        UpdateModelMixin,
+        CreateModelMixin,
+        DeleteModelMixin,
+    )
+
+
+    class UserConsumer(
+            ListModelMixin,
+            RetrieveModelMixin,
+            PatchModelMixin,
+            UpdateModelMixin,
+            CreateModelMixin,
+            DeleteModelMixin,
+            GenericAsyncAPIConsumer,
+    ):
+
+        queryset = User.objects.all()
+        serializer_class = UserSerializer
+
+.. code-block:: python
+
+    # routing.py
+    from django.urls import re_path
+    from . import consumers
+
+    websocket_urlpatterns = [
+        re_path(r"^ws/$", consumers.UserConsumer.as_asgi()),
+    ]
+
+
+.. code-block:: python
+
+    from django.shortcuts import render, reverse
+
+
+    def index(request):
+        return render(request, 'example/index.html')
+
+
+.. code-block:: html
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <title>Generic Api Consumer</title>
+    </head>
+    <body>
+
+    <button id="list">List</button>
+    <button id="retrieve">Retrieve</button>
+    <button id="create">Create</button>
+    <button id="patch">Patch</button>
+    <button id="update">Update</button>
+    <button id="delete">Delete</button>
+
+    <pre id="response"></pre>
+
+    <script>
+        const ws = new WebSocket("ws://localhost:8000/ws/")
+
+        ws.onmessage = function (e) {
+            document.getElementById("response").textContent = JSON.stringify(JSON.parse(e.data), undefined, 2);
+            console.log(e.data)
+        }
+
+        document.querySelector('#list').onclick = function (e) {
+            ws.send(JSON.stringify({
+                action: "list",
+                request_id: new Date().getTime()
+            }))
+        };
+
+        document.querySelector('#retrieve').onclick = function (e) {
+            ws.send(JSON.stringify({
+                action: "retrieve",
+                request_id: new Date().getTime(),
+                pk: 2
+            }))
+        }
+
+        document.querySelector('#create').onclick = function (e) {
+            ws.send(JSON.stringify({
+                action: "create",
+                request_id: new Date().getTime(),
+                data: {
+                    username: "newuser4",
+                    password: "testpassword123",
+                    email: "4@example.com"
+                }
+            }))
+        }
+
+        document.querySelector('#patch').onclick = function (e) {
+            ws.send(JSON.stringify({
+                action: "patch",
+                request_id: new Date().getTime(),
+                pk: 2,
+                data: {
+                    email: "edited@example.com"
+                }
+            }))
+        }
+
+        document.querySelector('#update').onclick = function (e) {
+            ws.send(JSON.stringify({
+                action: "update",
+                request_id: new Date().getTime(),
+                pk: 2,
+                data: {
+                    username: "user 2"
+                }
+            }))
+        }
+
+        document.querySelector('#delete').onclick = function (e) {
+            ws.send(JSON.stringify({
+                action: "delete",
+                request_id: new Date().getTime(),
+                pk: 2
+            }))
+        }
+    </script>
+    </body>
+    </html>
