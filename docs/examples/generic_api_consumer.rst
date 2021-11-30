@@ -25,6 +25,8 @@ are going to create a serializer class for it, and mixin with the ``GenericAsync
     # serializers.py
     from rest_framework import serializers
     from django.contrib.auth.models import User
+
+
     class UserSerializer(serializers.ModelSerializer):
         
         class Meta:
@@ -64,7 +66,8 @@ are going to create a serializer class for it, and mixin with the ``GenericAsync
             CreateModelMixin,
             DeleteModelMixin,
             GenericAsyncAPIConsumer,
-        ):
+    ):
+
         queryset = User.objects.all()
         serializer_class = UserSerializer
 
@@ -100,7 +103,7 @@ First we will create the web socket instance in ``javascript``.
 
     ws.send(JSON.stringify({
         action: "list",
-        request_id: new Date().getTime(),
+        request_id: new Date().getTime()
     }))
     /* The return response will be something like this.
     {
@@ -123,7 +126,7 @@ First we will create the web socket instance in ``javascript``.
     ws.send(JSON.stringify({
         action: "retrieve",
         request_id: new Date().getTime(),
-        pk: 2,
+        pk: 2
     }))
     /* The return response will be something like this.
     {
@@ -144,7 +147,7 @@ First we will create the web socket instance in ``javascript``.
         request_id: new Date().getTime(),
         pk: 2,
         data: {
-            email: "edited@example.com",
+            email: "edited@example.com"
         }
     }))
     /* The return response will be something like this.
@@ -167,7 +170,7 @@ First we will create the web socket instance in ``javascript``.
         request_id: new Date().getTime(),
         pk: 2,
         data: {
-            username: "user 2",
+            username: "user 2"
         }
     }))
     /* The return response will be something like this.
@@ -189,9 +192,8 @@ First we will create the web socket instance in ``javascript``.
         request_id: new Date().getTime(),
         data: {
             username: "new user 4",
-            password1: "testpassword123",
-            password2: "testpassword123",
-            email: "4@example.com",
+            password: "testpassword123",
+            email: "4@example.com"
         }
     }))
     /* The return response will be something like this.
@@ -211,7 +213,7 @@ First we will create the web socket instance in ``javascript``.
     ws.send(JSON.stringify({
         action: "delete",
         request_id: new Date().getTime(),
-        pk: 4,
+        pk: 4
     }))
     /* The return response will be something like this.
     {
@@ -222,3 +224,5 @@ First we will create the web socket instance in ``javascript``.
         "data": null,
         }
     */
+
+
