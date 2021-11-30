@@ -39,7 +39,8 @@ this way we can perform operations in our django models though custom actions.
     # serializers.py
     from rest_framework import serializers
     from django.contrib.auth.models import User
-    class UserSerilizer(serailizers.ModelSerializer):
+
+    class UserSerializer(serializers.ModelSerializer):
         
         class Meta:
             model = User
@@ -59,13 +60,13 @@ this way we can perform operations in our django models though custom actions.
 
     # consumers.py
     from django.contrib.auth.models import User
-    from .serializers import UserSerilizer
+    from .serializers import UserSerializer
     from djangochannelsrestframework.generics import GenericAsyncAPIConsumer
     from djangochannelsrestframework.decorators import action
 
     class UserConsumer(GenericAsyncAPIConsumer):
         queryset = User.objects.all()
-        serializer_class = UserSerilizer
+        serializer_class = UserSerializer
 
         @action()
         async def send_email(self, pk=None, to=None, **kwargs):
