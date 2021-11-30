@@ -2,7 +2,7 @@ Generic Api Consumer
 ====================
 
 In DCRF you can create a GenericAsyncAPIConsumer that works much like a GenericAPIView in DRF: 
-For a more indepth look into Rest Like Websocket consumers read this blog post.
+For a more in-depth look into Rest Like Websocket consumers read this blog post.
 
 We have a set of mixins for the consumer, that add different actions based on the CRUD
 operations.
@@ -25,7 +25,7 @@ are going to create a serializer class for it, and mixin with the ``GenericAsync
     # serializers.py
     from rest_framework import serializers
     from django.contrib.auth.models import User
-    class UserSerilizer(serailizers.ModelSerializer):
+    class UserSerializer(serializers.ModelSerializer):
         
         class Meta:
             model = User
@@ -45,7 +45,7 @@ are going to create a serializer class for it, and mixin with the ``GenericAsync
 
     # consumers.py
     from django.contrib.auth.models import User
-    from .serializers import UserSerilizer
+    from .serializers import UserSerializer
     from djangochannelsrestframework.generics import GenericAsyncAPIConsumer
     from djangochannelsrestframework.mixins import (
         ListModelMixin,
@@ -66,7 +66,7 @@ are going to create a serializer class for it, and mixin with the ``GenericAsync
             GenericAsyncAPIConsumer,
         ):
         queryset = User.objects.all()
-        serializer_class = UserSerilizer
+        serializer_class = UserSerializer
 
 .. code-block:: python
 

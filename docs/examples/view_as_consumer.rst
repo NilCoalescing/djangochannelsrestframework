@@ -20,6 +20,7 @@ Creating the serializers.
     from django.contrib.auth.models import User
     from rest_framework import serializers
 
+
     class UserSerializer(serializers.ModelSerializer):
         class Meta:
             model = User
@@ -34,6 +35,7 @@ Creating the view sets.
     from rest_framework.viewsets import ModelViewSet
     from django.contrib.auth.models import User
     from .serializers import UserSerializer
+
 
     class UserViewSet(ModelViewSet):
         queryset = User.objects.all()
@@ -66,7 +68,7 @@ Manual testing the output.
 --------------------------
 
 Now we will have a websocket client in javascript listening to the messages, after subscribing to the comment activity.
-This codeblock can be used in the browser console.
+This code block can be used in the browser console.
 
 .. note::
     In production the ``ws:`` is ``wss:``, we can check it with the following code:
