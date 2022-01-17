@@ -81,28 +81,28 @@ We will edit the ``views.py``
 
 
             chatSocket.onopen = function(){
-                ws.send(
+                chatSocket.send(
                     JSON.stringify({
                         pk:room_pk,
                         action:"join_room",
                         request_id:request_id,
                     })
                 );
-				ws.send(
+				chatSocket.send(
                     JSON.stringify({
                         pk:room_pk,
                         action:"retrieve",
                         request_id:request_id,
                     })
                 );
-				ws.send(
+				chatSocket.send(
                     JSON.stringify({
                         pk:room_pk,
                         action:"subscribe_to_messages_in_room",
                         request_id:request_id,
                     })
                 );
-				ws.send(
+				chatSocket.send(
                     JSON.stringify({
                         pk:room_pk,
                         action:"subscribe_instance",
@@ -112,14 +112,14 @@ We will edit the ``views.py``
             };
             
             chatSocket.onmessage = function (e) {
-                const message = JSON.parse(e.data);
+                const data = JSON.parse(e.data);
                 switch (data.action) {
                     case "retrieve":
-                        setRoom(old =>data.data);
-                        setMessages(old=>data.messages);
+                        setRoom(old => data.data);
+                        setMessages(old => data.messages);
                         break;
                     case "create":
-                        setMessages(old=>[...old, data])
+                        setMessages(old => [...old, data])
                         break;
                     default:
                         break;
@@ -137,12 +137,16 @@ We will edit the ``views.py``
                     document.querySelector('#chat-message-submit').click();
                 }
             });
+
             $('#chat-message-submit').on('click', function(e){
                 const message = $('#chat-message-input').val();
                 chatSocket.send(JSON.stringify({
-                    'message': message
+                    message: message,
+                    action: "create_message",
+                    request_id: request_id
                 }));
                 $('#chat-message-input').val('') ;
             });
+
     </script>
     {% endblock footer %}

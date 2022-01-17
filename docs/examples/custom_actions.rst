@@ -31,7 +31,7 @@ fetching data from an external api service, using ``requests`` library or anothe
 Consumer that is bound to a Model.
 ----------------------------------
 
-Inheritating from ``GenericAsyncAPIConsumer`` we have access to methods like ``get_queryset`` and ``get_object``, 
+Inheriting from ``GenericAsyncAPIConsumer`` we have access to methods like ``get_queryset`` and ``get_object``,
 this way we can perform operations in our django models though custom actions.
 
 .. code-block:: python
@@ -39,7 +39,8 @@ this way we can perform operations in our django models though custom actions.
     # serializers.py
     from rest_framework import serializers
     from django.contrib.auth.models import User
-    class UserSerilizer(serailizers.ModelSerializer):
+
+    class UserSerializer(serializers.ModelSerializer):
         
         class Meta:
             model = User
@@ -59,20 +60,20 @@ this way we can perform operations in our django models though custom actions.
 
     # consumers.py
     from django.contrib.auth.models import User
-    from .serializers import UserSerilizer
+    from .serializers import UserSerializer
     from djangochannelsrestframework.generics import GenericAsyncAPIConsumer
     from djangochannelsrestframework.decorators import action
 
     class UserConsumer(GenericAsyncAPIConsumer):
         queryset = User.objects.all()
-        serializer_class = UserSerilizer
+        serializer_class = UserSerializer
 
         @action()
         async def send_email(self, pk=None, to=None, **kwargs):
             user = await database_sync_to_async(self.get_object)(pk=pk)
             # ... do some stuff
             # remember to wrap all db actions in `database_sync_to_async`
-            return {}, 200  # return the contenct and the response code.
+            return {}, 200  # return the content and the response code.
 
         @action()  # if the method is not async it is already wrapped in `database_sync_to_async`
         def publish(self, pk=None, **kwargs):

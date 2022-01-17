@@ -57,9 +57,11 @@ We will put the following code in the ``models.py`` file, to handle current room
     from django.conf import settings
     from django.contrib.auth.models import AbstractUser
 
+
     class User(AbstractUser):
         pass
-    
+
+
     class Room(models.Model):
         name = models.CharField(max_length=255, null=False, blank=False, unique=True)
         host = models.ForeignKey(User, on_delete=models.CASCADE, related_name="rooms")
@@ -67,11 +69,13 @@ We will put the following code in the ``models.py`` file, to handle current room
 
         def __str__(self):
             return f"Room({self.name} {self.host})"
-        
+
+
     class Message(models.Model):
         room = models.ForeignKey("chat.Room", on_delete=models.CASCADE, related_name="messages")
         text = models.TextField(max_length=500)
         user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="messages")
+        created_at = models.DateTimeField(auto_now_add=True)
 
         def __str__(self):
             return f"Message({self.user} {self.room})"
@@ -86,14 +90,17 @@ We will put the following code in the ``serializers.py`` file, to handle the ser
     from .models import User, Room, Message
     from rest_framework import serializers
 
+
     class UserSerializer(serializers.ModelSerializer):
         class Meta:
             model = User
             exclude = ["password"]
 
+
     class MessageSerializer(serializers.ModelSerializer):
         created_at_formatted = serializers.SerializerMethodField()
         user = UserSerializer()
+
         class Meta:
             model = Message
             exclude = []
@@ -105,6 +112,7 @@ We will put the following code in the ``serializers.py`` file, to handle the ser
     class RoomSerializer(serializers.ModelSerializer):
         last_message = serializers.SerializerMethodField()
         messages = MessageSerializer(many=True, read_only=True)
+
         class Meta:
             model = Room
             fields = ["pk", "name", "host", "messages", "current_users", "last_message"]
@@ -139,6 +147,7 @@ In the ``consumers.py`` file we will create only the room consumer for:
     from .models import Room, Message, User
     from .serializers import MessageSerializer, RoomSerializer, UserSerializer
 
+
     class RoomConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
         queryset = Room.objects.all()
         serializer_class = RoomSerializer
@@ -162,7 +171,7 @@ In the ``consumers.py`` file we will create only the room consumer for:
 
         @action()
         async def create_message(self, message, **kwargs):
-            room:Room = await self.get_room(pk=self.room_subscribe)
+            room: Room = await self.get_room(pk=self.room_subscribe)
             await database_sync_to_async(Message.objects.create)(
                 room=room, 
                 user=self.scope["user"],
@@ -188,11 +197,11 @@ In the ``consumers.py`` file we will create only the room consumer for:
                 yield f'room__{room}'
 
         @message_activity.serializer
-        def message_activiy(self, instance:Message, action, **kwargs):
+        def message_activity(self, instance:Message, action, **kwargs):
             return dict(data=MessageSerializer(instance).data, action=action.value, pk=instance.pk)
 
         async def notify_users(self):
-            room:Room = await self.get_room(self.room_subscribe)
+            room: Room = await self.get_room(self.room_subscribe)
             for group in self.groups:
                 await self.channel_layer.group_send(
                     group,
@@ -202,15 +211,15 @@ In the ``consumers.py`` file we will create only the room consumer for:
                     }
                 )
 
-        async def update_users(self, event:dict):
-            await self.send(text_data=json.dumps({'usuarios':event["usuarios"]}))
+        async def update_users(self, event: dict):
+            await self.send(text_data=json.dumps({'usuarios': event["usuarios"]}))
     
         @database_sync_to_async
-        def get_room(self, pk:int)->Room:
+        def get_room(self, pk: int) -> Room:
             return Room.objects.get(pk=pk)
 
         @database_sync_to_async
-        def current_users(self, room:Room):
+        def current_users(self, room: Room):
             return [UserSerializer(user).data for user in room.current_users.all()]
 
         @database_sync_to_async
@@ -232,6 +241,8 @@ Routing the Websocket
 
     from django.urls import re_path
     from . import consumers
+
+
     websocket_urlpatterns = [
         re_path(r'ws/chat/room/$', consumers.RoomConsumer.as_asgi()),
     ]

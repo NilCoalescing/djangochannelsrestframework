@@ -22,7 +22,7 @@ Welcome to djangochannelsrestframework's documentation!
 .. toctree::
    :maxdepth: 4
    :hidden:
-   :caption: Clases:
+   :caption: Classes:
 
    consumers
    generics
