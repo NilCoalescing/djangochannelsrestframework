@@ -49,7 +49,9 @@ class ModelObserverInstanceState:
 class ModelObserver(BaseObserver):
     def __init__(self, func, model_cls: Type[Model], partition: str = "*", **kwargs):
         super().__init__(func, partition=partition)
-        self._serializer_class = kwargs['kwargs'].get('serializer_class') if 'kwargs' in kwargs else None  # type: Optional[Serializer]
+        self._serializer_class = (
+            kwargs["kwargs"].get("serializer_class") if "kwargs" in kwargs else None
+        )  # type: Optional[Serializer]
         self._serializer = None
         self._model_cls = None
         self.model_cls = model_cls  # type: Type[Model]

@@ -30,7 +30,7 @@ Install
 
 .. warning ::
 
-			In your application definition when you declare your consumers it is very important to use the `.as_asgi()` class method. Eg `MyConsumer.as_asgi()` you **should not** have any instances of `MyConsumer()` in your code base.
+            In your application definition when you declare your consumers it is very important to use the `.as_asgi()` class method. Eg `MyConsumer.as_asgi()` you **should not** have any instances of `MyConsumer()` in your code base.
 
 
 
@@ -96,7 +96,7 @@ To subscribe send:
    {
        "action": "subscribe_instance",
        "pk": 42,  # the id of the instance you are subscribing to
-       "request_id": 4  # this id will be used for all resultent updates.
+       "request_id": 4  # this id will be used for all result updates.
    }
 
 
@@ -145,6 +145,7 @@ You can also create consumers that are not at all related to any models.
   from djangochannelsrestframework.decorators import action
   from djangochannelsrestframework.consumers import AsyncAPIConsumer
 
+
   class MyConsumer(AsyncAPIConsumer):
 
       @action()
@@ -181,53 +182,54 @@ One can subscribe to a custom ``Signal`` utilizing the ``observer`` decorator.
 Here we have a custom signal that will be triggered when a user join a chat.
 
 .. code-block:: python
-	
-	# signals.py
-	from django.dispatch.dispatcher import Signal
 
-	joined_chat_signal = Signal()
+    # signals.py
+    from django.dispatch.dispatcher import Signal
+
+    joined_chat_signal = Signal()
 
 Now we will create the consumer with two actions, one for subscribing to our custom signal for specific chat, and another one 
 for manually trigger the signal.
 
 .. code-block:: python
 
-	# consumers.py
-	from djangochannelsrestframework.consumers import AsyncAPIConsumer
-	from djangochannelsrestframework.decorators import action
-	from djangochannelsrestframework.observer import observer
-	from rest_framework import status
-	from .signals import joined_chat_singal
-	from .serializers import UserSerializer
-	
-	class TestConsumer(AsyncAPIConsumer):
-		
-		@action()
-		def join_chat(self, chat_id, **kwargs):
-			serializer = UserSerializer(instance=self.scope['user'])
-			joined_chat_signal.send(sender='join_chat', data=serializer.data, **kwargs)
-			return {}, status.HTTP_204_NO_CONTENT
-		
-		@observer(signal=joined_chat_signal)
-		async def joined_chat_handler(self, data, observer=None, action=None, **kwargs):
-			await self.reply(action='joined_chat', data=data, status=status.HTTP_200_OK)
+    # consumers.py
+    from djangochannelsrestframework.consumers import AsyncAPIConsumer
+    from djangochannelsrestframework.decorators import action
+    from djangochannelsrestframework.observer import observer
+    from rest_framework import status
+    from .signals import joined_chat_signal
+    from .serializers import UserSerializer
 
-		@joined_chat_handler.serializer
-		def join_chat_handler(self, sender, data, **kwargs): # the data comes from the signal.send and will be available in the observer
-			return data
 
-		@joined_chat_handler.groups_for_signal
-		def joined_chat_handler(self, instance, **kwargs):
-			yield f'chat__{instance}'
+    class TestConsumer(AsyncAPIConsumer):
 
-		@joined_chat_handler.groups_for_consumer
-		def joined_chat_handler(self, chat, **kwargs):
-			if chat:
-				yield f'chat__{chat}'
+        @action()
+        def join_chat(self, chat_id, **kwargs):
+            serializer = UserSerializer(instance=self.scope['user'])
+            joined_chat_signal.send(sender='join_chat', data=serializer.data, **kwargs)
+            return {}, status.HTTP_204_NO_CONTENT
 
-		@action()
-		async def subscribe_joined(self, chat_id, **kwargs):
-			await self.joined_chat_handler.subscribe(chat_id)
+        @observer(signal=joined_chat_signal)
+        async def joined_chat_handler(self, data, observer=None, action=None, **kwargs):
+            await self.reply(action='joined_chat', data=data, status=status.HTTP_200_OK)
+
+        @joined_chat_handler.serializer
+        def join_chat_handler(self, sender, data, **kwargs): # the data comes from the signal.send and will be available in the observer
+            return data
+
+        @joined_chat_handler.groups_for_signal
+        def joined_chat_handler(self, instance, **kwargs):
+            yield f'chat__{instance}'
+
+        @joined_chat_handler.groups_for_consumer
+        def joined_chat_handler(self, chat, **kwargs):
+            if chat:
+                yield f'chat__{chat}'
+
+        @action()
+        async def subscribe_joined(self, chat_id, **kwargs):
+            await self.joined_chat_handler.subscribe(chat_id)
 
 
 Subscribing to all instances of a model
@@ -281,10 +283,10 @@ Another way is override ``AsyncAPIConsumer.accept(self, **kwargs)``
 .. code-block:: python
 
     class ModelConsumerObserver(AsyncAPIConsumer):
+
         async def accept(self, **kwargs):
             await super().accept(** kwargs)
             await self.model_change.subscribe()
-        
 
         @model_observer(models.Test)
         async def model_change(self, message, action=None, **kwargs):
@@ -302,15 +304,15 @@ Another way is override ``AsyncAPIConsumer.accept(self, **kwargs)``
     
 .. code-block:: python
 
-	class ModelConsumerObserver(AsyncAPIConsumer):
-	    async def accept(self, **kwargs):
-		await super().accept(** kwargs)
-		await self.model_change.subscribe()
+    class ModelConsumerObserver(AsyncAPIConsumer):
 
+        async def accept(self, **kwargs):
+            await super().accept(** kwargs)
+            await self.model_change.subscribe()
 
-	    @model_observer(models.Test, serializer_class=TestSerializer)
-	    async def model_change(self, message, action=None, **kwargs):
-		await self.reply(data=message, action=action)
+        @model_observer(models.Test, serializer_class=TestSerializer)
+        async def model_change(self, message, action=None, **kwargs):
+            await self.reply(data=message, action=action)
 
 
 Subscribing to a filtered list of models

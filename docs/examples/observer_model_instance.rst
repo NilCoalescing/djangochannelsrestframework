@@ -9,7 +9,7 @@ also gives you access to the ``retrieve`` action.
     # serializers.py
     from rest_framework import serializers
     from django.contrib.auth.models import User
-    class UserSerilizer(serailizers.ModelSerializer):
+    class UserSerializer(serializers.ModelSerializer):
         
         class Meta:
             model = User
@@ -29,13 +29,13 @@ also gives you access to the ``retrieve`` action.
 
     # consumers.py
     from django.contrib.auth.models import User
-    from .serializers import UserSerilizer
+    from .serializers import UserSerializer
     from djangochannelsrestframework.generics import GenericAsyncAPIConsumer
     from djangochannelsrestframework.observer.generics import ObserverModelInstanceMixin
 
     class UserConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
         queryset = User.objects.all()
-        serializer_class = UserSerilizer
+        serializer_class = UserSerializer
 
 .. code-block:: python
 

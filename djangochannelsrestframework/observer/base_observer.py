@@ -121,21 +121,20 @@ class BaseObserver:
             .. note::
 
                 New feature! This can be rewriting as
-                    .. code-block:: python
 
-                        ...
+            .. code-block:: python
 
-                        class MyConsumer(GenericAsyncAPIConsumer):
-                            queryset = User.objects.all()
-                            serializer_class = UserSerializer
+                class MyConsumer(GenericAsyncAPIConsumer):
+                    queryset = User.objects.all()
+                    serializer_class = UserSerializer
 
-                            @model_observer(Comments, serializer_class=CommentSerializer)
-                            async def comment_activity(self, message, action, **kwargs):
-                                await self.reply(data=message, action=action)
+                    @model_observer(Comments, serializer_class=CommentSerializer)
+                    async def comment_activity(self, message, action, **kwargs):
+                        await self.reply(data=message, action=action)
 
-                            @action()
-                            async def subscribe_to_comment_activity(self, **kwargs):
-                                await self.comment_activity.subscribe()
+                    @action()
+                    async def subscribe_to_comment_activity(self, **kwargs):
+                        await self.comment_activity.subscribe()
 
 
 
@@ -158,14 +157,15 @@ class BaseObserver:
             In the IPython shell we will create some comments for differnt users and in the browser console we will se the log.
 
             .. note::
+
                 At this point we should have some users in our database, otherwise create them
 
-            >>> from my_app.models import User, Comment
-            >>> user_1 = User.objects.get(pk=1)
-            >>> user_2 = User.objects.get(pk=2)
-            >>> Comment.objects.create(text="user 1 creates a new comment", user=user_1)
+                >>> from my_app.models import User, Comment
+                >>> user_1 = User.objects.get(pk=1)
+                >>> user_2 = User.objects.get(pk=2)
+                >>> Comment.objects.create(text="user 1 creates a new comment", user=user_1)
 
-            In the consol log we will se something like this:
+            In the console log we will see something like this:
 
             .. code-block:: json
 
