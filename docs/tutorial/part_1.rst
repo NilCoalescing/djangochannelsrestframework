@@ -179,12 +179,26 @@ In the ``consumers.py`` file we will create only the room consumer for:
             )
 
         @action()
-        async def subscribe_to_messages_in_room(self, pk, **kwargs):
-            await self.message_activity.subscribe(room=pk)
+        async def subscribe_to_messages_in_room(self, pk, request_id, **kwargs):
+            await self.message_activity.subscribe(room=pk, request_id=request_id)
 
         @model_observer(Message)
-        async def message_activity(self, message, observer=None, **kwargs):
-            await self.send_json(message)
+        async def message_activity(
+            self,
+            message,
+            observer=None,
+            subscribing_request_ids = [],
+            **kwargs
+        ):
+            """
+            This is evaluated once for each subscribed consumer.
+            The result of `@message_activity.serializer` is provided here as the message.
+            """
+            # since we provide the request_id when subscribing we can just loop over them here.
+            for request_id in subscribing_request_ids:
+                message_body = dict(request_id=request_id)
+                message_body.update(message)
+                await self.send_json(message_body)
 
         @message_activity.groups_for_signal
         def message_activity(self, instance: Message, **kwargs):
@@ -198,6 +212,10 @@ In the ``consumers.py`` file we will create only the room consumer for:
 
         @message_activity.serializer
         def message_activity(self, instance:Message, action, **kwargs):
+            """
+            This is evaluated before the update is sent
+            out to all the subscribing consumers.
+            """
             return dict(data=MessageSerializer(instance).data, action=action.value, pk=instance.pk)
 
         async def notify_users(self):

@@ -62,7 +62,13 @@ These are the important methods of the class.
         serializer_class = UserSerializer
         
         @model_observer(Comments)
-        async def comment_activity(self, message: CommentSerializer, observer=None, **kwargs):
+        async def comment_activity(
+            self,
+            message: CommentSerializer,
+            observer=None,
+            subscribing_request_ids=[],
+            **kwargs
+        ):
             await self.send_json(message.data)
 
         @comment_activity.serializer
@@ -81,10 +87,10 @@ These are the important methods of the class.
             yield f'-user__{self.scope["user"].pk}'
 
         @action()
-        async def subscribe_to_comment_activity(self, **kwargs):
+        async def subscribe_to_comment_activity(self, request_id, **kwargs):
             # We will check if the user is authenticated for subscribing.
             if "user" in self.scope and self.scope["user"].is_authenticated:
-                await self.comment_activity.subscribe()
+                await self.comment_activity.subscribe(request_id=request_id)
 
 .. note::
     Without logging in we will have to access the ``user`` using the pk or any other unique field.

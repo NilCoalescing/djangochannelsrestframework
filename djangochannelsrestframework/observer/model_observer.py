@@ -1,10 +1,9 @@
-import threading
 import warnings
 from collections import defaultdict
 from copy import deepcopy
 from enum import Enum
 from functools import partial
-from typing import Type, Dict, Any, Set, overload, Optional
+from typing import Type, Dict, Any, Set, Optional
 from uuid import uuid4
 
 from asgiref.sync import async_to_sync
@@ -14,21 +13,7 @@ from django.db.models import Model
 from django.db.models.signals import post_delete, post_save, post_init
 from rest_framework.serializers import Serializer
 
-from djangochannelsrestframework.consumers import AsyncAPIConsumer
 from djangochannelsrestframework.observer.base_observer import BaseObserver
-
-"""
-1) not in transaction
-2) in a simple transation with one operations
-3) in a simple transation with mutliple operations
-4) was in a transation but rolled back then outside of a transation saved
-5) was in a transatino but rolled back then inside a new one saved
-6) in a transations savepoint that is never saved
-7) in a transation and then in a save point
-
-
-On each model instance we add a `__observers = {self(id): {tracking info}}`
-"""
 
 
 class Action(Enum):
