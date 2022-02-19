@@ -10,10 +10,12 @@ from django.contrib.auth import user_logged_in, get_user_model
 from django.db import transaction
 from django.utils.text import slugify
 
+from decorators import action
 from djangochannelsrestframework.consumers import AsyncAPIConsumer
 from djangochannelsrestframework.observer import observer, model_observer
 
 from rest_framework import serializers
+
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
@@ -30,7 +32,7 @@ async def test_observer_wrapper(settings):
     layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
 
     class TestConsumer(AsyncAPIConsumer):
-        async def accept(self):
+        async def accept(self, **kwargs):
             await self.handle_user_logged_in.subscribe()
             await super().accept()
 
@@ -421,13 +423,16 @@ async def test_model_observer_custom_groups_wrapper(settings):
     with pytest.raises(asyncio.TimeoutError):
         await communicator.receive_json_from()
 
+
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_model_observer_with_class_serializer(settings):
     settings.CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {"expiry": 100500,},
+            "TEST_CONFIG": {
+                "expiry": 100500,
+            },
         },
     }
 
@@ -436,8 +441,7 @@ async def test_model_observer_with_class_serializer(settings):
     class UserSerializer(serializers.ModelSerializer):
         class Meta:
             model = get_user_model()
-            fields = ['id', 'username']
-
+            fields = ["id", "username"]
 
     class TestConsumerObserverUsers(AsyncAPIConsumer):
         async def accept(self, **kwargs):
@@ -459,7 +463,7 @@ async def test_model_observer_with_class_serializer(settings):
     )
 
     response = await communicator.receive_json_from()
-    
+
     assert {
         "action": "create",
         "response_status": 200,
@@ -486,7 +490,7 @@ async def test_model_observer_with_class_serializer(settings):
             "username": user.username,
         },
     } == response
-    
+
     pk = user.pk
     await database_sync_to_async(user.delete)()
 
@@ -566,3 +570,81 @@ async def test_model_observer_custom_groups_wrapper_with_split_function_api(sett
     # no event since this is only subscribed to 'test'
     with pytest.raises(asyncio.TimeoutError):
         await communicator.receive_json_from()
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.asyncio
+async def test_model_observer_with_request_id(settings):
+    settings.CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+            "TEST_CONFIG": {
+                "expiry": 100500,
+            },
+        },
+    }
+
+    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
+
+    class TestConsumerObserverCustomGroups(AsyncAPIConsumer):
+        @action()
+        async def subscribe(self, username, request_id, **kwargs):
+            await self.user_change_custom_groups.subscribe(
+                username=username, request_id=request_id
+            )
+
+        @model_observer(get_user_model())
+        async def user_change_custom_groups(
+            self,
+            message,
+            action,
+            message_type,
+            observer=None,
+            subscribing_request_ids=None,
+            **kwargs
+        ):
+            await self.send_json(
+                dict(
+                    body=message,
+                    action=action,
+                    type=message_type,
+                    subscribing_request_ids=subscribing_request_ids,
+                )
+            )
+
+        @user_change_custom_groups.groups_for_signal
+        def user_change_custom_groups(self, instance=None, **kwargs):
+            yield "-instance-username-{}".format(instance.username)
+
+        @user_change_custom_groups.groups_for_consumer
+        def user_change_custom_groups(self, username=None, **kwargs):
+            yield "-instance-username-{}".format(slugify(username))
+
+    communicator = WebsocketCommunicator(TestConsumerObserverCustomGroups(), "/testws/")
+
+    connected, _ = await communicator.connect()
+
+    assert connected
+
+    await communicator.send_json_to(
+        {
+            "action": "subscribe",
+            "username": "thenewname",
+            "request_id": 5,
+        }
+    )
+
+    user = await database_sync_to_async(get_user_model().objects.create)(
+        username="thenewname", email="test@example.com"
+    )
+
+    response = await communicator.receive_json_from()
+
+    assert {
+        "action": "create",
+        "body": {"pk": user.pk},
+        "type": "user.change.custom.groups",
+        "subscribing_request_ids": [5],
+    } == response
+
+    await communicator.disconnect()

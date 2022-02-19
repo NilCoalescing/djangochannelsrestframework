@@ -1,8 +1,9 @@
 import asyncio
 import json
 import typing
+from collections import defaultdict
 from functools import partial
-from typing import Dict, List, Type
+from typing import Dict, List, Type, Any, Set
 
 from channels.consumer import AsyncConsumer
 from channels.db import database_sync_to_async
@@ -56,10 +57,16 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
     )  # type: List[Type[BasePermission]]
 
     groups = {}
+    # mapping observer id -> group name ->
+    _observer_group_to_request_id: Dict[str, Dict[str, Set[Any]]] = defaultdict(
+        lambda: defaultdict(set)
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.groups = set(self.groups or [])
+
+        self._observer_group_to_request_id = defaultdict(lambda: defaultdict(set))
 
     async def add_group(self, name: str):
         if not isinstance(self.groups, set):
@@ -178,7 +185,6 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
 
 
 class DjangoViewAsConsumer(AsyncAPIConsumer):
-
     view = None
 
     @property

@@ -1,6 +1,7 @@
 import hashlib
+from collections import defaultdict
 from copy import deepcopy
-from typing import Any, Dict, Generator, Callable, Iterable
+from typing import Any, Dict, Generator, Callable, Iterable, Optional
 
 from djangochannelsrestframework.consumers import AsyncAPIConsumer
 from djangochannelsrestframework.observer.utils import ObjPartial
@@ -22,16 +23,32 @@ class BaseObserver:
             f"{self.func.__name__}"
         )
 
-    async def __call__(self, message, consumer=None, **kwargs):
+    async def __call__(
+        self, message, consumer: Optional[AsyncAPIConsumer] = None, **kwargs
+    ):
         message = deepcopy(message)
         message_body = message.pop("body", {})
         message_type = message.pop("type")
-
+        group = message.get("group")
+        if consumer is not None:
+            requests = consumer._observer_group_to_request_id[self._stable_observer_id][
+                group
+            ]
+            return await self.func(
+                consumer,
+                message_body,
+                observer=self,
+                message_type=message_type,
+                subscribing_request_ids=list(requests),
+                **message,
+                **kwargs,
+            )
         return await self.func(
             consumer,
             message_body,
             observer=self,
             message_type=message_type,
+            subscribing_request_ids=[],
             **message,
             **kwargs,
         )
@@ -106,22 +123,26 @@ class BaseObserver:
                     serializer_class = UserSerializer
 
                     @model_observer(Comments)
-                    async def comment_activity(self, message, observer=None, **kwargs):
-                        await self.send_json(message)
+                    async def comment_activity(self, message, observer=None, subscribing_request_ids=None, **kwargs):
+                        if subscribing_request_ids is not None:
+                            for request_id in subscribing_request_ids:
+                                await self.send_json({"message": message, "request_id": request_id})
+                        else:
+                            await self.send_json({"message": message})
 
                     @comment_activity.serializer
                     def comment_activity(self, instance: Comment, action, **kwargs):
                         return CommentSerializer(instance).data
 
                     @action()
-                    async def subscribe_to_comment_activity(self, **kwargs):
-                        await self.comment_activity.subscribe()
+                    async def subscribe_to_comment_activity(self, request_id, **kwargs):
+                        await self.comment_activity.subscribe(request_id=request_id)
 
 
             .. note::
 
                 New feature! This can be rewriting as
-                    
+
             .. code-block:: python
 
                 class MyConsumer(GenericAsyncAPIConsumer):
@@ -157,7 +178,7 @@ class BaseObserver:
             In the IPython shell we will create some comments for differnt users and in the browser console we will se the log.
 
             .. note::
-                
+
                 At this point we should have some users in our database, otherwise create them
 
                 >>> from my_app.models import User, Comment
@@ -207,21 +228,50 @@ class BaseObserver:
         return self
 
     async def subscribe(
-        self, consumer: AsyncAPIConsumer, *args, **kwargs
+        self, consumer: AsyncAPIConsumer, *args, request_id=None, **kwargs
     ) -> Iterable[str]:
         groups = list(self.group_names_for_consumer(*args, consumer=consumer, **kwargs))
 
         for group_name in groups:
+            # add request id to mapping
+            if request_id is not None:
+                consumer._observer_group_to_request_id[self._stable_observer_id][
+                    group_name
+                ].add(request_id)
+
             await consumer.add_group(group_name)
         return groups
 
     async def unsubscribe(
-        self, consumer: AsyncAPIConsumer, *args, **kwargs
+        self, consumer: AsyncAPIConsumer, *args, request_id=None, **kwargs
     ) -> Iterable[str]:
         groups = list(self.group_names_for_consumer(*args, consumer=consumer, **kwargs))
 
         for group_name in groups:
-            await consumer.remove_group(group_name)
+            # remove group to request mappings
+            if (
+                group_name
+                in consumer._observer_group_to_request_id[self._stable_observer_id]
+            ):
+                # unsubscribe all requests to this group
+                if request_id is None:
+                    consumer._observer_group_to_request_id[
+                        self._stable_observer_id
+                    ].pop(group_name)
+                else:
+                    consumer._observer_group_to_request_id[self._stable_observer_id][
+                        group_name
+                    ].remove(request_id)
+
+            if (
+                len(
+                    consumer._observer_group_to_request_id[self._stable_observer_id][
+                        group_name
+                    ]
+                )
+                > 0
+            ):
+                await consumer.remove_group(group_name)
 
         return groups
 
