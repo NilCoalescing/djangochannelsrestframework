@@ -121,7 +121,7 @@ class BaseObserver:
             .. note::
 
                 New feature! This can be rewriting as
-                    
+
             .. code-block:: python
 
                 class MyConsumer(GenericAsyncAPIConsumer):
@@ -157,7 +157,7 @@ class BaseObserver:
             In the IPython shell we will create some comments for differnt users and in the browser console we will se the log.
 
             .. note::
-                
+
                 At this point we should have some users in our database, otherwise create them
 
                 >>> from my_app.models import User, Comment
