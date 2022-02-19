@@ -10,7 +10,7 @@ from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from djangochannelsrestframework.permissions import BasePermission
 from djangochannelsrestframework.settings import api_settings
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, QueryDict
 from django.http.response import Http404
 from django.template.response import SimpleTemplateResponse
 from rest_framework.exceptions import PermissionDenied, MethodNotAllowed, APIException
@@ -242,6 +242,12 @@ class DjangoViewAsConsumer(AsyncAPIConsumer):
         if self.scope.get("cookies"):
             request.COOKIES = self.scope.get("cookies")
 
+        for key, value in kwargs.get("query", {}).items():
+            if isinstance(value, list):
+                request.GET.setlist(key, value)
+            else:
+                request.GET[key] = value
+
         view = getattr(self.__class__, "view")
 
         response = view(request, *args, **view_kwargs)
@@ -269,7 +275,7 @@ class DjangoViewAsConsumer(AsyncAPIConsumer):
         return response_content, status
 
     def get_view_args(self, action: str, **kwargs):
-        return [], {}
+        return [], kwargs.get("parameters", {})
 
 
 def view_as_consumer(
