@@ -10,7 +10,7 @@ from django.contrib.auth import user_logged_in, get_user_model
 from django.db import transaction
 from django.utils.text import slugify
 
-from decorators import action
+from djangochannelsrestframework.decorators import action
 from djangochannelsrestframework.consumers import AsyncAPIConsumer
 from djangochannelsrestframework.observer import observer, model_observer
 
