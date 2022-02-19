@@ -36,7 +36,7 @@ Install
 
 A Generic Api Consumer
 ----------------------
-In DCRF you can create a ``GenericAsyncAPIConsumer`` that works much like a GenericAPIView_ in DRF: For a more indeph look into Rest Like Websocket consumers read this blog post_.
+In DCRF you can create a ``GenericAsyncAPIConsumer`` that works much like a GenericAPIView_ in DRF: For a more indepth look into Rest-Like Websocket consumers read this blog post_.
 
 
 .. code-block:: python
@@ -66,7 +66,7 @@ One may use the same exact querysets and ``serializer_class`` utilized in their 
 To call an action from the client send a websocket message: ``{action: "list", "request_id": 42}``
 
 
-There are a selection of mixins that expose the common CURD actions:
+There are a selection of mixins that expose the common CRUD actions:
 
 * ``ListModelMixin`` - ``list``
 * ``PatchModelMixin`` - ``patch``
@@ -127,7 +127,7 @@ Adding Custom actions
            user = await database_sync_to_async(self.get_object)(pk=pk)
            # ... do some stuff
            # remember to wrap all db actions in `database_sync_to_async`
-           return {}, 200  # return the content and the response code.
+           return {}, 200  # return the context and the response code.
 
        @action()  # if the method is not async it is already wrapped in `database_sync_to_async`
        def publish(self, pk=None, **kwargs):
@@ -180,6 +180,7 @@ Subscribing to a signal.
 One can subscribe to a custom ``Signal`` utilizing the ``observer`` decorator.
 
 Here we have a custom signal that will be triggered when a user join a chat.
+
 .. code-block:: python
 
     # signals.py
@@ -291,7 +292,7 @@ Another way is override ``AsyncAPIConsumer.accept(self, **kwargs)``
         async def model_change(self, message, action=None, **kwargs):
             await self.send_json(message)
         
-        ''' If you want the data serialized instead of pk '''
+        # If you want the data serialized instead of pk
         @model_change.serializer
         def model_serialize(self, instance, action, **kwargs):
             return TestSerializer(instance).data
@@ -300,17 +301,18 @@ Another way is override ``AsyncAPIConsumer.accept(self, **kwargs)``
 
     New Feature!
     Now you can rewrite this as:
-    .. code-block:: python
+    
+.. code-block:: python
 
-        class ModelConsumerObserver(AsyncAPIConsumer):
+    class ModelConsumerObserver(AsyncAPIConsumer):
 
-            async def accept(self, **kwargs):
-                await super().accept(** kwargs)
-                await self.model_change.subscribe()
+        async def accept(self, **kwargs):
+            await super().accept(** kwargs)
+            await self.model_change.subscribe()
 
-            @model_observer(models.Test, serializer_class=TestSerializer)
-            async def model_change(self, message, action=None, **kwargs):
-                await self.reply(data=message, action=action)
+        @model_observer(models.Test, serializer_class=TestSerializer)
+        async def model_change(self, message, action=None, **kwargs):
+            await self.reply(data=message, action=action)
 
 
 Subscribing to a filtered list of models
