@@ -14,14 +14,17 @@ setup(
     install_requires=["Django>=3.*", "channels>=3.0", "djangorestframework>=3.0"],
     extras_require={
         "tests": [
-            "pytest~=5.4.0",
-            "pytest-django~=3.4.1",
-            "pytest-asyncio~=0.11.0",
-            "coverage~=4.4",
+            "pytest>=7.0.1",
+            "pytest-django>=4.5.2",
+            "pytest-asyncio>=0.18.1",
+            "coverage>=6.3.1",
         ],
     },
+    python_requires=">=3.8",
     classifiers=[
-        "Programming Language :: Python :: 3.7",
+        "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
     ],
 )

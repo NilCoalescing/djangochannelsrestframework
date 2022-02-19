@@ -15,6 +15,7 @@ from djangochannelsrestframework.observer import observer, model_observer
 
 from rest_framework import serializers
 
+
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_observer_wrapper(settings):
@@ -421,13 +422,16 @@ async def test_model_observer_custom_groups_wrapper(settings):
     with pytest.raises(asyncio.TimeoutError):
         await communicator.receive_json_from()
 
+
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_model_observer_with_class_serializer(settings):
     settings.CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {"expiry": 100500,},
+            "TEST_CONFIG": {
+                "expiry": 100500,
+            },
         },
     }
 
@@ -436,8 +440,7 @@ async def test_model_observer_with_class_serializer(settings):
     class UserSerializer(serializers.ModelSerializer):
         class Meta:
             model = get_user_model()
-            fields = ['id', 'username']
-
+            fields = ["id", "username"]
 
     class TestConsumerObserverUsers(AsyncAPIConsumer):
         async def accept(self, **kwargs):
@@ -459,7 +462,7 @@ async def test_model_observer_with_class_serializer(settings):
     )
 
     response = await communicator.receive_json_from()
-    
+
     assert {
         "action": "create",
         "response_status": 200,
@@ -486,7 +489,7 @@ async def test_model_observer_with_class_serializer(settings):
             "username": user.username,
         },
     } == response
-    
+
     pk = user.pk
     await database_sync_to_async(user.delete)()
 
