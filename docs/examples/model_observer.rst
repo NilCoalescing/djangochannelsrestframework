@@ -59,7 +59,13 @@ These are the important methods of the class.
         serializer_class = UserSerializer
         
         @model_observer(Comments)
-        async def comment_activity(self, message: CommentSerializer, observer=None, **kwargs):
+        async def comment_activity(
+            self,
+            message: CommentSerializer,
+            observer=None,
+            subscribing_request_ids=[]
+            **kwargs
+        ):
             await self.send_json(message.data)
 
         @comment_activity.serializer
@@ -68,8 +74,8 @@ These are the important methods of the class.
             return CommentSerializer(instance)
 
         @action()
-        async def subscribe_to_comment_activity(self, **kwargs):
-            await self.comment_activity.subscribe()
+        async def subscribe_to_comment_activity(self, request_id, **kwargs):
+            await self.comment_activity.subscribe(request_id=request_id)
 
 Manual testing the output.
 --------------------------

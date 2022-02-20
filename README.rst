@@ -17,7 +17,7 @@ DCRF is based of a fork of `Channels Api <https://github.com/linuxlewis/channels
 
 Documentation
 -------------
-doc_
+ReadTheDocs_
 
 
 Install
@@ -174,6 +174,22 @@ Using your normal views over a websocket connection
    })
 
 
+
+In this situation if your view needs to read the `GET` query string values you can provides these using the `query` option.
+And if the view method reads parameters from the URL you can provides these with the `parameters`.
+
+Sending the following over your WS connection will result in a GET request being evaluated on your View.
+
+.. code-block:: json
+
+    {
+      action: "retrieve",
+      query: {"user_id": 42}
+      parameters: {"project_id": 92}
+    }
+
+
+
 Subscribing to a signal.
 ------------------------
 
@@ -211,8 +227,9 @@ for manually trigger the signal.
             return {}, status.HTTP_204_NO_CONTENT
 
         @observer(signal=joined_chat_signal)
-        async def joined_chat_handler(self, data, observer=None, action=None, **kwargs):
-            await self.reply(action='joined_chat', data=data, status=status.HTTP_200_OK)
+        async def joined_chat_handler(self, data, observer=None, action=None, subscribing_request_ids=[], **kwargs):
+            for request_id in subscribing_request_ids:
+                await self.reply(action='joined_chat', data=data, status=status.HTTP_200_OK, request_id=request_id)
 
         @joined_chat_handler.serializer
         def join_chat_handler(self, sender, data, **kwargs): # the data comes from the signal.send and will be available in the observer
@@ -228,8 +245,8 @@ for manually trigger the signal.
                 yield f'chat__{chat}'
 
         @action()
-        async def subscribe_joined(self, chat_id, **kwargs):
-            await self.joined_chat_handler.subscribe(chat_id)
+        async def subscribe_joined(self, chat_id, request_id, **kwargs):
+            await self.joined_chat_handler.subscribe(chat_id, request_id=request_id)
 
 
 Subscribing to all instances of a model
@@ -290,11 +307,26 @@ Another way is override ``AsyncAPIConsumer.accept(self, **kwargs)``
 
         @model_observer(models.Test)
         async def model_change(self, message, action=None, **kwargs):
+            """
+            This method is evaluated once for every user that subscribed,
+            here you have access to info about the user by reading `self.scope`
+
+            However it is best to avoid doing DB quires here since if you have lots of
+            subscribers to a given instance you will end up with a LOT of database traffic.
+            """
             await self.send_json(message)
         
         # If you want the data serialized instead of pk
         @model_change.serializer
         def model_serialize(self, instance, action, **kwargs):
+            """
+            This block is evaluated before the data is sent over the channel layer
+            this means you are unable to access information
+            such as the user that it will be sent to.
+
+            If you need the user info when serializing then you can do the serialization
+            in the above method.
+            """
             return TestSerializer(instance).data
 
 .. note::
@@ -312,7 +344,10 @@ Another way is override ``AsyncAPIConsumer.accept(self, **kwargs)``
 
         @model_observer(models.Test, serializer_class=TestSerializer)
         async def model_change(self, message, action=None, **kwargs):
+            # in this case since we subscribe int he `accept` method
+            # we do not expect to have any `subscribing_request_ids` to loop over.
             await self.reply(data=message, action=action)
+
 
 
 Subscribing to a filtered list of models
@@ -326,13 +361,26 @@ To do this we need to split the model updates into `groups` and then in the cons
 .. code-block:: python
 
   class MyConsumer(AsyncAPIConsumer):
+    # This class MUST subclass `AsyncAPIConsumer` to use `@model_observer`
 
     @model_observer(models.Classroom)
-    async def classroom_change_handler(self, message, observer=None, action=None, **kwargs):
+    async def classroom_change_handler(
+        self,
+        message,
+        observer=None,
+        action=None,
+        subscribing_request_ids=[],
+        **kwargs
+    ):
         # due to not being able to make DB QUERIES when selecting a group
         # maybe do an extra check here to be sure the user has permission
         # send activity to your frontend
-        await self.send_json(dict(body=message, action=action))
+        for request_id in subscribing_request_ids:
+            # we can send a seperate message for each subscribing request
+            # this lets ws clients rout these messages.
+            await self.send_json(dict(body=message, action=action, request_id=request_id))
+        # note if we do not pass `request_id` to the `subscribe` method
+        # then `subscribing_request_ids` will be and empty list.
 
     @classroom_change_handler.groups_for_signal
     def classroom_change_handler(self, instance: models.Classroom, **kwargs):
@@ -349,17 +397,17 @@ To do this we need to split the model updates into `groups` and then in the cons
             yield f'-pk__{classroom.pk}'
 
     @action()
-    async def subscribe_to_classrooms_in_school(self, school_pk, **kwargs):
+    async def subscribe_to_classrooms_in_school(self, school_pk, request_id, **kwargs):
         # check user has permission to do this
-        await self.classroom_change_handler.subscribe(school=school)
+        await self.classroom_change_handler.subscribe(school=school, request_id=request_id)
 
     @action()
-    async def subscribe_to_classroom(self, classroom_pk, **kwargs):
+    async def subscribe_to_classroom(self, classroom_pk, request_id, **kwargs):
         # check user has permission to do this
-        await self.classroom_change_handler.subscribe(classroom=classroom)
+        await self.classroom_change_handler.subscribe(classroom=classroom, request_id=request_id)
 
 
-.. _doc: https://djangochannelsrestframework.readthedocs.io/en/latest/
+.. _ReadTheDocs: https://djangochannelsrestframework.readthedocs.io/en/latest/
 .. _post: https://lostmoa.com/blog/DjangoChannelsRestFramework/
 .. _GenericAPIView: https://www.django-rest-framework.org/api-guide/generic-views/
 .. _channels-v3: https://channels.readthedocs.io/en/latest/
