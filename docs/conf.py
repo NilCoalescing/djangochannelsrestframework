@@ -43,6 +43,8 @@ extensions = [
     "sphinx.ext.napoleon",
 ]
 
+autodoc_typehints = "description"
+add_module_names = False
 
 # The suffix of source filenames.
 source_suffix = ".rst"

@@ -117,14 +117,14 @@ Subscription
 
 3. After saving the model instance, in the console, we will see the subscription message.
 
-.. code-block:: json
+.. code-block:: javascript
 
     {
-        "action": "update",
-        "errors": [],
-        "response_status": 200,
-        "request_id": 1550050,
-        "data": {'email': '1@example.com', 'id': 1, 'username': 'edited user name'},
+        action: "update",
+        errors: [],
+        response_status: 200,
+        request_id: 1550050,
+        data: {email: '1@example.com', id: 1, username: 'edited user name'},
     }
 
 

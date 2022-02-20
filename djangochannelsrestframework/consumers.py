@@ -5,16 +5,16 @@ from collections import defaultdict
 from functools import partial
 from typing import Dict, List, Type, Any, Set
 
-from channels.consumer import AsyncConsumer
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
-from djangochannelsrestframework.permissions import BasePermission
-from djangochannelsrestframework.settings import api_settings
-from django.http import HttpRequest, HttpResponse, QueryDict
+from django.http import HttpRequest, HttpResponse
 from django.http.response import Http404
 from django.template.response import SimpleTemplateResponse
 from rest_framework.exceptions import PermissionDenied, MethodNotAllowed, APIException
 from rest_framework.response import Response
+
+from djangochannelsrestframework.permissions import BasePermission
+from djangochannelsrestframework.settings import api_settings
 
 
 class APIConsumerMetaclass(type):
@@ -45,7 +45,11 @@ def ensure_async(method: typing.Callable):
 
 class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclass):
     """
-    Be very inspired by django rest framework ViewSets
+    This provides an async API consumer that is very inspired by DjangoRestFrameworks ViewSets.
+
+    Attributes:
+        permission_classes     An array for Permission classes
+
     """
 
     # use django rest framework permissions
@@ -57,6 +61,7 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
     )  # type: List[Type[BasePermission]]
 
     groups = {}
+
     # mapping observer id -> group name ->
     _observer_group_to_request_id: Dict[str, Dict[str, Set[Any]]] = defaultdict(
         lambda: defaultdict(set)
@@ -69,6 +74,9 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
         self._observer_group_to_request_id = defaultdict(lambda: defaultdict(set))
 
     async def add_group(self, name: str):
+        """
+        Add a group to the set of groups this consumer is subscribed to.
+        """
         if not isinstance(self.groups, set):
             self.groups = set(self.groups)
 
@@ -77,6 +85,9 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
             self.groups.add(name)
 
     async def remove_group(self, name: str):
+        """
+        Remove a group to the set of groups this consumer is subscribed to.
+        """
         if not isinstance(self.groups, set):
             self.groups = set(self.groups)
 
@@ -133,7 +144,13 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
 
     async def handle_action(self, action: str, request_id: str, **kwargs):
         """
-        run the action.
+        Handle a call for a given action.
+
+        This method checks permissions and handles exceptions sending
+        them back over the ws connection to the client.
+
+        If there is no action listed on the consumer for this action name
+        a `MethodNotAllowed` error is sent back over the ws connection.
         """
         try:
             await self.check_permissions(action, **kwargs)
@@ -158,17 +175,32 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
             await self.handle_exception(exc, action=action, request_id=request_id)
 
     async def receive_json(self, content: typing.Dict, **kwargs):
-        """
-        Called with decoded JSON content.
-        """
-        # TODO assert format, if does not match return message.
         request_id = content.pop("request_id")
-        action = content.pop("action")
+        action, content = await self.get_action_name(content, **kwargs)
         await self.handle_action(action, request_id=request_id, **content)
+
+    async def get_action_name(
+        self, content: typing.Dict, **kwargs
+    ) -> typing.Tuple[typing.Optional[str], typing.Dict]:
+        """
+        Retrieves the action name from the json message.
+
+        Returns a tuple of the action name and the argumetns that is passed to the action.
+
+        Override this method if you do not want to use `{"action": "action_name"}` as the way to describe actions.
+        """
+        action = content.pop("action")
+        return (action, content)
 
     async def reply(
         self, action: str, data=None, errors=None, status=200, request_id=None
     ):
+        """
+        Send a json response back to the client.
+
+        You should aim to include the `request_id` if possible as this helps clients link messages they have
+        sent to responses.
+        """
 
         if errors is None:
             errors = []
@@ -194,19 +226,7 @@ class DjangoViewAsConsumer(AsyncAPIConsumer):
     # maps actions to HTTP methods
     actions = {}  # type: Dict[str, str]
 
-    async def receive_json(self, content: typing.Dict, **kwargs):
-        """
-        Called with decoded JSON content.
-        """
-        # TODO assert format, if does not match return message.
-        request_id = content.pop("request_id")
-        action = content.pop("action")
-        await self.handle_action(action, request_id=request_id, **content)
-
     async def handle_action(self, action: str, request_id: str, **kwargs):
-        """
-        run the action.
-        """
         try:
             await self.check_permissions(action, **kwargs)
 
@@ -283,8 +303,37 @@ def view_as_consumer(
     mapped_actions: typing.Optional[typing.Dict[str, str]] = None,
 ) -> DjangoViewAsConsumer:
     """
-    Wrap a django View so that it will be triggered by actions over this json
-     websocket consumer.
+    Wrap a django View to be used over a json ws connection.
+
+    .. code-block:: python
+
+            websocket_urlpatterns = [
+                re_path(r"^user/$", view_as_consumer(UserViewSet.as_view()))
+            ]
+
+    This exposes the django view to your websocket connection so that you can send messages:
+
+    .. code-block:: javascript
+
+        {
+         action: "retrieve",
+         request_id: 42,
+         query: {pk: 92}
+        }
+
+    The default mapping for actions is:
+
+    * ``create`` - ``PUT``
+    * ``update`` - ``PATCH``
+    * ``list`` - ``GET``
+    * ``retrieve`` - ``GET``
+
+    Providing a `query` dict in the websocket messages results in the values of this dict being writen to the `GET`
+    property of the request within your django view.
+
+    Providing a `parameters` dict within the websocket messages results in these values being passed as kwargs to the
+    view method (in the same way that url parameters would normally be extracted).
+
     """
     if mapped_actions is None:
         mapped_actions = {

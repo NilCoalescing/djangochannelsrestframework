@@ -14,6 +14,4 @@ This is a collection of examples using the `djangochannelsrestframework` library
    examples/model_observer
    examples/filtered_model_observer
 
-   .. observer/examples/index
-   
    

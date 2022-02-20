@@ -11,7 +11,7 @@ from djangochannelsrestframework.settings import api_settings
 
 class GenericAsyncAPIConsumer(AsyncAPIConsumer):
     """
-    Base class for all other generic views.
+    Base class for all other generic views, this subclasses :class:`AsyncAPIConsumer`.
 
     Attributes:
         queryset: will be accesed when the method `get_queryset` is called.

@@ -1,10 +1,9 @@
 Generic Api Consumer
 ====================
 
-In DCRF you can create a GenericAsyncAPIConsumer that works much like a GenericAPIView in DRF: 
-For a more in-depth look into Rest Like Websocket consumers read this blog post.
+In DCRF you can create a GenericAsyncAPIConsumer that works much like a GenericAPIView in DRF.
 
-We have a set of mixins for the consumer, that add different actions based on the CRUD
+There are set of mixins for the consumer, that add different actions based on the CRUD
 operations.
 
 * ``ListModelMixin`` this mixin adds the action ``list``, allows to retrieve all instances of a model class.

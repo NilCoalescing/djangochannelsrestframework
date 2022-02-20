@@ -10,12 +10,6 @@ from typing import Dict, Generator, Optional
 
 
 class Observer(BaseObserver):
-    """Observer
-
-    Attributes:
-        signal: signal that is fired by django signals.
-        signal_kwargs: the keyworded dictionary  for the signal connection.
-    """
 
     signal: Signal
     signal_kwargs: Optional[Dict]
@@ -35,9 +29,8 @@ class Observer(BaseObserver):
         This method if fired by the signal, it sends the serialized message, to each group name.
 
         Args:
-            signal: signal instance # TODO
+            signal: signal instance
             args: listed arguments.
-            kwargs: keyworded arguments dictionary.
         """
         message = self.serialize(signal, *args, **kwargs)
         channel_layer = get_channel_layer()
@@ -50,7 +43,7 @@ class Observer(BaseObserver):
         """Generator for each signal and group.
 
         Return:
-            Formated group name for the signal and observer.
+            Formatted group name for the signal and observer.
         """
         yield "{}-{}-signal".format(
             self._stable_observer_id, self.func.__name__.replace("_", ".")

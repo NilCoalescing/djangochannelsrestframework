@@ -95,17 +95,18 @@ These are the important methods of the class.
 .. note::
     Without logging in we will have to access the ``user`` using the pk or any other unique field.
     Example:
-        .. code-block:: python
 
+    .. code-block:: python
+
+        ...
+        class MyConsumer(GenericAsyncAPIConsumer):
             ...
-            class MyConsumer(GenericAsyncAPIConsumer):
-                ...
-            
-                @action()
-                async def subscribe_to_comment_activity(self, user_pk, **kwargs):
-                    # We will check if the user is authenticated for subscribing.
-                    user = await database_sync_to_async(User.objects.get)(pk=user_pk)
-                    await self.comment_activity.subscribe(user=user)
+
+            @action()
+            async def subscribe_to_comment_activity(self, user_pk, **kwargs):
+                # We will check if the user is authenticated for subscribing.
+                user = await database_sync_to_async(User.objects.get)(pk=user_pk)
+                await self.comment_activity.subscribe(user=user)
 
 
 Manual testing the output.

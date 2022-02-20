@@ -16,7 +16,6 @@ Welcome to djangochannelsrestframework's documentation!
    introduction
 
    examples
-   .. observer/examples/index
    
 
 .. toctree::
@@ -25,10 +24,8 @@ Welcome to djangochannelsrestframework's documentation!
    :caption: Classes:
 
    consumers
-   generics
    mixins
-   observer/base_observer
-   decorators
+   observer/observer
    permissions
    tutorial/index
 
