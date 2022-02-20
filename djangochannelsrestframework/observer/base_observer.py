@@ -8,7 +8,12 @@ from djangochannelsrestframework.observer.utils import ObjPartial
 
 
 class BaseObserver:
-    """Base observer class"""
+    """
+    This is the Base Observer class that `Observer` and `ModelObserver` inherit from.
+
+    The decorators `@model_observer` and `@observer` replaced the wrapped method with an instance of these classes.
+    You can then access the methods of this class using the method name that you wrapped.
+    """
 
     def __init__(self, func, partition: str = "*"):
         self.func = func
@@ -69,160 +74,33 @@ class BaseObserver:
         return message
 
     def serializer(self, func):
-        """Adds a Serializer to the model observer return.
-
+        """
         .. note::
-            This is meant to use as a decorator.
+            Should be used as a method decorator eg: `@observed_handler.serializer`
 
-        Examples:
-            TODO path to examples?
+        The method that this wraps is evaluated just after the observer is triggered before the result is sent over
+        the channel layer. That means you **DO NOT** have access to user or other request information.
 
-            .. code-block:: python
-
-                # models.py
-                from django.db import models
-                from django.contrib.auth.models import AbstractUser
-
-                class User(AbstractUser):
-                    pass
-
-                class Comment(models.Model):
-                    text = models.TextField()
-                    user = models.ForeignKey(User, related_name="comments", on_delete=models.CASCADE)
-                    date = models.DatetimeField(auto_now_add=True)
-
-            .. code-block:: python
-
-                # serializers.py
-                from rest_framework import serializers
-                from .models import User, Comment
-
-                class UserSerializer(serializers.ModelSerializer):
-                    class Meta:
-                        model = User
-                        fields = ["id", "username", "email"]
-
-                class CommentSerializer(serializers.ModelSerializer):
-                    class Meta:
-                        model = Comment
-                        fields = ["id", "text", "user"]
-
-            .. code-block:: python
-
-                # consumers.py
-
-                from djangochannelsrestframework.consumers import GenericAsyncAPIConsumer
-                from djangochannelsrestframework.observer import model_observer
-                from djangochannelsrestframework.decorators import action
-
-                from .serializers import UserSerializer, CommentSerializer
-                from .models import User, Comment
-
-                class MyConsumer(GenericAsyncAPIConsumer):
-                    queryset = User.objects.all()
-                    serializer_class = UserSerializer
-
-                    @model_observer(Comments)
-                    async def comment_activity(self, message, observer=None, subscribing_request_ids=None, **kwargs):
-                        if subscribing_request_ids is not None:
-                            for request_id in subscribing_request_ids:
-                                await self.send_json({"message": message, "request_id": request_id})
-                        else:
-                            await self.send_json({"message": message})
-
-                    @comment_activity.serializer
-                    def comment_activity(self, instance: Comment, action, **kwargs):
-                        return CommentSerializer(instance).data
-
-                    @action()
-                    async def subscribe_to_comment_activity(self, request_id, **kwargs):
-                        await self.comment_activity.subscribe(request_id=request_id)
+        The result of this method is what is sent over the channel layer.
+        If you need to modify that with user specific information then you need to do that in the observer handler method.
 
 
-            .. note::
+        .. code-block:: python
 
-                New feature! This can be rewriting as
+            class MyConsumer(GenericAsyncAPIConsumer):
+                queryset = User.objects.all()
+                serializer_class = UserSerializer
 
-            .. code-block:: python
+                @model_observer(Comments)
+                async def comment_activity(self, message, observer=None, subscribing_request_ids=[], **kwargs):
+                    ...
 
-                class MyConsumer(GenericAsyncAPIConsumer):
-                    queryset = User.objects.all()
-                    serializer_class = UserSerializer
+                @comment_activity.serializer
+                def comment_activity(self, instance: Comment, action, **kwargs):
+                    return CommentSerializer(instance).data
 
-                    @model_observer(Comments, serializer_class=CommentSerializer)
-                    async def comment_activity(self, message, action, **kwargs):
-                        await self.reply(data=message, action=action)
-
-                    @action()
-                    async def subscribe_to_comment_activity(self, **kwargs):
-                        await self.comment_activity.subscribe()
-
-
-
-            Now we will have a websocket client in javascript listening to the messages, after subscribing to the comment activity.
-            This codeblock can be used it in the browser console.
-
-            .. code-block:: javascript
-
-                const ws = new WebSocket("ws://localhost:8000/ws/my-consumer/")
-                const ws.onopen = function(){
-                    ws.send(JSON.stringify({
-                        action: "subscribe_to_comment_activity",
-                        request_id: new Date().getTime(),
-                    }))
-                }
-                const ws.onmessage = function(e){
-                    console.log(e)
-                }
-
-            In the IPython shell we will create some comments for differnt users and in the browser console we will se the log.
-
-            .. note::
-
-                At this point we should have some users in our database, otherwise create them
-
-                >>> from my_app.models import User, Comment
-                >>> user_1 = User.objects.get(pk=1)
-                >>> user_2 = User.objects.get(pk=2)
-                >>> Comment.objects.create(text="user 1 creates a new comment", user=user_1)
-
-            In the console log we will see something like this:
-
-            .. code-block:: json
-
-                {
-                    action: "subscribe_to_comment_activity",
-                    errors: [],
-                    response_status: 200,
-                    request_id: 15606042,
-                    data: {
-                        id: 1,
-                        text: "user 1 creates a new comment",
-                        user: 1,
-                    },
-                }
-
-            Now we will create a comment with the user 2.
-
-            >>> Comment.objects.create(text="user 2 creates a second comment", user=user_2)
-
-            In the consol log we will se something like this:
-
-            .. code-block:: json
-
-                {
-                    action: "subscribe_to_comment_activity",
-                    errors: [],
-                    response_status: 200,
-                    request_id: 15606042,
-                    data: {
-                        id: 2,
-                        text: "user 2 creates a second comment",
-                        user: 2,
-                    },
-                }
-
-            As you can see in this example, we are subscribe to **ALL ACTIVITY** of the comment model.
+        The advantage of doing serialization at this point is that it happens only once even if 1000s of consumers are
+        subscribed to the event.
         """
         self._serializer = func
         return self
@@ -230,6 +108,30 @@ class BaseObserver:
     async def subscribe(
         self, consumer: AsyncAPIConsumer, *args, request_id=None, **kwargs
     ) -> Iterable[str]:
+        """
+        This should be called to subscribe the current consumer.
+
+        args and kwargs passed here are provided to the :meth:`groups_for_consumer` method to enable custom
+        partitioning of events.
+
+        If the request_id is passed to the subscribe method then the observer will track that request id and provide it
+        to the handling method when an event happens.
+
+        .. code-block:: python
+
+            class MyConsumer(GenericAsyncAPIConsumer):
+                queryset = User.objects.all()
+                serializer_class = UserSerializer
+
+                @model_observer(Comments)
+                async def comment_activity(self, message, observer=None, subscribing_request_ids=[], **kwargs):
+                    ...
+
+                @action()
+                async def subscribe_to_comment_activity(self, request_id, **kwargs):
+                    await self.comment_activity.subscribe(request_id=request_id)
+        """
+
         groups = list(self.group_names_for_consumer(*args, consumer=consumer, **kwargs))
 
         for group_name in groups:
@@ -245,6 +147,31 @@ class BaseObserver:
     async def unsubscribe(
         self, consumer: AsyncAPIConsumer, *args, request_id=None, **kwargs
     ) -> Iterable[str]:
+        """
+        This should be called to unsubscribe the current consumer.
+
+        args and kwargs passed here are provided to the :meth:`groups_for_consumer` method to enable custom
+        partitioning of events.
+
+        If the request_id is passed to the un-subscribe method then this will un-subscribe the requests with the same
+        id that called the :meth:`subscribe` method. If no `request_id` is provided then all subscribed requests for
+        this consumer are un-subscribed.
+
+        .. code-block:: python
+
+            class MyConsumer(GenericAsyncAPIConsumer):
+                queryset = User.objects.all()
+                serializer_class = UserSerializer
+
+                @model_observer(Comments)
+                async def comment_activity(self, message, observer=None, subscribing_request_ids=[], **kwargs):
+                    ...
+
+                @action()
+                async def unsubscribe_to_comment_activity(self, request_id, **kwargs):
+                    await self.comment_activity.unsubscribe(request_id=request_id)
+        """
+
         groups = list(self.group_names_for_consumer(*args, consumer=consumer, **kwargs))
 
         for group_name in groups:
@@ -306,10 +233,64 @@ class BaseObserver:
         self,
         func: Callable[["BaseObserver", AsyncAPIConsumer], Generator[str, None, None]],
     ):
+        """
+        .. note::
+            Should be used as a method decorator eg: `@observed_handler.groups_for_consumer`
+
+
+        The decorated method is used when :meth:`subscribe` and :meth:`unsubscribe` are called to enumerate the
+        corresponding groups to un/subscribe to.
+
+        The `args` and `kwargs` providing to :meth:`subscribe` and :meth:`unsubscribe` are passed here to enable this.
+
+        .. code-block:: python
+
+                @classroom_change_handler.groups_for_consumer
+                def classroom_change_handler(self, school=None, classroom=None, **kwargs):
+                    # This is called when you subscribe/unsubscribe
+                    if school is not None:
+                        yield f'-school__{school.pk}'
+                    if classroom is not None:
+                        yield f'-pk__{classroom.pk}'
+
+                @action()
+                async def subscribe_to_classrooms_in_school(self, school_pk, request_id, **kwargs):
+                    # check user has permission to do this
+                    await self.classroom_change_handler.subscribe(school=school, request_id=request_id)
+
+                @action()
+                async def subscribe_to_classroom(self, classroom_pk, request_id, **kwargs):
+                    # check user has permission to do this
+                    await self.classroom_change_handler.subscribe(classroom=classroom, request_id=request_id)
+
+        It is important that a corresponding :meth:`groups_for_signal` method is provided that enumerates the groups
+        that each event is sent to.
+        """
         self._group_names_for_consumer = func
         return self
 
     def groups_for_signal(self, func: Callable[..., Generator[str, None, None]]):
+        """
+        .. note::
+            Should be used as a method decorator eg: `@observed_handler.groups_for_signal`
+
+
+        The decorated method is used whenever an event happens that the observer is observing
+        (even if nothing is subscribed).
+
+        The role of this method is to enumerate the groups that the event should be sent over.
+
+        .. code-block:: python
+
+            @classroom_change_handler.groups_for_signal
+            def classroom_change_handler(self, instance: models.Classroom, **kwargs):
+                yield f'-school__{instance.school_id}'
+                yield f'-pk__{instance.pk}'
+
+        It is important that a corresponding :meth:`groups_for_consumer` method is provided to enable the consumers to
+        correctly select which groups to subscribe to.
+        """
+
         self._group_names_for_signal = func
         return self
 

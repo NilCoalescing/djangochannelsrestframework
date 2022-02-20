@@ -180,7 +180,7 @@ And if the view method reads parameters from the URL you can provides these with
 
 Sending the following over your WS connection will result in a GET request being evaluated on your View.
 
-.. code-block:: json
+.. code-block:: javascript
 
     {
       action: "retrieve",

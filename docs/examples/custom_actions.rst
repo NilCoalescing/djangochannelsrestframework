@@ -81,9 +81,3 @@ this way we can perform operations in our django models though custom actions.
             # ...
             return {'pk': pk}, 200
 
-
-
-Todo
-----
-
-* TODO more detail example for fetching data from external API
