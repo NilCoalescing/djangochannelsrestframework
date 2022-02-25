@@ -30,7 +30,7 @@ Install
 
 .. warning ::
 
-            In your application definition when you declare your consumers it is very important to use the `.as_asgi()` class method. Eg `MyConsumer.as_asgi()` you **should not** have any instances of `MyConsumer()` in your code base.
+            In your application definition when you declare your consumers it is very important to use the ``.as_asgi()`` class method (e.g. ``MyConsumer.as_asgi()``). You **should not** have any instances of ``MyConsumer()`` in your code base.
 
 
 
