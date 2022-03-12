@@ -70,7 +70,7 @@ These are the important methods of the class.
 
         @comment_activity.serializer
         def comment_activity(self, instance: Comment, action, **kwargs) -> CommentSerializer:
-            '''This will return the comment serializer'''
+            """This will return the comment serializer"""
             return CommentSerializer(instance)
 
         @action()
