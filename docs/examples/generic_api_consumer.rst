@@ -16,7 +16,7 @@ operations.
 Example
 -------
 
-This example shows how to create a basic consumer for the django's auth user model. We 
+This example shows how to create a basic consumer for the Django's auth user model. We 
 are going to create a serializer class for it, and mixin with the ``GenericAsyncAPIConsumer`` the action mixins.
 
 .. code-block:: python
