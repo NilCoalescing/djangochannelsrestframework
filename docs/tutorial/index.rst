@@ -1,7 +1,7 @@
 Tutorial
 ========
 
-Djangochannelsrestframework allow you to use DRF serializers easily with django Channels v3 
+Djangochannelsrestframework allow you to use DRF serializers easily with django Channels v3. 
 In this tutorial we will use this library to improve the `chat tutorial
 <https://channels.readthedocs.io/en/stable/tutorial/index.html>`_ from django Channels.
 
