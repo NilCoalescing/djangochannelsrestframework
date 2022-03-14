@@ -54,7 +54,7 @@ We will edit the ``views.py``
         return render(request, 'chat/index.html')
 
     def room(request, pk):
-        room:Room = get_object_or_404(Room, pk=pk)
+        room: Room = get_object_or_404(Room, pk=pk)
         return render(request, 'chat/room.html', {
             "room":room,
         })
