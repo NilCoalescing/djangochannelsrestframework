@@ -32,7 +32,7 @@ Consumer that is bound to a Model.
 ----------------------------------
 
 Inheriting from ``GenericAsyncAPIConsumer`` we have access to methods like ``get_queryset`` and ``get_object``,
-this way we can perform operations in our django models though custom actions.
+this way we can perform operations in our Django models though custom actions.
 
 .. code-block:: python
 
