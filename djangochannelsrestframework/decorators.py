@@ -6,7 +6,10 @@ from channels.db import database_sync_to_async
 from django.conf import settings
 from django.db import transaction
 
-from djangochannelsrestframework.consumers import AsyncAPIConsumer
+from djangochannelsrestframework.consumers import (
+    AsyncAPIConsumer,
+    DetachedTaskConsumerMixin,
+)
 
 
 def action(atomic: Optional[bool] = None, **kwargs):
@@ -81,15 +84,47 @@ def action(atomic: Optional[bool] = None, **kwargs):
 
         @wraps(func)
         async def async_f(self: AsyncAPIConsumer, *args, **_kwargs):
-
-            result, status = await database_sync_to_async(func)(self, *args, **_kwargs)
-
-            return result, status
+            return await database_sync_to_async(func)(self, *args, **_kwargs)
 
         async_f.action = True
         async_f.kwargs = kwargs
         async_f.__name__ = func.__name__
 
         return async_f
+
+    return decorator
+
+
+def detached_action(**kwargs):
+    def decorator(func):
+        func.action = True
+        func.kwargs = kwargs
+
+        if not asyncio.iscoroutinefunction(func):
+            raise ValueError("Only async actions can be detached")
+
+        @wraps(func)
+        async def wrapped(
+            self: DetachedTaskConsumerMixin, *args, action, request_id, **_kwargs
+        ):
+            async def method_wrapped():
+                result = await func(
+                    self, *args, action=action, request_id=request_id, **_kwargs
+                )
+                if isinstance(result, tuple):
+                    data, status = result
+                    await self.reply(
+                        data=data, status=status, request_id=request_id, action=action
+                    )
+
+            loop = asyncio.get_event_loop()
+            task = loop.create_task(method_wrapped())
+            self._tasks_pending_attachment.append(task)
+
+        wrapped.action = True
+        wrapped.kwargs = kwargs
+        wrapped.__name__ = func.__name__
+
+        return wrapped
 
     return decorator
