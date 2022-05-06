@@ -1,4 +1,4 @@
-django>=3.2
+django>=2.2
 djangorestframework>=3.12.4
 channels>=3.0.3
 pytest
