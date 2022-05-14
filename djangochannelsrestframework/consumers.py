@@ -10,6 +10,7 @@ from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.http import HttpRequest, HttpResponse
 from django.http.response import Http404
 from django.template.response import SimpleTemplateResponse
+from django.contrib.auth.models import AnonymousUser
 from rest_framework.exceptions import PermissionDenied, MethodNotAllowed, APIException
 from rest_framework.response import Response
 
@@ -248,6 +249,7 @@ class DjangoViewAsConsumer(AsyncAPIConsumer):
         request = HttpRequest()
         request.path = self.scope.get("path")
         request.session = self.scope.get("session", None)
+        request.user = self.scope.get("user", AnonymousUser)
 
         request.META["HTTP_CONTENT_TYPE"] = "application/json"
         request.META["HTTP_ACCEPT"] = "application/json"
