@@ -66,7 +66,7 @@ These are the important methods of the class.
             subscribing_request_ids=[]
             **kwargs
         ):
-            await self.send_json(message.data)
+            await self.send_json(dict(message.data))
 
         @comment_activity.serializer
         def comment_activity(self, instance: Comment, action, **kwargs) -> CommentSerializer:
@@ -92,13 +92,13 @@ This code block can be used in the browser console.
 .. code-block:: javascript
 
     const ws = new WebSocket("ws://localhost:8000/ws/my-consumer/")
-    const ws.onopen = function(){
+    ws.onopen = function(){
         ws.send(JSON.stringify({
             action: "subscribe_to_comment_activity",
             request_id: new Date().getTime(),
         }))
     }
-    const ws.onmessage = function(e){
+    ws.onmessage = function(e){
         console.log(e)
     }
 
