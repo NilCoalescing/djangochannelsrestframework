@@ -121,7 +121,10 @@ class ModelObserver(BaseObserver):
         Triggers the old_binding to possibly send to its group.
         """
 
-        old_group_names = self.get_observer_state(instance).current_groups
+        if action == Action.CREATE:
+            old_group_names = set()
+        else:
+            old_group_names = self.get_observer_state(instance).current_groups
 
         if action == Action.DELETE:
             new_group_names = set()
