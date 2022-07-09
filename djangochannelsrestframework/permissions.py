@@ -1,6 +1,10 @@
 from typing import Dict, Any
 
+
 from channels.consumer import AsyncConsumer
+from rest_framework.permissions import BasePermission as DRFBasePermission
+
+from scope_utils import request_from_scope
 
 
 class OperationHolderMixin:
@@ -117,3 +121,17 @@ class IsAuthenticated(BasePermission):
         if not user:
             return False
         return user.pk and user.is_authenticated
+
+
+class WrappedDRFPermission(BasePermission):
+    permission: DRFBasePermission
+
+    def __init__(self, permission: DRFBasePermission):
+        self.permission = permission
+
+    async def has_permission(
+        self, scope: Dict[str, Any], consumer: AsyncConsumer, action: str, **kwargs
+    ) -> bool:
+        request = request_from_scope(scope)
+        request.method = "CONNECT"
+        return self.permission.has_permission(request, consumer)

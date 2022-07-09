@@ -13,9 +13,11 @@ from django.template.response import SimpleTemplateResponse
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.exceptions import PermissionDenied, MethodNotAllowed, APIException
 from rest_framework.response import Response
+from rest_framework.permissions import BasePermission as DRFBasePermission
 
-from djangochannelsrestframework.permissions import BasePermission
+from djangochannelsrestframework.permissions import BasePermission, WrappedDRFPermission
 from djangochannelsrestframework.settings import api_settings
+from scope_utils import request_from_scope
 
 
 class APIConsumerMetaclass(type):
@@ -100,7 +102,19 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
         """
         Instantiates and returns the list of permissions that this view requires.
         """
-        return [permission() for permission in self.permission_classes]
+        permission_instances = []
+        for permission_class in self.permission_classes:
+            instance = permission_class()
+
+            # If the permission is an DRF permission instance
+            if isinstance(instance, DRFBasePermission):
+                instance = WrappedDRFPermission(instance)
+            if not isinstance(instance, BasePermission):
+                # TODO: warn...
+                pass
+            permission_instances.append(instance)
+
+        return permission_instances
 
     async def check_permissions(self, action: str, **kwargs):
         """
@@ -245,24 +259,12 @@ class DjangoViewAsConsumer(AsyncAPIConsumer):
 
     @database_sync_to_async
     def call_view(self, action: str, **kwargs):
-
-        request = HttpRequest()
-        request.path = self.scope.get("path")
-        request.session = self.scope.get("session", None)
-        request.user = self.scope.get("user", AnonymousUser)
-
-        request.META["HTTP_CONTENT_TYPE"] = "application/json"
-        request.META["HTTP_ACCEPT"] = "application/json"
-
-        for (header_name, value) in self.scope.get("headers", []):
-            request.META[header_name.decode("utf-8")] = value.decode("utf-8")
+        request = request_from_scope(self.scope)
 
         args, view_kwargs = self.get_view_args(action=action, **kwargs)
 
         request.method = self.actions[action]
         request.POST = json.dumps(kwargs.get("data", {}))
-        if self.scope.get("cookies"):
-            request.COOKIES = self.scope.get("cookies")
 
         for key, value in kwargs.get("query", {}).items():
             if isinstance(value, list):
