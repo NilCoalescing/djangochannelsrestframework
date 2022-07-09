@@ -4,7 +4,7 @@ from typing import Dict, Any
 from channels.consumer import AsyncConsumer
 from rest_framework.permissions import BasePermission as DRFBasePermission
 
-from scope_utils import request_from_scope
+from djangochannelsrestframework.scope_utils import request_from_scope
 
 
 class OperationHolderMixin:

@@ -10,14 +10,13 @@ from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.http import HttpRequest, HttpResponse
 from django.http.response import Http404
 from django.template.response import SimpleTemplateResponse
-from django.contrib.auth.models import AnonymousUser
 from rest_framework.exceptions import PermissionDenied, MethodNotAllowed, APIException
-from rest_framework.response import Response
 from rest_framework.permissions import BasePermission as DRFBasePermission
+from rest_framework.response import Response
 
 from djangochannelsrestframework.permissions import BasePermission, WrappedDRFPermission
+from djangochannelsrestframework.scope_utils import request_from_scope
 from djangochannelsrestframework.settings import api_settings
-from scope_utils import request_from_scope
 
 
 class APIConsumerMetaclass(type):
