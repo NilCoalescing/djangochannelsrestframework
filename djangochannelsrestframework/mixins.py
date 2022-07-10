@@ -1,11 +1,11 @@
 from typing import Any, Tuple, Dict, Optional, OrderedDict, Union
-from djangochannelsrestframework.observer.model_observer import Action
-from rest_framework.utils.serializer_helpers import ReturnDict, ReturnList
+
 from rest_framework import status
 from rest_framework.utils.serializer_helpers import ReturnDict, ReturnList
 
-from .decorators import action
+import settings
 from djangochannelsrestframework.settings import api_settings
+from .decorators import action
 
 
 class CreateModelMixin:
@@ -419,7 +419,7 @@ class DeleteModelMixin:
 
 
 class PaginatedModelListMixin(ListModelMixin):
-
+    permission_classes = api_settings.DEFAULT_PERMISSION_CLASSES
     pagination_class = api_settings.DEFAULT_PAGINATION_CLASS
 
     @action()

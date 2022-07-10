@@ -1,4 +1,3 @@
-import asyncio
 import json
 import typing
 from collections import defaultdict
@@ -14,9 +13,9 @@ from rest_framework.exceptions import PermissionDenied, MethodNotAllowed, APIExc
 from rest_framework.permissions import BasePermission as DRFBasePermission
 from rest_framework.response import Response
 
-from djangochannelsrestframework.permissions import BasePermission, WrappedDRFPermission
-from djangochannelsrestframework.scope_utils import request_from_scope
 from djangochannelsrestframework.settings import api_settings
+from djangochannelsrestframework.permissions import BasePermission, WrappedDRFPermission
+from djangochannelsrestframework.scope_utils import request_from_scope, ensure_async
 
 
 class APIConsumerMetaclass(type):
@@ -39,12 +38,6 @@ class APIConsumerMetaclass(type):
         return cls
 
 
-def ensure_async(method: typing.Callable):
-    if asyncio.iscoroutinefunction(method):
-        return method
-    return database_sync_to_async(method)
-
-
 class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclass):
     """
     This provides an async API consumer that is very inspired by DjangoRestFrameworks ViewSets.
@@ -58,9 +51,8 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
     # The following policies may be set at either globally, or per-view.
     # take the default values set for django rest framework!
 
-    permission_classes = (
-        api_settings.DEFAULT_PERMISSION_CLASSES
-    )  # type: List[Type[BasePermission]]
+    permission_classes = api_settings.DEFAULT_PERMISSION_CLASSES
+    # type: List[Type[BasePermission]]
 
     groups = {}
 
@@ -68,6 +60,20 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
     _observer_group_to_request_id: Dict[str, Dict[str, Set[Any]]] = defaultdict(
         lambda: defaultdict(set)
     )
+
+    async def websocket_connect(self, message):
+        """
+        Called when a WebSocket connection is opened.
+        """
+        try:
+            for permission in await self.get_permissions(action="connect"):
+                if not await ensure_async(permission.can_connect)(
+                    scope=self.scope, consumer=self, message=message
+                ):
+                    raise PermissionDenied()
+            await super().websocket_connect(message)
+        except PermissionDenied:
+            await self.close()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -108,9 +114,6 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
             # If the permission is an DRF permission instance
             if isinstance(instance, DRFBasePermission):
                 instance = WrappedDRFPermission(instance)
-            if not isinstance(instance, BasePermission):
-                # TODO: warn...
-                pass
             permission_instances.append(instance)
 
         return permission_instances

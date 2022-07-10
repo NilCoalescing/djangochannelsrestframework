@@ -1,7 +1,18 @@
-from typing import Any, Dict
+import asyncio
+from typing import Any, Dict, Callable
 
+from channels.db import database_sync_to_async
 from django.contrib.auth.models import AnonymousUser
 from django.http import HttpRequest
+
+
+def ensure_async(method: Callable):
+    """
+    Ensure method is async if not wrap it in database_sync_to_async.
+    """
+    if asyncio.iscoroutinefunction(method):
+        return method
+    return database_sync_to_async(method)
 
 
 def request_from_scope(scope: Dict[str, Any]) -> HttpRequest:

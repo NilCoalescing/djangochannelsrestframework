@@ -1,10 +1,10 @@
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Union
 
-from rest_framework.utils.serializer_helpers import ReturnDict, ReturnList
-from djangochannelsrestframework.settings import api_settings
-from rest_framework.response import Response
 from rest_framework.pagination import LimitOffsetPagination
+from rest_framework.utils.serializer_helpers import ReturnDict, ReturnList
+
+from djangochannelsrestframework.settings import api_settings
 
 
 def _positive_int(integer_string, strict=False, cutoff=None):
