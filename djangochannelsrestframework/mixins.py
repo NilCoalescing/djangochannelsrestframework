@@ -3,9 +3,8 @@ from typing import Any, Tuple, Dict, Optional, OrderedDict, Union
 from rest_framework import status
 from rest_framework.utils.serializer_helpers import ReturnDict, ReturnList
 
-import settings
 from djangochannelsrestframework.settings import api_settings
-from .decorators import action
+from djangochannelsrestframework.decorators import action
 
 
 class CreateModelMixin:

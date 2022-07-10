@@ -2,7 +2,6 @@ import asyncio
 from typing import Any, Dict, Callable
 
 from channels.db import database_sync_to_async
-from django.contrib.auth.models import AnonymousUser
 from django.http import HttpRequest
 
 
@@ -16,6 +15,8 @@ def ensure_async(method: Callable):
 
 
 def request_from_scope(scope: Dict[str, Any]) -> HttpRequest:
+    from django.contrib.auth.models import AnonymousUser
+
     request = HttpRequest()
     request.path = scope.get("path")
     request.session = scope.get("session", None)
