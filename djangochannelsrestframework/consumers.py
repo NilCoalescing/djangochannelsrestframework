@@ -1,4 +1,3 @@
-import asyncio
 import json
 import typing
 from collections import defaultdict
@@ -10,12 +9,13 @@ from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django.http import HttpRequest, HttpResponse
 from django.http.response import Http404
 from django.template.response import SimpleTemplateResponse
-from django.contrib.auth.models import AnonymousUser
 from rest_framework.exceptions import PermissionDenied, MethodNotAllowed, APIException
+from rest_framework.permissions import BasePermission as DRFBasePermission
 from rest_framework.response import Response
 
-from djangochannelsrestframework.permissions import BasePermission
 from djangochannelsrestframework.settings import api_settings
+from djangochannelsrestframework.permissions import BasePermission, WrappedDRFPermission
+from djangochannelsrestframework.scope_utils import request_from_scope, ensure_async
 
 
 class APIConsumerMetaclass(type):
@@ -38,12 +38,6 @@ class APIConsumerMetaclass(type):
         return cls
 
 
-def ensure_async(method: typing.Callable):
-    if asyncio.iscoroutinefunction(method):
-        return method
-    return database_sync_to_async(method)
-
-
 class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclass):
     """
     This provides an async API consumer that is very inspired by DjangoRestFrameworks ViewSets.
@@ -57,9 +51,8 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
     # The following policies may be set at either globally, or per-view.
     # take the default values set for django rest framework!
 
-    permission_classes = (
-        api_settings.DEFAULT_PERMISSION_CLASSES
-    )  # type: List[Type[BasePermission]]
+    permission_classes = api_settings.DEFAULT_PERMISSION_CLASSES
+    # type: List[Type[BasePermission]]
 
     groups = {}
 
@@ -67,6 +60,20 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
     _observer_group_to_request_id: Dict[str, Dict[str, Set[Any]]] = defaultdict(
         lambda: defaultdict(set)
     )
+
+    async def websocket_connect(self, message):
+        """
+        Called when a WebSocket connection is opened.
+        """
+        try:
+            for permission in await self.get_permissions(action="connect"):
+                if not await ensure_async(permission.can_connect)(
+                    scope=self.scope, consumer=self, message=message
+                ):
+                    raise PermissionDenied()
+            await super().websocket_connect(message)
+        except PermissionDenied:
+            await self.close()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -100,7 +107,16 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
         """
         Instantiates and returns the list of permissions that this view requires.
         """
-        return [permission() for permission in self.permission_classes]
+        permission_instances = []
+        for permission_class in self.permission_classes:
+            instance = permission_class()
+
+            # If the permission is an DRF permission instance
+            if isinstance(instance, DRFBasePermission):
+                instance = WrappedDRFPermission(instance)
+            permission_instances.append(instance)
+
+        return permission_instances
 
     async def check_permissions(self, action: str, **kwargs):
         """
@@ -245,24 +261,12 @@ class DjangoViewAsConsumer(AsyncAPIConsumer):
 
     @database_sync_to_async
     def call_view(self, action: str, **kwargs):
-
-        request = HttpRequest()
-        request.path = self.scope.get("path")
-        request.session = self.scope.get("session", None)
-        request.user = self.scope.get("user", AnonymousUser)
-
-        request.META["HTTP_CONTENT_TYPE"] = "application/json"
-        request.META["HTTP_ACCEPT"] = "application/json"
-
-        for (header_name, value) in self.scope.get("headers", []):
-            request.META[header_name.decode("utf-8")] = value.decode("utf-8")
+        request = request_from_scope(self.scope)
 
         args, view_kwargs = self.get_view_args(action=action, **kwargs)
 
         request.method = self.actions[action]
         request.POST = json.dumps(kwargs.get("data", {}))
-        if self.scope.get("cookies"):
-            request.COOKIES = self.scope.get("cookies")
 
         for key, value in kwargs.get("query", {}).items():
             if isinstance(value, list):

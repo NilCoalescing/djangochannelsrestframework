@@ -1,6 +1,11 @@
 from typing import Dict, Any
 
+
 from channels.consumer import AsyncConsumer
+from rest_framework.permissions import BasePermission as DRFBasePermission
+
+from djangochannelsrestframework.scope_utils import ensure_async
+from djangochannelsrestframework.scope_utils import request_from_scope
 
 
 class OperationHolderMixin:
@@ -95,7 +100,20 @@ class BasePermission(metaclass=BasePermissionMetaclass):
     async def has_permission(
         self, scope: Dict[str, Any], consumer: AsyncConsumer, action: str, **kwargs
     ) -> bool:
+        """
+        Called on every websocket message sent before the corresponding action handler is called.
+        """
         pass
+
+    async def can_connect(
+        self, scope: Dict[str, Any], consumer: AsyncConsumer, message=None
+    ) -> bool:
+        """
+        Called during connection to validate if a given client can establish a websocket connection.
+
+        By default, this returns True and permits all connections to be made.
+        """
+        return True
 
 
 class AllowAny(BasePermission):
@@ -108,7 +126,7 @@ class AllowAny(BasePermission):
 
 
 class IsAuthenticated(BasePermission):
-    """Allow authenticated only class"""
+    """Allow authenticated users"""
 
     async def has_permission(
         self, scope: Dict[str, Any], consumer: AsyncConsumer, action: str, **kwargs
@@ -117,3 +135,36 @@ class IsAuthenticated(BasePermission):
         if not user:
             return False
         return user.pk and user.is_authenticated
+
+
+class WrappedDRFPermission(BasePermission):
+    """
+    Used to wrap an instance of DRF permissions class.
+    """
+
+    permission: DRFBasePermission
+
+    mapped_actions = {
+        "create": "PUT",
+        "update": "PATCH",
+        "list": "GET",
+        "retrieve": "GET",
+        "connect": "HEAD",
+    }
+
+    def __init__(self, permission: DRFBasePermission):
+        self.permission = permission
+
+    async def has_permission(
+        self, scope: Dict[str, Any], consumer: AsyncConsumer, action: str, **kwargs
+    ) -> bool:
+        request = request_from_scope(scope)
+        request.method = self.mapped_actions.get(action, action.upper())
+        return await ensure_async(self.permission.has_permission)(request, consumer)
+
+    async def can_connect(
+        self, scope: Dict[str, Any], consumer: AsyncConsumer, message=None
+    ) -> bool:
+        request = request_from_scope(scope)
+        request.method = self.mapped_actions.get("connect", "CONNECT")
+        return await ensure_async(self.permission.has_permission)(request, consumer)
