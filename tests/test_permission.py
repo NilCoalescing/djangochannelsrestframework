@@ -5,10 +5,9 @@ from channels.consumer import AsyncConsumer
 from channels.testing import WebsocketCommunicator
 from rest_framework.permissions import BasePermission as DRFBasePermission
 
-from consumers import AsyncAPIConsumer
-from decorators import action
-from permissions import BasePermission
-from settings import reload_api_settings
+from djangochannelsrestframework.consumers import AsyncAPIConsumer
+from djangochannelsrestframework.decorators import action
+from djangochannelsrestframework.permissions import BasePermission
 
 
 @pytest.mark.django_db(transaction=True)
