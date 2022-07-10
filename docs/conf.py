@@ -15,7 +15,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath(".."))
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 # Setup Django
 from django.conf import settings
