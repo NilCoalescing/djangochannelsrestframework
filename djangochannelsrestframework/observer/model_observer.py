@@ -182,6 +182,10 @@ class ModelObserver(BaseObserver):
         else:
             message_body["pk"] = instance.pk
 
+        # Check if the pk of the model is UUID type and convert it to a string
+        if isinstance(message_body['pk'], UUID):
+            message_body.update({'pk': str(message_body['pk'])})
+
         message = dict(
             type=self.func.__name__.replace("_", "."),
             body=message_body,
