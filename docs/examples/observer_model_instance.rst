@@ -92,7 +92,7 @@ Subscription
 .. code-block:: javascript
 
     ws.send(JSON.stringify({
-        action: "retrieve",
+        action: "subscribe_instance",
         request_id: new Date().getTime(),
         pk: 1,
     }))
