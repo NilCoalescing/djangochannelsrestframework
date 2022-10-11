@@ -46,7 +46,7 @@ These are the important methods of the class.
 
     # consumers.py
 
-    from djangochannelsrestframework.consumers import GenericAsyncAPIConsumer
+    from djangochannelsrestframework.generics import GenericAsyncAPIConsumer
     from djangochannelsrestframework.observer import model_observer
     from djangochannelsrestframework.decorators import action
 
