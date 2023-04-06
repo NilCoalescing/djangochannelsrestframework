@@ -31,7 +31,7 @@ jobs:
           python-version: ${{ matrix.python }}
       - name: Install
         run: |
-          pip install ${{ matrix.django }}
+          pip install "${{ matrix.django }}"
           pip install .[tests]
       - name: Freeze
         run: pip freeze
