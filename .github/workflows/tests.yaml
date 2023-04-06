@@ -15,10 +15,10 @@ jobs:
       fail-fast: false
       matrix:
         python:
-          - 3.8
-          - 3.9
-          - 3.10
-          - 3.11
+          - "3.8"
+          - "3.9"
+          - "3.10"
+          - "3.11"
         django:
           - Django>=3.2,<3.3
           - Django>=4.1,<4.2
