@@ -15,6 +15,7 @@ setup(
     install_requires=["Django>=2.2", "channels>=3.0", "djangorestframework>=3.0"],
     extras_require={
         "tests": [
+            "channels[daphne]>3.0"
             "pytest>=7.0.1",
             "pytest-django>=4.5.2",
             "pytest-asyncio>=0.18.1",
