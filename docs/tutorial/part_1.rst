@@ -55,12 +55,11 @@ This will be the directory tree at the end of the Channels Tutorial and we will 
 Creating the Models
 ---------------------
 
-We will put the following code in the ``models.py`` file, to handle current rooms, messages and current users.
+We will put the following code in the ``models.py`` file, to handle current rooms, messages, and current users.
 
 .. code-block:: python
 
     from django.db import models
-    from django.conf import settings
     from django.contrib.auth.models import AbstractUser
 
 
