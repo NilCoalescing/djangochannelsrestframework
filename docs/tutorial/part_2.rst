@@ -41,10 +41,10 @@ We will edit the ``views.py``
 
 .. code-block:: python
 
-    from django.shortcuts import render, reverse, get_object_or_404
-    from django.views.generic import TemplateView
     from django.http import HttpResponseRedirect
-    from .models import User, Room, Message
+    from django.shortcuts import get_object_or_404, render, reverse
+
+    from .models import Room
 
     def index(request):
         if request.method == "POST":
