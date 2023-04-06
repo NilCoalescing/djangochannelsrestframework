@@ -9,8 +9,8 @@ Django Channels Rest Framework provides a DRF like interface for building channe
 
 
 This project can be used alongside HyperMediaChannels_ and ChannelsMultiplexer_ 
-to create a Hyper Media Style api over websockets. However Django Channels Rest Framework 
-is also a free standing framework with the goal of providing an api that is familiar to DRF users.
+to create a Hyper Media Style API over websockets. However Django Channels Rest Framework
+is also a free standing framework with the goal of providing an API that is familiar to DRF users.
 
 theY4Kman_ has developed a useful Javascript client library dcrf-client_ to use with DCRF.
 
