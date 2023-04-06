@@ -14,9 +14,8 @@ Welcome to djangochannelsrestframework's documentation!
    :caption: Contents:
 
    introduction
-
+   tutorial/index
    examples
-   
 
 .. toctree::
    :maxdepth: 4
@@ -27,7 +26,6 @@ Welcome to djangochannelsrestframework's documentation!
    mixins
    observer/observer
    permissions
-   tutorial/index
 
 
 Indices and tables
