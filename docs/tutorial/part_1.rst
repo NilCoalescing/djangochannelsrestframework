@@ -15,7 +15,13 @@ back to this tutorial.
 
 We assume that you have Django installed already and the Channels Tutorial made.
 
-This will be the directory tree at the end of the Channels Tutorial and we will add the following python files:
+Next, install DCRF into the same environment that was used to setup the Channels Tutorial.
+
+.. code-block:: bash
+
+    pip install djangochannelsrestframework
+
+This will be the directory tree at the end of the Channels Tutorial and we will add the following Python files:
     - ``serializers.py``
     - ``models.py``
     - ``routing.py``
