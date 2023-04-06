@@ -19,6 +19,7 @@ We will edit the ``index.html`` file, for posting a new room.
         </form>
     {% endblock content %}
 
+Next, edit ``urls.py``.
 
 .. code-block:: python
 
