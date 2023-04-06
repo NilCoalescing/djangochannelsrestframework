@@ -53,7 +53,7 @@ This will be the directory tree at the end of the Channels Tutorial and we will 
 
 
 Creating the Models
----------------------
+-------------------
 
 We will put the following code in the ``models.py`` file, to handle current rooms, messages, and current users.
 
@@ -84,7 +84,16 @@ We will put the following code in the ``models.py`` file, to handle current room
 
         def __str__(self):
             return f"Message({self.user} {self.room})"
-        
+
+Update AUTH Settings
+--------------------
+
+Add the following to ``mysite/settings.py`` to properly register the new ``User`` ``Model``.
+
+.. code-block:: python
+
+    AUTH_USER_MODEL = 'chat.User'
+
 Creating the Serializers
 ------------------------
 
