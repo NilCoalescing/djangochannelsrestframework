@@ -12,7 +12,7 @@ setup(
     license="MIT",
     packages=find_packages(exclude=["tests"]),
     include_package_data=True,
-    install_requires=["Django>=2.2", "channels>=3.0", "djangorestframework>=3.0"],
+    install_requires=["Django>=3.2", "channels>=3.0", "djangorestframework>=3.0"],
     extras_require={
         "tests": [
             "channels[daphne]>3.0"
