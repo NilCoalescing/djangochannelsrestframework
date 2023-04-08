@@ -202,7 +202,7 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
         """
         Retrieves the action name from the json message.
 
-        Returns a tuple of the action name and the argumetns that is passed to the action.
+        Returns a tuple of the action name and the arguments that is passed to the action.
 
         Override this method if you do not want to use `{"action": "action_name"}` as the way to describe actions.
         """

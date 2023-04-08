@@ -12,8 +12,8 @@ class GenericAsyncAPIConsumer(AsyncAPIConsumer):
     Base class for all other generic views, this subclasses :class:`AsyncAPIConsumer`.
 
     Attributes:
-        queryset: will be accesed when the method `get_queryset` is called.
-        serializer_class: it should correspond with the `queryset` model, it will be useded for the return response.
+        queryset: will be accessed when the method `get_queryset` is called.
+        serializer_class: it should correspond with the `queryset` model, it will be used for the return response.
         lookup_field: field used in the `get_object` method. Optional.
         lookup_url_kwarg: url parameter used it for the lookup.
     """

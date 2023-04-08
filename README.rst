@@ -376,7 +376,7 @@ To do this we need to split the model updates into `groups` and then in the cons
         # maybe do an extra check here to be sure the user has permission
         # send activity to your frontend
         for request_id in subscribing_request_ids:
-            # we can send a seperate message for each subscribing request
+            # we can send a separate message for each subscribing request
             # this lets ws clients rout these messages.
             await self.send_json(dict(body=message, action=action, request_id=request_id))
         # note if we do not pass `request_id` to the `subscribe` method

@@ -15,7 +15,13 @@ back to this tutorial.
 
 We assume that you have Django installed already and the Channels Tutorial made.
 
-This will be the directory tree at the end of the Channels Tutorial and we will add the following python files:
+Next, install DCRF into the same environment that was used to setup the Channels Tutorial.
+
+.. code-block:: bash
+
+    pip install djangochannelsrestframework
+
+This will be the directory tree at the end of the Channels Tutorial and we will add the following Python files:
     - ``serializers.py``
     - ``models.py``
     - ``routing.py``
@@ -47,14 +53,13 @@ This will be the directory tree at the end of the Channels Tutorial and we will 
 
 
 Creating the Models
----------------------
+-------------------
 
-We will put the following code in the ``models.py`` file, to handle current rooms, messages and current users.
+We will put the following code in the ``models.py`` file, to handle current rooms, messages, and current users.
 
 .. code-block:: python
 
     from django.db import models
-    from django.conf import settings
     from django.contrib.auth.models import AbstractUser
 
 
@@ -79,7 +84,16 @@ We will put the following code in the ``models.py`` file, to handle current room
 
         def __str__(self):
             return f"Message({self.user} {self.room})"
-        
+
+Update AUTH Settings
+--------------------
+
+Add the following to ``mysite/settings.py`` to properly register the new ``User`` ``Model``.
+
+.. code-block:: python
+
+    AUTH_USER_MODEL = 'chat.User'
+
 Creating the Serializers
 ------------------------
 
@@ -134,17 +148,13 @@ In the ``consumers.py`` file we will create only the room consumer for:
 .. code-block:: python
 
     import json
-    from django.shortcuts import get_object_or_404
-    from channels.generic.websocket import AsyncWebsocketConsumer
-    from channels.db import database_sync_to_async
-    from django.utils.timezone import now
-    from django.conf import settings
-    from typing import Generator
-    from djangochannelsrestframework.generics import GenericAsyncAPIConsumer, AsyncAPIConsumer
-    from djangochannelsrestframework.observer.generics import (ObserverModelInstanceMixin, action)
-    from djangochannelsrestframework.observer import model_observer
 
-    from .models import Room, Message, User
+    from channels.db import database_sync_to_async
+    from djangochannelsrestframework.generics import GenericAsyncAPIConsumer
+    from djangochannelsrestframework.observer import model_observer
+    from djangochannelsrestframework.observer.generics import ObserverModelInstanceMixin, action
+
+    from .models import Message, Room, User
     from .serializers import MessageSerializer, RoomSerializer, UserSerializer
 
 
