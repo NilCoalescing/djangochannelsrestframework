@@ -70,7 +70,7 @@ def model_observer(model: Type[Model], **kwargs):
                 await self.comment_activity.subscribe(request_id=request_id)
 
 
-    If you only need to use a regulare Django Rest Framework Serializer class then there is a shorthand:
+    If you only need to use a regular Django Rest Framework Serializer class then there is a shorthand:
 
     .. code-block:: python
 
