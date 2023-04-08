@@ -12,9 +12,10 @@ setup(
     license="MIT",
     packages=find_packages(exclude=["tests"]),
     include_package_data=True,
-    install_requires=["Django>=2.2", "channels>=3.0", "djangorestframework>=3.0"],
+    install_requires=["Django>=3.2", "channels>=3.0", "djangorestframework>=3.0"],
     extras_require={
         "tests": [
+            "channels[daphne]>3.0"
             "pytest>=7.0.1",
             "pytest-django>=4.5.2",
             "pytest-asyncio>=0.18.1",
@@ -31,6 +32,7 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Framework :: Django",
         "Topic :: Internet :: WWW/HTTP",
     ],
