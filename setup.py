@@ -4,7 +4,7 @@ from djangochannelsrestframework import __version__
 setup(
     name="djangochannelsrestframework",
     version=__version__,
-    url="https://github.com/lostmoa/djangochannelsrestframework",
+    url="https://github.com/NilCoalescing/djangochannelsrestframework",
     author="LostMoa Limited",
     author_email="info@lostmoa.com",
     description="RESTful API for WebSockets using django channels.",
