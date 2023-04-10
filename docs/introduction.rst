@@ -5,7 +5,7 @@ Introduction
 Django Channels Rest Framework
 ------------------------------
 
-Django Channels Rest Framework provides a DRF like interface for building channels-v3_ websocket consumers.
+Django Channels Rest Framework provides a DRF like interface for building channels-v4_ websocket consumers.
 
 
 This project can be used alongside HyperMediaChannels_ and ChannelsMultiplexer_ 
@@ -33,7 +33,7 @@ DCRF is based of a fork of `Channels Api <https://github.com/linuxlewis/channels
 
 .. _post: https://lostmoa.com/blog/DjangoChannelsRestFramework/
 .. _GenericAPIView: https://www.django-rest-framework.org/api-guide/generic-views/
-.. _channels-v3: https://channels.readthedocs.io/en/latest/
+.. _channels-v4: https://channels.readthedocs.io/en/latest/
 .. _dcrf-client: https://github.com/theY4Kman/dcrf-client
 .. _theY4Kman: https://github.com/theY4Kman
 .. _HyperMediaChannels: https://github.com/hishnash/hypermediachannels
