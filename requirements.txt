@@ -1,6 +1,6 @@
-django>=2.2
+django>=3.2
 djangorestframework>=3.12.4
-channels>=3.0.3
+channels>=4.0.0
 pytest
 pytest-asyncio
 pytest-django
