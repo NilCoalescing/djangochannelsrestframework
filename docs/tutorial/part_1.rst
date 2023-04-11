@@ -252,12 +252,12 @@ In the ``consumers.py`` file we will create only the room consumer for:
 
         @database_sync_to_async
         def remove_user_from_room(self, room):
-            user:User = self.scope["user"]
+            user: User = self.scope["user"]
             user.current_rooms.remove(room)
 
         @database_sync_to_async
         def add_user_to_room(self, pk):
-            user:User = self.scope["user"]
+            user: User = self.scope["user"]
             if not user.current_rooms.filter(pk=self.room_subscribe).exists():
                 user.current_rooms.add(Room.objects.get(pk=pk))
 
