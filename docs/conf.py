@@ -27,7 +27,7 @@ import djangochannelsrestframework
 # -- Project information -----------------------------------------------------
 
 project = "djangochannelsrestframework"
-copyright = "2021, hishnash"
+copyright = "2023, hishnash"
 author = "hishnash"
 
 

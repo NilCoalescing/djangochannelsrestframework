@@ -7,8 +7,8 @@ Subscribing to a filtered list of models.
 
 Introduction
 ------------
-In this first example, we will create a ``user`` model with a ``comment`` related model, 
-create the serializers for each one. And create a ``consumer`` for the ``user`` model, with 
+In this first example, we will create a ``User`` model with a ``Comment`` related model,
+create the serializers for each one. And create a ``Consumer`` for the ``User`` model, with
 a model observer method for watching all changes of the current user.
 
 Creating models.
@@ -73,7 +73,7 @@ These are the important methods of the class.
 
         @comment_activity.serializer
         def comment_activity(self, instance: Comment, action, **kwargs) -> CommentSerializer:
-            '''This will return the comment serializer'''
+            """This will return the comment serializer"""
             return CommentSerializer(instance)
 
         @comment_activity.groups_for_signal
@@ -93,7 +93,8 @@ These are the important methods of the class.
                 await self.comment_activity.subscribe(request_id=request_id)
 
 .. note::
-    Without logging in we will have to access the ``user`` using the pk or any other unique field.
+    If the user is not logged in, we will have to access the ``user`` using the pk or any other
+    unique field.
     Example:
 
     .. code-block:: python
@@ -154,7 +155,7 @@ This code block can be used in the browser console.
 In the IPython shell we will create some comments for different users and in the browser console we will see the log.
 
 .. warning::
-    At this point we should have some users in our database, otherwise create them
+    At this point we should have some users in our database, otherwise create them.
 
 We will create a comment using the ``user_1`` and we will see the log in the browser console.
 
@@ -181,7 +182,7 @@ In the console log we will se something like this:
         }
     }
 
-Now we will create a comment with the ``user 2``.
+Now we will create a comment with the ``user_2``.
 
 .. code-block:: python
 

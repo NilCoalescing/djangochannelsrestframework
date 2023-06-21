@@ -3,11 +3,11 @@ Generic Api Consumer
 
 In DCRF you can create a GenericAsyncAPIConsumer that works much like a GenericAPIView in DRF.
 
-There are set of mixins for the consumer, that add different actions based on the CRUD
+There are a set of mixins for the consumer that add different actions based on the CRUD
 operations.
 
 * ``ListModelMixin`` this mixin adds the action ``list``, allows to retrieve all instances of a model class.
-* ``RetrieveModelMixin`` this mixin adds the action ``retrieve`` allows to retrieve an object based on the pk sent.
+* ``RetrieveModelMixin`` this mixin adds the action ``retrieve``, allows to retrieve an object based on the pk sent.
 * ``PatchModelMixin`` this mixin adds the action ``patch``, allows to patch an instance of a model.
 * ``UpdateModelMixin`` this mixin adds the action ``update``, allows to update a model instance.
 * ``CreateModelMixin`` this mixin adds the action ``create``, allows to create an instance based on the data sent.
@@ -17,7 +17,7 @@ Example
 -------
 
 This example shows how to create a basic consumer for the Django's auth user model. We 
-are going to create a serializer class for it, and mixin with the ``GenericAsyncAPIConsumer`` the action mixins.
+are going to create a serializer class for it and mixin with the ``GenericAsyncAPIConsumer`` the action mixins.
 
 .. code-block:: python
 
@@ -83,7 +83,7 @@ are going to create a serializer class for it, and mixin with the ``GenericAsync
 How to use it
 -------------
 
-First we will create the web socket instance in ``javascript``.
+First, we will create the web socket instance in ``javascript``.
 
 .. code-block:: javascript
 

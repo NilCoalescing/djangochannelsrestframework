@@ -1,15 +1,11 @@
 View as consumer
 ================
 
-
 Introduction
 ------------
 Suppose we already have a functional API that uses Django Rest Framework, and we 
 want to add some websocket functionality. We can use the ``view_as_consumer`` 
 decorator for accessing the same ``REST`` methods.
-
-
-
 
 Creating the serializers.
 -------------------------
@@ -91,7 +87,7 @@ This code block can be used in the browser console.
 
 
 .. warning::
-    At this point we should have some users in our database, otherwise create them
+    At this point we should have some users in our database, otherwise create them.
 
 In the console we will have the following response assuming that we have some 
 users in our database.

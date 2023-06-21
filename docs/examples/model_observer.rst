@@ -7,8 +7,8 @@ Subscribing to all instances of a model.
 
 Introduction
 ------------
-In this first example, we will create a ``user`` model with a ``comment`` related model, 
-create the serializers for each one. And create a ``consumer`` for the ``user`` model, with 
+In this first example, we will create a ``User`` model with a ``Comment`` related model,
+create the serializers for each one. And create a ``Consumer`` for the ``User`` model, with
 a model observer method for **all comment instances**.
 
 Creating models.
@@ -24,7 +24,7 @@ Creating the serializers.
 Creating the consumers.
 -----------------------
 
-Now in the ``consumers.py`` file, we will create or 
+Now in the ``consumers.py`` file, we will create a
 websocket consumer for the users, with a model 
 observer method for **all instances** of the ``Comment`` 
 model.
@@ -105,9 +105,9 @@ This code block can be used in the browser console.
 In the IPython shell we will create some comments for different users and in the browser console we will see the log.
 
 .. warning::
-    At this point we should have some users in our database, otherwise create them
+    At this point we should have some users in our database, otherwise create them.
 
-We will create a comment using the ``ùser_1`` and we will see the log in the browser console.
+We will create a comment using the ``user_1``, and we will see the log in the browser console.
 
 .. code-block:: python
 
@@ -132,7 +132,7 @@ In the console log we will see something like this:
         }
     }
 
-Now we will create a comment with the ``user 2``.
+Now we will create a comment with ``user_2``.
 
 .. code-block:: python
 

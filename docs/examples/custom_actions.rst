@@ -5,8 +5,8 @@ Custom actions
 Consumer that aren't bound to a Model.
 --------------------------------------
 
-We may want a consumer for handling certain actions that are not referred to any Django model. Maybe for 
-fetching data from an external api service, using ``requests`` library or another async request lib.
+We may want a consumer for handling certain actions that are not related to any Django model. For example,
+fetching data from an external api service, using ``httpx`` or another async request library.
 
 
 .. code-block:: python
@@ -31,8 +31,8 @@ fetching data from an external api service, using ``requests`` library or anothe
 Consumer that is bound to a Model.
 ----------------------------------
 
-Inheriting from ``GenericAsyncAPIConsumer`` we have access to methods like ``get_queryset`` and ``get_object``,
-this way we can perform operations in our Django models though custom actions.
+Inheriting from ``GenericAsyncAPIConsumer``, we have access to methods like ``get_queryset`` and ``get_object``.
+This way we can perform operations in our Django models though custom actions.
 
 .. code-block:: python
 
