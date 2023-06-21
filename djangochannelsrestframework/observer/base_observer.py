@@ -91,7 +91,7 @@ class BaseObserver:
                 queryset = User.objects.all()
                 serializer_class = UserSerializer
 
-                @model_observer(Comments)
+                @model_observer(Comment)
                 async def comment_activity(self, message, observer=None, subscribing_request_ids=[], **kwargs):
                     ...
 
@@ -123,7 +123,7 @@ class BaseObserver:
                 queryset = User.objects.all()
                 serializer_class = UserSerializer
 
-                @model_observer(Comments)
+                @model_observer(Comment)
                 async def comment_activity(self, message, observer=None, subscribing_request_ids=[], **kwargs):
                     ...
 
@@ -163,7 +163,7 @@ class BaseObserver:
                 queryset = User.objects.all()
                 serializer_class = UserSerializer
 
-                @model_observer(Comments)
+                @model_observer(Comment)
                 async def comment_activity(self, message, observer=None, subscribing_request_ids=[], **kwargs):
                     ...
 
