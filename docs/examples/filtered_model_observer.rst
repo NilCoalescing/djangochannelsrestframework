@@ -61,7 +61,7 @@ These are the important methods of the class.
         queryset = User.objects.all()
         serializer_class = UserSerializer
         
-        @model_observer(Comments)
+        @model_observer(Comment)
         async def comment_activity(
             self,
             message: CommentSerializer,
