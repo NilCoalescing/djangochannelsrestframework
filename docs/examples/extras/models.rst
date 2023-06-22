@@ -1,5 +1,5 @@
 
-We will have the following ``models.py`` file, with a user model, and a comment models that is related to the user.
+We will have the following ``models.py`` file, with a ``User`` model, and a ``Comment`` model that is related to the user.
 
 .. code-block:: python
     

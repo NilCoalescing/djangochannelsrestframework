@@ -56,7 +56,7 @@ def model_observer(model: Type[Model], **kwargs):
             queryset = User.objects.all()
             serializer_class = UserSerializer
 
-            @model_observer(Comments)
+            @model_observer(Comment)
             async def comment_activity(self, message, observer=None, subscribing_request_ids=[], **kwargs):
                 for request_id in subscribing_request_ids:
                     await self.send_json({"message": message, "request_id": request_id})
@@ -78,7 +78,7 @@ def model_observer(model: Type[Model], **kwargs):
             queryset = User.objects.all()
             serializer_class = UserSerializer
 
-            @model_observer(Comments, serializer_class=CommentSerializer)
+            @model_observer(Comment, serializer_class=CommentSerializer)
             async def comment_activity(self, message, action, subscribing_request_ids=[], **kwargs):
                 for request_id in subscribing_request_ids:
                     await self.reply(data=message, action=action, request_id=request_id)
