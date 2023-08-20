@@ -1,5 +1,5 @@
-django>=3.2
-djangorestframework>=3.12.4
+django==4.2.4
+djangorestframework>=3.14.0
 channels>=4.0.0
 pytest
 pytest-asyncio
