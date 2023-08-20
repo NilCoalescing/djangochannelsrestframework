@@ -10,4 +10,4 @@
 
 ## Reporting a Vulnerability
 
-Please report Vulnerabilities to `security@lostmoa.com`
+Please report Vulnerabilities to `security@nilcoalescing.com`
