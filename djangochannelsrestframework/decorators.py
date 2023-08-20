@@ -1,5 +1,5 @@
 import asyncio
-from functools import wraps
+from functools import wraps, partial
 from typing import Optional
 
 from channels.db import database_sync_to_async
@@ -9,7 +9,7 @@ from django.db import transaction
 from djangochannelsrestframework.consumers import AsyncAPIConsumer
 
 
-def action(atomic: Optional[bool] = None, **kwargs):
+def action(atomic: Optional[bool] = None, detached: Optional[bool] = None, **kwargs):
     """
     Mark a method as an action.
 
@@ -53,13 +53,25 @@ def action(atomic: Optional[bool] = None, **kwargs):
     When using on `sync` methods you can provide an additional
     option `atomic=True` to forcefully wrap the method in a transaction.
     The default value for atomic is determined by django's default db `ATOMIC_REQUESTS` setting.
+
+
+    When using on `async` methods you can provide an additional
+    option `detached=True` so that the method runs detached from the main run-loop of the consumer,
+    allowing other actions on the consumer to be called while this action runs.
+    This can be useful if the action needs to make further long-running async operations
+    such as upstream network requests.
+
     """
 
     def decorator(func):
         _atomic = False
+        _detached = False
 
         if atomic is not None:
             _atomic = atomic
+
+        if detached is not None:
+            _detached = detached
 
         func.action = True
         func.kwargs = kwargs
@@ -67,7 +79,13 @@ def action(atomic: Optional[bool] = None, **kwargs):
         if asyncio.iscoroutinefunction(func):
             if _atomic:
                 raise ValueError("Only synchronous actions can be atomic")
-            return func
+
+            if detached:
+                return __detached_action(func)
+            else:
+                return func
+        elif detached:
+            raise ValueError("Only asynchronous actions can be detached")
 
         # Read out default atomic state from DB connection
         if atomic is None:
@@ -82,9 +100,9 @@ def action(atomic: Optional[bool] = None, **kwargs):
         @wraps(func)
         async def async_f(self: AsyncAPIConsumer, *args, **_kwargs):
 
-            result, status = await database_sync_to_async(func)(self, *args, **_kwargs)
+            response = await database_sync_to_async(func)(self, *args, **_kwargs)
 
-            return result, status
+            return response
 
         async_f.action = True
         async_f.kwargs = kwargs
@@ -93,3 +111,53 @@ def action(atomic: Optional[bool] = None, **kwargs):
         return async_f
 
     return decorator
+
+
+def detached(func):
+    """
+    Annotate an async AsyncAPIConsumer method as detached.
+    """
+
+    @wraps(func)
+    async def wrapped_method(self: AsyncAPIConsumer, *args, **kwargs):
+        task = asyncio.create_task(func(self, *args, **kwargs))
+        task.add_done_callback(
+            lambda t: asyncio.create_task(self.handle_detached_task_completion(t))
+        )
+        self.detached_tasks.append(task)
+
+    return wrapped_method
+
+
+def __detached_action(func):
+    @wraps(func)
+    async def wrapped_detached_method(self: AsyncAPIConsumer, *args, **kwargs):
+        @wraps(func)
+        async def wrapped_action():
+            try:
+                response = await func(self, *args, **kwargs)
+
+                if isinstance(response, tuple):
+                    data, status = response
+                    await self.reply(
+                        data=data,
+                        status=status,
+                        action=kwargs.get("action"),
+                        request_id=kwargs.get("request_id"),
+                    )
+            except asyncio.CancelledError:
+                raise
+            except Exception as e:
+                await self.handle_exception(
+                    exc=e,
+                    action=kwargs.get("action"),
+                    request_id=kwargs.get("request_id"),
+                )
+
+        task = asyncio.create_task(wrapped_action())
+        task.add_done_callback(
+            lambda t: asyncio.create_task(self.handle_detached_task_completion(t))
+        )
+        self.detached_tasks.append(task)
+
+    return wrapped_detached_method
