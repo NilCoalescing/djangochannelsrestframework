@@ -1,11 +1,13 @@
 Consumers
 =========
 
+.. autoclass:: djangochannelsrestframework.consumers.AsyncAPIConsumer
+    :members:
+
 .. autodecorator:: djangochannelsrestframework.decorators.action
 
 
-.. autoclass:: djangochannelsrestframework.consumers.AsyncAPIConsumer
-    :members:
+.. autodecorator:: djangochannelsrestframework.decorators.detached
 
 
 .. autoclass:: djangochannelsrestframework.generics.GenericAsyncAPIConsumer
@@ -14,3 +16,5 @@ Consumers
 
 .. automodule:: djangochannelsrestframework.consumers
     :members: view_as_consumer
+
+
