@@ -264,3 +264,36 @@ async def test_error_in_detached_action():
     }
 
     await communicator.disconnect()
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.asyncio
+async def test_error_on_missing_action():
+
+    event = asyncio.Event()
+
+    class AConsumer(AsyncAPIConsumer):
+        @action()
+        async def test_action(self, pk=None, **kwargs):
+            return {}, 200
+
+    # Test a normal connection
+    communicator = WebsocketCommunicator(AConsumer(), "/testws/")
+
+    connected, _ = await communicator.connect()
+
+    assert connected
+
+    await communicator.send_json_to({"pk": 2, "request_id": 1})
+
+    response = await communicator.receive_json_from()
+
+    assert response == {
+        "errors": ["Unable to find action in message body."],
+        "data": None,
+        "action": None,
+        "response_status": 405,
+        "request_id": 1,
+    }
+
+    await communicator.disconnect()

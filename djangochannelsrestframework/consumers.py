@@ -7,6 +7,8 @@ from typing import Dict, List, Type, Any, Set
 
 import logging
 
+from exceptions import ActionMissingException
+
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
 
@@ -140,7 +142,9 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
             ):
                 raise PermissionDenied()
 
-    async def handle_exception(self, exc: Exception, action: str, request_id):
+    async def handle_exception(
+        self, exc: Exception, action: typing.Optional[str], request_id
+    ):
         """
         Handle any exception that occurs, by sending an appropriate message
         """
@@ -159,6 +163,10 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
                 request_id=request_id,
             )
         else:
+            logger.error(
+                f"Error when handling request: {request_id} from client for action: {action}",
+                exc_info=exc,
+            )
             raise exc
 
     def _format_errors(self, errors):
@@ -202,8 +210,20 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
             await self.handle_exception(exc, action=action, request_id=request_id)
 
     async def receive_json(self, content: typing.Dict, **kwargs):
-        request_id = content.pop("request_id")
-        action, content = await self.get_action_name(content, **kwargs)
+        request_id = content.pop("request_id", None)
+        action: str
+        content: Dict
+        try:
+            action, content = await self.get_action_name(content, **kwargs)
+        except KeyError as e:
+            await self.handle_exception(
+                ActionMissingException(), action=None, request_id=request_id
+            )
+            return
+        except Exception as e:
+            await self.handle_exception(e, action=None, request_id=request_id)
+            return
+
         await self.handle_action(action, request_id=request_id, **content)
 
     async def get_action_name(
@@ -220,7 +240,12 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
         return (action, content)
 
     async def reply(
-        self, action: str, data=None, errors=None, status=200, request_id=None
+        self,
+        action: typing.Optional[str],
+        data=None,
+        errors=None,
+        status=200,
+        request_id=None,
     ):
         """
         Send a json response back to the client.
