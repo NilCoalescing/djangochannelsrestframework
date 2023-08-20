@@ -7,7 +7,6 @@ from typing import Dict, List, Type, Any, Set
 
 import logging
 
-from exceptions import ActionMissingException
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -24,6 +23,7 @@ from rest_framework.response import Response
 from djangochannelsrestframework.settings import api_settings
 from djangochannelsrestframework.permissions import BasePermission, WrappedDRFPermission
 from djangochannelsrestframework.scope_utils import request_from_scope, ensure_async
+from djangochannelsrestframework.exceptions import ActionMissingException
 
 
 class APIConsumerMetaclass(type):
