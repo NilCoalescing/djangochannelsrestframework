@@ -1,8 +1,14 @@
+import asyncio
 import json
 import typing
 from collections import defaultdict
-from functools import partial
+from functools import partial, wraps
 from typing import Dict, List, Type, Any, Set
+
+import logging
+
+# Get an instance of a logger
+logger = logging.getLogger(__name__)
 
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
@@ -60,6 +66,10 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
     _observer_group_to_request_id: Dict[str, Dict[str, Set[Any]]] = defaultdict(
         lambda: defaultdict(set)
     )
+
+    # Detached Tasks
+    # type: List[asyncio.Task]
+    detached_tasks = []
 
     async def websocket_connect(self, message):
         """
@@ -231,6 +241,26 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
         }
 
         await self.send_json(payload)
+
+    async def handle_detached_task_completion(self, task: asyncio.Task):
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            logger.error("Error while waiting for detached task to finish", exc_info=e)
+        finally:
+            try:
+                self.detached_tasks.remove(task)
+            except ValueError:
+                # If the task has already been removed
+                pass
+
+    async def websocket_disconnect(self, message):
+        for task in self.detached_tasks:
+            task.cancel()
+            await self.handle_detached_task_completion(task)
+        await super().websocket_disconnect(message)
 
 
 class DjangoViewAsConsumer(AsyncAPIConsumer):
