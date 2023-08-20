@@ -6,7 +6,7 @@ setup(
     version=__version__,
     url="https://github.com/NilCoalescing/djangochannelsrestframework",
     author="LostMoa Limited",
-    author_email="info@lostmoa.com",
+    author_email="info@nilcoalescing.com",
     description="RESTful API for WebSockets using django channels.",
     long_description=open("README.rst").read(),
     license="MIT",

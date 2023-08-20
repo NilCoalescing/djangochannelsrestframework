@@ -15,7 +15,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath(".."))
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 # Setup Django
 from django.conf import settings
@@ -27,8 +27,8 @@ import djangochannelsrestframework
 # -- Project information -----------------------------------------------------
 
 project = "djangochannelsrestframework"
-copyright = "2023, hishnash"
-author = "hishnash"
+copyright = "2023, Nil Coalescing Limited"
+author = "Nil Coalescing Limited"
 
 
 # -- General configuration ---------------------------------------------------
