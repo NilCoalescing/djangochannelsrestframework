@@ -4,7 +4,7 @@ from copy import deepcopy
 from enum import Enum
 from functools import partial
 from typing import Type, Dict, Any, Set, Optional
-from uuid import uuid4
+from uuid import uuid4, UUID
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
@@ -181,6 +181,10 @@ class ModelObserver(BaseObserver):
             message_body = self._serializer_class(instance).data
         else:
             message_body["pk"] = instance.pk
+
+        # Check if the pk of the model is UUID type and convert it to a string
+        if isinstance(message_body['pk'], UUID):
+            message_body.update({'pk': str(message_body['pk'])})
 
         message = dict(
             type=self.func.__name__.replace("_", "."),
