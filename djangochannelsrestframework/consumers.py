@@ -17,7 +17,7 @@ from django.http import HttpRequest, HttpResponse
 from django.http.response import Http404
 from django.template.response import SimpleTemplateResponse
 from rest_framework.exceptions import PermissionDenied, MethodNotAllowed, APIException
-from rest_framework.permissions import BasePermission as DRFBasePermission
+from rest_framework.permissions import BasePermission as DRFBasePermission, OR, AND, NOT
 from rest_framework.response import Response
 
 from djangochannelsrestframework.settings import api_settings
@@ -124,7 +124,7 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
             instance = permission_class()
 
             # If the permission is an DRF permission instance
-            if isinstance(instance, DRFBasePermission):
+            if isinstance(instance, (DRFBasePermission, OR, AND, NOT)):
                 instance = WrappedDRFPermission(instance)
             permission_instances.append(instance)
 
