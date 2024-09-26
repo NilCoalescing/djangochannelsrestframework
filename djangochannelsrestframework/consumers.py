@@ -236,8 +236,8 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
 
         Override this method if you do not want to use `{"action": "action_name"}` as the way to describe actions.
         """
-        action = content.pop("action")
-        return (action, content)
+        self.action = content.pop("action")
+        return (self.action, content)
 
     async def reply(
         self,
