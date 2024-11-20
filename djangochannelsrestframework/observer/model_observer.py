@@ -103,6 +103,9 @@ class ModelObserver(BaseObserver):
         self.database_event(instance, Action.DELETE)
 
     def database_event(self, instance: Model, action: Action):
+        if action == Action.DELETE:
+            self.post_change_receiver(instance, action)
+            return
 
         connection = transaction.get_connection()
 
