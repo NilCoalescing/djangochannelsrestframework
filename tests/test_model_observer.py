@@ -1,11 +1,9 @@
-import asyncio
-
 import pytest
 from channels import DEFAULT_CHANNEL_LAYER
 from channels.db import database_sync_to_async
 from channels.layers import channel_layers
-from channels.testing import WebsocketCommunicator
-from django.contrib.auth import get_user_model, user_logged_in
+from tests.communicator import connected_communicator
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
 from djangochannelsrestframework.decorators import action
@@ -56,123 +54,119 @@ async def test_observer_model_instance_mixin(settings):
     assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(TestConsumer(), "/testws/")
-    connected, _ = await communicator.connect()
-    assert connected
+    async with connected_communicator(TestConsumer()) as communicator:
 
-    await communicator.send_json_to({"action": "retrieve", "pk": 100, "request_id": 1})
+        await communicator.send_json_to({"action": "retrieve", "pk": 100, "request_id": 1})
 
-    response = await communicator.receive_json_from()
+        response = await communicator.receive_json_from()
 
-    assert response == {
-        "action": "retrieve",
-        "errors": ["Not found"],
-        "response_status": 404,
-        "request_id": 1,
-        "data": None,
-    }
-
-    u1 = await database_sync_to_async(get_user_model().objects.create)(
-        username="test1", email="42@example.com"
-    )
-    u2 = await database_sync_to_async(get_user_model().objects.create)(
-        username="test2", email="45@example.com"
-    )
-
-    # lookup a pk that is not there
-    await communicator.send_json_to(
-        {"action": "retrieve", "pk": u1.id - 1, "request_id": 1}
-    )
-
-    response = await communicator.receive_json_from()
-
-    assert response == {
-        "action": "retrieve",
-        "errors": ["Not found"],
-        "response_status": 404,
-        "request_id": 1,
-        "data": None,
-    }
-
-    # lookup up u1
-    await communicator.send_json_to(
-        {"action": "retrieve", "pk": u1.id, "request_id": 1}
-    )
-
-    response = await communicator.receive_json_from()
-
-    assert response == {
-        "action": "retrieve",
-        "errors": [],
-        "response_status": 200,
-        "request_id": 1,
-        "data": {"email": "42@example.com", "id": u1.id, "username": "test1"},
-    }
-
-    # lookup up u1
-    await communicator.send_json_to(
-        {"action": "subscribe_instance", "pk": u1.id, "request_id": 4}
-    )
-
-    response = await communicator.receive_json_from()
-
-    assert response == {
-        "action": "subscribe_instance",
-        "errors": [],
-        "response_status": 201,
-        "request_id": 4,
-        "data": None,
-    }
-
-    u3 = await database_sync_to_async(get_user_model().objects.create)(
-        username="test3", email="46@example.com"
-    )
-
-    # lookup up u1
-    await communicator.send_json_to(
-        {
-            "action": "update_username",
-            "pk": u1.id,
-            "username": "thenewname",
-            "request_id": 5,
+        assert response == {
+            "action": "retrieve",
+            "errors": ["Not found"],
+            "response_status": 404,
+            "request_id": 1,
+            "data": None,
         }
-    )
 
-    response = await communicator.receive_json_from()
+        u1 = await database_sync_to_async(get_user_model().objects.create)(
+            username="test1", email="42@example.com"
+        )
+        u2 = await database_sync_to_async(get_user_model().objects.create)(
+            username="test2", email="45@example.com"
+        )
 
-    assert response == {
-        "action": "update_username",
-        "errors": [],
-        "response_status": 200,
-        "request_id": 5,
-        "data": {"pk": u1.id},
-    }
+        # lookup a pk that is not there
+        await communicator.send_json_to(
+            {"action": "retrieve", "pk": u1.id - 1, "request_id": 1}
+        )
 
-    response = await communicator.receive_json_from()
+        response = await communicator.receive_json_from()
 
-    assert response == {
-        "action": "update",
-        "errors": [],
-        "response_status": 200,
-        "request_id": 4,
-        "data": {"email": "42@example.com", "id": u1.id, "username": "thenewname"},
-    }
+        assert response == {
+            "action": "retrieve",
+            "errors": ["Not found"],
+            "response_status": 404,
+            "request_id": 1,
+            "data": None,
+        }
 
-    u1_pk = u1.pk
+        # lookup up u1
+        await communicator.send_json_to(
+            {"action": "retrieve", "pk": u1.id, "request_id": 1}
+        )
 
-    await database_sync_to_async(u1.delete)()
+        response = await communicator.receive_json_from()
 
-    response = await communicator.receive_json_from()
+        assert response == {
+            "action": "retrieve",
+            "errors": [],
+            "response_status": 200,
+            "request_id": 1,
+            "data": {"email": "42@example.com", "id": u1.id, "username": "test1"},
+        }
 
-    assert response == {
-        "action": "delete",
-        "errors": [],
-        "response_status": 204,
-        "request_id": 4,
-        "data": {"pk": u1_pk},
-    }
+        # lookup up u1
+        await communicator.send_json_to(
+            {"action": "subscribe_instance", "pk": u1.id, "request_id": 4}
+        )
 
-    await communicator.disconnect()
+        response = await communicator.receive_json_from()
+
+        assert response == {
+            "action": "subscribe_instance",
+            "errors": [],
+            "response_status": 201,
+            "request_id": 4,
+            "data": None,
+        }
+
+        u3 = await database_sync_to_async(get_user_model().objects.create)(
+            username="test3", email="46@example.com"
+        )
+
+        # lookup up u1
+        await communicator.send_json_to(
+            {
+                "action": "update_username",
+                "pk": u1.id,
+                "username": "thenewname",
+                "request_id": 5,
+            }
+        )
+
+        response = await communicator.receive_json_from()
+
+        assert response == {
+            "action": "update_username",
+            "errors": [],
+            "response_status": 200,
+            "request_id": 5,
+            "data": {"pk": u1.id},
+        }
+
+        response = await communicator.receive_json_from()
+
+        assert response == {
+            "action": "update",
+            "errors": [],
+            "response_status": 200,
+            "request_id": 4,
+            "data": {"email": "42@example.com", "id": u1.id, "username": "thenewname"},
+        }
+
+        u1_pk = u1.pk
+
+        await database_sync_to_async(u1.delete)()
+
+        response = await communicator.receive_json_from()
+
+        assert response == {
+            "action": "delete",
+            "errors": [],
+            "response_status": 204,
+            "request_id": 4,
+            "data": {"pk": u1_pk},
+        }
 
 
 @pytest.mark.django_db(transaction=True)
@@ -222,59 +216,53 @@ async def test_two_observer_model_instance_mixins(settings):
     assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
     # Test a normal connection
-    communicator1 = WebsocketCommunicator(TestOtherConsumer(), "/testws/")
-    connected, _ = await communicator1.connect()
-    assert connected
+    async with connected_communicator(TestOtherConsumer()) as communicator1:
+        async with connected_communicator(TestUserConsumer()) as communicator2:
 
-    # Test a normal connection
-    communicator2 = WebsocketCommunicator(TestUserConsumer(), "/testws/")
-    connected, _ = await communicator2.connect()
-    assert connected
+            u1 = await database_sync_to_async(get_user_model().objects.create)(
+                username="test1", email="42@example.com"
+            )
+            t1 = await database_sync_to_async(TestModel.objects.create)(name="test2")
 
-    u1 = await database_sync_to_async(get_user_model().objects.create)(
-        username="test1", email="42@example.com"
-    )
-    t1 = await database_sync_to_async(TestModel.objects.create)(name="test2")
+            await communicator1.send_json_to(
+                {"action": "subscribe_instance", "pk": t1.id, "request_id": 4}
+            )
 
-    await communicator1.send_json_to(
-        {"action": "subscribe_instance", "pk": t1.id, "request_id": 4}
-    )
+            response = await communicator1.receive_json_from()
 
-    response = await communicator1.receive_json_from()
+            assert response == {
+                "action": "subscribe_instance",
+                "errors": [],
+                "response_status": 201,
+                "request_id": 4,
+                "data": None,
+            }
 
-    assert response == {
-        "action": "subscribe_instance",
-        "errors": [],
-        "response_status": 201,
-        "request_id": 4,
-        "data": None,
-    }
+            await communicator2.send_json_to(
+                {"action": "subscribe_instance", "pk": u1.id, "request_id": 4}
+            )
 
-    await communicator2.send_json_to(
-        {"action": "subscribe_instance", "pk": u1.id, "request_id": 4}
-    )
+            response = await communicator2.receive_json_from()
 
-    response = await communicator2.receive_json_from()
+            assert response == {
+                "action": "subscribe_instance",
+                "errors": [],
+                "response_status": 201,
+                "request_id": 4,
+                "data": None,
+            }
 
-    assert response == {
-        "action": "subscribe_instance",
-        "errors": [],
-        "response_status": 201,
-        "request_id": 4,
-        "data": None,
-    }
+            # update the user
 
-    # update the user
+            u1.username = "no not a value"
 
-    u1.username = "no not a value"
+            await database_sync_to_async(u1.save)()
 
-    await database_sync_to_async(u1.save)()
+            # user is updated
+            assert await communicator2.receive_json_from()
 
-    # user is updated
-    await communicator2.receive_json_from()
-
-    # test model is not
-    assert await communicator1.receive_nothing()
+            # test model is not
+            assert await communicator1.receive_nothing()
 
 
 @pytest.mark.django_db(transaction=True)
@@ -309,97 +297,93 @@ async def test_unsubscribe_observer_model_instance_mixin(settings):
     assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(TestConsumerUnsubscribe(), "/testws/")
-    connected, _ = await communicator.connect()
-    assert connected
+    async with connected_communicator(TestConsumerUnsubscribe()) as communicator:
 
-    u1 = await database_sync_to_async(get_user_model().objects.create)(
-        username="test1", email="42@example.com"
-    )
+        u1 = await database_sync_to_async(get_user_model().objects.create)(
+            username="test1", email="42@example.com"
+        )
 
-    # lookup up u1
-    await communicator.send_json_to(
-        {"action": "subscribe_instance", "pk": u1.id, "request_id": 4}
-    )
+        # lookup up u1
+        await communicator.send_json_to(
+            {"action": "subscribe_instance", "pk": u1.id, "request_id": 4}
+        )
 
-    response = await communicator.receive_json_from()
-    assert await communicator.receive_nothing()
+        response = await communicator.receive_json_from()
+        assert await communicator.receive_nothing()
 
-    assert response == {
-        "action": "subscribe_instance",
-        "errors": [],
-        "response_status": 201,
-        "request_id": 4,
-        "data": None,
-    }
-
-    await communicator.send_json_to(
-        {
-            "action": "update_username",
-            "pk": u1.id,
-            "username": "thenewname",
-            "request_id": 5,
+        assert response == {
+            "action": "subscribe_instance",
+            "errors": [],
+            "response_status": 201,
+            "request_id": 4,
+            "data": None,
         }
-    )
 
-    a = await communicator.receive_json_from()
+        await communicator.send_json_to(
+            {
+                "action": "update_username",
+                "pk": u1.id,
+                "username": "thenewname",
+                "request_id": 5,
+            }
+        )
 
-    b = await communicator.receive_json_from()
+        a = await communicator.receive_json_from()
 
-    assert {
-        "action": "update_username",
-        "errors": [],
-        "response_status": 200,
-        "request_id": 5,
-        "data": {"pk": u1.id},
-    } in [a, b]
+        b = await communicator.receive_json_from()
 
-    assert {
-        "action": "update",
-        "errors": [],
-        "response_status": 200,
-        "request_id": 4,
-        "data": {"email": "42@example.com", "id": u1.pk, "username": "thenewname"},
-    } in [a, b]
-
-    # unsubscribe
-    # lookup up u1
-
-    await communicator.send_json_to(
-        {"action": "unsubscribe_instance", "pk": u1.id, "request_id": 4}
-    )
-
-    response = await communicator.receive_json_from()
-
-    assert response == {
-        "action": "unsubscribe_instance",
-        "errors": [],
-        "response_status": 204,
-        "request_id": 4,
-        "data": None,
-    }
-    assert await communicator.receive_nothing()
-
-    await communicator.send_json_to(
-        {
+        assert {
             "action": "update_username",
-            "pk": u1.id,
-            "username": "thenewname",
+            "errors": [],
+            "response_status": 200,
             "request_id": 5,
+            "data": {"pk": u1.id},
+        } in [a, b]
+
+        assert {
+            "action": "update",
+            "errors": [],
+            "response_status": 200,
+            "request_id": 4,
+            "data": {"email": "42@example.com", "id": u1.pk, "username": "thenewname"},
+        } in [a, b]
+
+        # unsubscribe
+        # lookup up u1
+
+        await communicator.send_json_to(
+            {"action": "unsubscribe_instance", "pk": u1.id, "request_id": 4}
+        )
+
+        response = await communicator.receive_json_from()
+
+        assert response == {
+            "action": "unsubscribe_instance",
+            "errors": [],
+            "response_status": 204,
+            "request_id": 4,
+            "data": None,
         }
-    )
+        assert await communicator.receive_nothing()
 
-    response = await communicator.receive_json_from()
+        await communicator.send_json_to(
+            {
+                "action": "update_username",
+                "pk": u1.id,
+                "username": "thenewname",
+                "request_id": 5,
+            }
+        )
 
-    assert response == {
-        "action": "update_username",
-        "errors": [],
-        "response_status": 200,
-        "request_id": 5,
-        "data": {"pk": u1.id},
-    }
+        response = await communicator.receive_json_from()
 
-    await communicator.disconnect()
+        assert response == {
+            "action": "update_username",
+            "errors": [],
+            "response_status": 200,
+            "request_id": 5,
+            "data": {"pk": u1.id},
+        }
 
 
 @pytest.mark.django_db(transaction=True)
@@ -436,108 +420,104 @@ async def test_observer_model_instance_mixin_with_many_subs(settings):
     assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(TestConsumerMultipleSubs(), "/testws/")
-    connected, _ = await communicator.connect()
-    assert connected
+    async with connected_communicator(TestConsumerMultipleSubs()) as communicator:
 
-    u1 = await database_sync_to_async(get_user_model().objects.create)(
-        username="test1", email="42@example.com"
-    )
+        u1 = await database_sync_to_async(get_user_model().objects.create)(
+            username="test1", email="42@example.com"
+        )
 
-    u2 = await database_sync_to_async(get_user_model().objects.create)(
-        username="test2", email="45@example.com"
-    )
+        u2 = await database_sync_to_async(get_user_model().objects.create)(
+            username="test2", email="45@example.com"
+        )
 
-    # Subscribe to instance user 1
-    await communicator.send_json_to(
-        {"action": "subscribe_instance", "pk": u1.id, "request_id": 4}
-    )
+        # Subscribe to instance user 1
+        await communicator.send_json_to(
+            {"action": "subscribe_instance", "pk": u1.id, "request_id": 4}
+        )
 
-    response = await communicator.receive_json_from()
+        response = await communicator.receive_json_from()
 
-    assert response == {
-        "action": "subscribe_instance",
-        "errors": [],
-        "response_status": 201,
-        "request_id": 4,
-        "data": None,
-    }
+        assert response == {
+            "action": "subscribe_instance",
+            "errors": [],
+            "response_status": 201,
+            "request_id": 4,
+            "data": None,
+        }
 
-    # Subscribe to instance user 2
-    await communicator.send_json_to(
-        {"action": "subscribe_instance", "pk": u2.id, "request_id": 5}
-    )
+        # Subscribe to instance user 2
+        await communicator.send_json_to(
+            {"action": "subscribe_instance", "pk": u2.id, "request_id": 5}
+        )
 
-    response = await communicator.receive_json_from()
+        response = await communicator.receive_json_from()
 
-    assert response == {
-        "action": "subscribe_instance",
-        "errors": [],
-        "response_status": 201,
-        "request_id": 5,
-        "data": None,
-    }
+        assert response == {
+            "action": "subscribe_instance",
+            "errors": [],
+            "response_status": 201,
+            "request_id": 5,
+            "data": None,
+        }
 
-    # lookup up u1
-    await communicator.send_json_to(
-        {
+        # lookup up u1
+        await communicator.send_json_to(
+            {
+                "action": "update_username",
+                "pk": u1.id,
+                "username": "new name",
+                "request_id": 10,
+            }
+        )
+
+        response = await communicator.receive_json_from()
+
+        assert response == {
             "action": "update_username",
-            "pk": u1.id,
-            "username": "new name",
+            "errors": [],
+            "response_status": 200,
             "request_id": 10,
+            "data": {"pk": u1.id},
         }
-    )
 
-    response = await communicator.receive_json_from()
+        response = await communicator.receive_json_from()
 
-    assert response == {
-        "action": "update_username",
-        "errors": [],
-        "response_status": 200,
-        "request_id": 10,
-        "data": {"pk": u1.id},
-    }
+        assert response == {
+            "action": "update",
+            "errors": [],
+            "response_status": 200,
+            "request_id": 4,
+            "data": {"email": "42@example.com", "id": u1.id, "username": "new name"},
+        }
 
-    response = await communicator.receive_json_from()
+        assert await communicator.receive_nothing()
 
-    assert response == {
-        "action": "update",
-        "errors": [],
-        "response_status": 200,
-        "request_id": 4,
-        "data": {"email": "42@example.com", "id": u1.id, "username": "new name"},
-    }
+        # Update U2
+        await communicator.send_json_to(
+            {
+                "action": "update_username",
+                "pk": u2.id,
+                "username": "the new name 2",
+                "request_id": 11,
+            }
+        )
 
-    assert await communicator.receive_nothing()
+        response = await communicator.receive_json_from()
 
-    # Update U2
-    await communicator.send_json_to(
-        {
+        assert response == {
             "action": "update_username",
-            "pk": u2.id,
-            "username": "the new name 2",
+            "errors": [],
+            "response_status": 200,
             "request_id": 11,
+            "data": {"pk": u2.id},
         }
-    )
 
-    response = await communicator.receive_json_from()
+        response = await communicator.receive_json_from()
 
-    assert response == {
-        "action": "update_username",
-        "errors": [],
-        "response_status": 200,
-        "request_id": 11,
-        "data": {"pk": u2.id},
-    }
-
-    response = await communicator.receive_json_from()
-
-    assert response == {
-        "action": "update",
-        "errors": [],
-        "response_status": 200,
-        "request_id": 5,
-        "data": {"email": "45@example.com", "id": u2.id, "username": "the new name 2"},
-    }
-
-    await communicator.disconnect()
+        assert response == {
+            "action": "update",
+            "errors": [],
+            "response_status": 200,
+            "request_id": 5,
+            "data": {"email": "45@example.com", "id": u2.id, "username": "the new name 2"},
+        }

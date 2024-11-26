@@ -1,5 +1,5 @@
 import pytest
-from django.db import transaction, connection, connections
+from django.db import connections
 
 from djangochannelsrestframework.decorators import action
 

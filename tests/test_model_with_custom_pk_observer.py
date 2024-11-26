@@ -1,11 +1,8 @@
 from typing import Dict
-import asyncio
 
 import pytest
-from channels import DEFAULT_CHANNEL_LAYER
 from channels.db import database_sync_to_async
-from channels.layers import channel_layers
-from channels.testing import WebsocketCommunicator
+from tests.communicator import connected_communicator
 from rest_framework import serializers
 
 from djangochannelsrestframework.decorators import action
@@ -30,7 +27,7 @@ async def test_subscription_create_notification(settings):
     class TestSerializer(serializers.ModelSerializer):
         class Meta:
             model = TestModelWithCustomPK
-            fields = ("name",)
+            fields = ("name", "description")
 
     class TestConsumer(GenericAsyncAPIConsumer):
 
@@ -55,25 +52,48 @@ async def test_subscription_create_notification(settings):
             await self.model_change.subscribe(request_id=request_id)
 
     # connect
-    communicator = WebsocketCommunicator(TestConsumer(), "/testws/")
-    connected, _ = await communicator.connect()
-    assert connected
+    async with connected_communicator(TestConsumer()) as communicator:
 
-    # subscribe
-    subscription_id = 1
-    await communicator.send_json_to(
-        {"action": "subscribe_to_all_changes", "request_id": subscription_id}
-    )
+        # subscribe
+        subscription_id = 1
+        await communicator.send_json_to(
+            {"action": "subscribe_to_all_changes", "request_id": subscription_id}
+        )
 
-    # create an instance
-    created_instance = await database_sync_to_async(
-        TestModelWithCustomPK.objects.create
-    )(name="some_unique_name")
+        # create an instance
+        created_instance = await database_sync_to_async(
+            TestModelWithCustomPK.objects.create
+        )(name="some_unique_name")
 
-    # check the response
-    response = await communicator.receive_json_from()
-    assert response == {
-        "action": "create",
-        "request_id": subscription_id,
-        "data": TestSerializer(created_instance).data,
-    }
+        # check the response
+        response = await communicator.receive_json_from()
+        assert response == {
+            "action": "create",
+            "request_id": subscription_id,
+            "data": TestSerializer(created_instance).data,
+        }
+
+        # update the instance
+        created_instance.description = "some description"
+        await database_sync_to_async(created_instance.save)()
+
+        # check the response
+        response = await communicator.receive_json_from()
+        assert response == {
+            "action": "update",
+            "request_id": subscription_id,
+            "data": TestSerializer(created_instance).data,
+        }
+
+        deleted_instance_data = TestSerializer(created_instance).data
+
+        # delete the instance
+        await database_sync_to_async(created_instance.delete)()
+
+        # check the response
+        response = await communicator.receive_json_from()
+        assert response == {
+            "action": "delete",
+            "request_id": subscription_id,
+            "data": deleted_instance_data,
+        }

@@ -5,7 +5,7 @@ from asgiref.sync import async_to_sync
 from channels import DEFAULT_CHANNEL_LAYER
 from channels.db import database_sync_to_async
 from channels.layers import channel_layers
-from channels.testing import WebsocketCommunicator
+from tests.communicator import connected_communicator
 from django.contrib.auth import user_logged_in, get_user_model
 from django.db import transaction
 from django.utils.text import slugify
@@ -40,25 +40,19 @@ async def test_observer_wrapper(settings):
         async def handle_user_logged_in(self, message, observer=None, **kwargs):
             await self.send_json({"message": message, "observer": observer is not None})
 
-    communicator = WebsocketCommunicator(TestConsumer(), "/testws/")
+    async with connected_communicator(TestConsumer()) as communicator:
 
-    connected, _ = await communicator.connect()
+        user = await database_sync_to_async(get_user_model().objects.create)(
+            username="test", email="test@example.com"
+        )
 
-    assert connected
+        await database_sync_to_async(user_logged_in.send)(
+            sender=user.__class__, request=None, user=user
+        )
 
-    user = await database_sync_to_async(get_user_model().objects.create)(
-        username="test", email="test@example.com"
-    )
+        response = await communicator.receive_json_from()
 
-    await database_sync_to_async(user_logged_in.send)(
-        sender=user.__class__, request=None, user=user
-    )
-
-    response = await communicator.receive_json_from()
-
-    assert {"message": {}, "observer": True} == response
-
-    await communicator.disconnect()
+        assert {"message": {}, "observer": True} == response
 
 
 @pytest.mark.django_db(transaction=True)
@@ -86,25 +80,19 @@ async def test_model_observer_wrapper(settings):
         ):
             await self.send_json(dict(body=message, action=action, type=message_type))
 
-    communicator = WebsocketCommunicator(TestConsumer(), "/testws/")
+    async with connected_communicator(TestConsumer()) as communicator:
 
-    connected, _ = await communicator.connect()
+        user = await database_sync_to_async(get_user_model().objects.create)(
+            username="test", email="test@example.com"
+        )
 
-    assert connected
+        response = await communicator.receive_json_from()
 
-    user = await database_sync_to_async(get_user_model().objects.create)(
-        username="test", email="test@example.com"
-    )
-
-    response = await communicator.receive_json_from()
-
-    assert {
-        "action": "create",
-        "body": {"pk": user.pk},
-        "type": "user.change.observer.wrapper",
-    } == response
-
-    await communicator.disconnect()
+        assert {
+            "action": "create",
+            "body": {"pk": user.pk},
+            "type": "user.change.observer.wrapper",
+        } == response
 
 
 @pytest.mark.django_db(transaction=True)
@@ -132,36 +120,30 @@ async def test_model_observer_wrapper_in_transaction(settings):
         ):
             await self.send_json(dict(body=message, action=action, type=message_type))
 
-    communicator = WebsocketCommunicator(TestConsumer(), "/testws/")
+    async with connected_communicator(TestConsumer()) as communicator:
 
-    connected, _ = await communicator.connect()
+        @database_sync_to_async
+        def create_user_and_wait():
 
-    assert connected
+            with transaction.atomic():
+                user = get_user_model().objects.create(
+                    username="test", email="test@example.com"
+                )
+                assert async_to_sync(communicator.receive_nothing)(timeout=0.1)
+                user.username = "mike"
+                user.save()
+                assert async_to_sync(communicator.receive_nothing)(timeout=0.1)
+                return user
 
-    @database_sync_to_async
-    def create_user_and_wait():
+        user = await create_user_and_wait()
 
-        with transaction.atomic():
-            user = get_user_model().objects.create(
-                username="test", email="test@example.com"
-            )
-            assert async_to_sync(communicator.receive_nothing(timeout=0.1))
-            user.username = "mike"
-            user.save()
-            assert async_to_sync(communicator.receive_nothing(timeout=0.1))
-            return user
+        response = await communicator.receive_json_from()
 
-    user = await create_user_and_wait()
-
-    response = await communicator.receive_json_from()
-
-    assert {
-        "action": "create",
-        "body": {"pk": user.pk},
-        "type": "user.change.wrapper.in.transaction",
-    } == response
-
-    await communicator.disconnect()
+        assert {
+            "action": "create",
+            "body": {"pk": user.pk},
+            "type": "user.change.wrapper.in.transaction",
+        } == response
 
 
 @pytest.mark.django_db(transaction=True)
@@ -189,41 +171,35 @@ async def test_model_observer_delete_wrapper(settings):
         ):
             await self.send_json(dict(body=message, action=action, type=message_type))
 
-    communicator = WebsocketCommunicator(TestConsumerObserverDelete(), "/testws/")
+    async with connected_communicator(TestConsumerObserverDelete()) as communicator:
+        await communicator.receive_nothing()
 
-    connected, _ = await communicator.connect()
+        user = await database_sync_to_async(get_user_model())(
+            username="test", email="test@example.com"
+        )
+        await database_sync_to_async(user.save)()
 
-    assert connected
-    await communicator.receive_nothing()
+        response = await communicator.receive_json_from()
+        await communicator.receive_nothing()
 
-    user = await database_sync_to_async(get_user_model())(
-        username="test", email="test@example.com"
-    )
-    await database_sync_to_async(user.save)()
+        assert {
+            "action": "create",
+            "body": {"pk": user.pk},
+            "type": "user.change.observer.delete",
+        } == response
+        pk = user.pk
 
-    response = await communicator.receive_json_from()
-    await communicator.receive_nothing()
+        await database_sync_to_async(user.delete)()
 
-    assert {
-        "action": "create",
-        "body": {"pk": user.pk},
-        "type": "user.change.observer.delete",
-    } == response
-    pk = user.pk
+        response = await communicator.receive_json_from()
 
-    await database_sync_to_async(user.delete)()
+        await communicator.receive_nothing()
 
-    response = await communicator.receive_json_from()
-
-    await communicator.receive_nothing()
-
-    assert {
-        "action": "delete",
-        "body": {"pk": pk},
-        "type": "user.change.observer.delete",
-    } == response
-
-    await communicator.disconnect()
+        assert {
+            "action": "delete",
+            "body": {"pk": pk},
+            "type": "user.change.observer.delete",
+        } == response
 
 
 @pytest.mark.django_db(transaction=True)
@@ -251,41 +227,28 @@ async def test_model_observer_many_connections_wrapper(settings):
         ):
             await self.send_json(dict(body=message, action=action, type=message_type))
 
-    communicator1 = WebsocketCommunicator(TestConsumer(), "/testws/")
+    async with connected_communicator(TestConsumer()) as communicator2:
+        async with connected_communicator(TestConsumer()) as communicator1:
 
-    connected, _ = await communicator1.connect()
+            user = await database_sync_to_async(get_user_model().objects.create)(
+                username="test", email="test@example.com"
+            )
 
-    assert connected
+            response = await communicator1.receive_json_from()
 
-    communicator2 = WebsocketCommunicator(TestConsumer(), "/testws/")
+            assert {
+                "action": "create",
+                "body": {"pk": user.pk},
+                "type": "user.change.many.connections.wrapper",
+            } == response
 
-    connected, _ = await communicator2.connect()
+        response = await communicator2.receive_json_from()
 
-    assert connected
-
-    user = await database_sync_to_async(get_user_model().objects.create)(
-        username="test", email="test@example.com"
-    )
-
-    response = await communicator1.receive_json_from()
-
-    assert {
-        "action": "create",
-        "body": {"pk": user.pk},
-        "type": "user.change.many.connections.wrapper",
-    } == response
-
-    await communicator1.disconnect()
-
-    response = await communicator2.receive_json_from()
-
-    assert {
-        "action": "create",
-        "body": {"pk": user.pk},
-        "type": "user.change.many.connections.wrapper",
-    } == response
-
-    await communicator2.disconnect()
+        assert {
+            "action": "create",
+            "body": {"pk": user.pk},
+            "type": "user.change.many.connections.wrapper",
+        } == response
 
 
 @pytest.mark.django_db(transaction=True)
@@ -324,41 +287,28 @@ async def test_model_observer_many_consumers_wrapper(settings):
         ):
             await self.send_json(dict(body=message, action=action, type=message_type))
 
-    communicator1 = WebsocketCommunicator(TestConsumer(), "/testws/")
+    async with connected_communicator(TestConsumer2()) as communicator2:
+        async with connected_communicator(TestConsumer()) as communicator1:
 
-    connected, _ = await communicator1.connect()
+            user = await database_sync_to_async(get_user_model().objects.create)(
+                username="test", email="test@example.com"
+            )
 
-    assert connected
+            response = await communicator1.receive_json_from()
 
-    communicator2 = WebsocketCommunicator(TestConsumer2(), "/testws/")
+            assert {
+                "action": "create",
+                "body": {"pk": user.pk},
+                "type": "user.change.many.consumers.wrapper.1",
+            } == response
 
-    connected, _ = await communicator2.connect()
+        response = await communicator2.receive_json_from()
 
-    assert connected
-
-    user = await database_sync_to_async(get_user_model().objects.create)(
-        username="test", email="test@example.com"
-    )
-
-    response = await communicator1.receive_json_from()
-
-    assert {
-        "action": "create",
-        "body": {"pk": user.pk},
-        "type": "user.change.many.consumers.wrapper.1",
-    } == response
-
-    await communicator1.disconnect()
-
-    response = await communicator2.receive_json_from()
-
-    assert {
-        "action": "create",
-        "body": {"pk": user.pk},
-        "type": "user.change.many.consumers.wrapper.2",
-    } == response
-
-    await communicator2.disconnect()
+        assert {
+            "action": "create",
+            "body": {"pk": user.pk},
+            "type": "user.change.many.consumers.wrapper.2",
+        } == response
 
 
 @pytest.mark.django_db(transaction=True)
@@ -395,25 +345,19 @@ async def test_model_observer_custom_groups_wrapper(settings):
             else:
                 yield "-instance-username-{}".format(instance.username)
 
-    communicator = WebsocketCommunicator(TestConsumer(), "/testws/")
+    async with connected_communicator(TestConsumer()) as communicator:
 
-    connected, _ = await communicator.connect()
+        user = await database_sync_to_async(get_user_model().objects.create)(
+            username="test", email="test@example.com"
+        )
 
-    assert connected
+        response = await communicator.receive_json_from()
 
-    user = await database_sync_to_async(get_user_model().objects.create)(
-        username="test", email="test@example.com"
-    )
-
-    response = await communicator.receive_json_from()
-
-    assert {
-        "action": "create",
-        "body": {"pk": user.pk},
-        "type": "user.change.custom.groups.wrapper",
-    } == response
-
-    await communicator.disconnect()
+        assert {
+            "action": "create",
+            "body": {"pk": user.pk},
+            "type": "user.change.custom.groups.wrapper",
+        } == response
 
     user = await database_sync_to_async(get_user_model().objects.create)(
         username="test2", email="test@example.com"
@@ -452,62 +396,56 @@ async def test_model_observer_with_class_serializer(settings):
         async def users_changes(self, message, action, **kwargs):
             await self.reply(data=message, action=action)
 
-    communicator = WebsocketCommunicator(TestConsumerObserverUsers(), "/testws/")
+    async with connected_communicator(TestConsumerObserverUsers()) as communicator:
 
-    connected, _ = await communicator.connect()
+        user = await database_sync_to_async(get_user_model().objects.create)(
+            username="test", email="test@example.com"
+        )
 
-    assert connected
+        response = await communicator.receive_json_from()
 
-    user = await database_sync_to_async(get_user_model().objects.create)(
-        username="test", email="test@example.com"
-    )
+        assert {
+            "action": "create",
+            "response_status": 200,
+            "request_id": None,
+            "errors": [],
+            "data": {
+                "id": user.pk,
+                "username": user.username,
+            },
+        } == response
 
-    response = await communicator.receive_json_from()
+        user.username = "test updated"
+        await database_sync_to_async(user.save)()
 
-    assert {
-        "action": "create",
-        "response_status": 200,
-        "request_id": None,
-        "errors": [],
-        "data": {
-            "id": user.pk,
-            "username": user.username,
-        },
-    } == response
+        response = await communicator.receive_json_from()
 
-    user.username = "test updated"
-    await database_sync_to_async(user.save)()
+        assert {
+            "action": "update",
+            "response_status": 200,
+            "request_id": None,
+            "errors": [],
+            "data": {
+                "id": user.pk,
+                "username": user.username,
+            },
+        } == response
 
-    response = await communicator.receive_json_from()
+        pk = user.pk
+        await database_sync_to_async(user.delete)()
 
-    assert {
-        "action": "update",
-        "response_status": 200,
-        "request_id": None,
-        "errors": [],
-        "data": {
-            "id": user.pk,
-            "username": user.username,
-        },
-    } == response
+        response = await communicator.receive_json_from()
 
-    pk = user.pk
-    await database_sync_to_async(user.delete)()
-
-    response = await communicator.receive_json_from()
-
-    assert {
-        "action": "delete",
-        "response_status": 200,
-        "request_id": None,
-        "errors": [],
-        "data": {
-            "id": pk,
-            "username": user.username,
-        },
-    } == response
-
-    await communicator.disconnect()
+        assert {
+            "action": "delete",
+            "response_status": 200,
+            "request_id": None,
+            "errors": [],
+            "data": {
+                "id": pk,
+                "username": user.username,
+            },
+        } == response
 
 
 @pytest.mark.django_db(transaction=True)
@@ -543,25 +481,19 @@ async def test_model_observer_custom_groups_wrapper_with_split_function_api(sett
         def user_change_custom_groups(self, username=None, **kwargs):
             yield "-instance-username-{}".format(slugify(username))
 
-    communicator = WebsocketCommunicator(TestConsumerObserverCustomGroups(), "/testws/")
+    async with connected_communicator(TestConsumerObserverCustomGroups()) as communicator:
 
-    connected, _ = await communicator.connect()
+        user = await database_sync_to_async(get_user_model().objects.create)(
+            username="test", email="test@example.com"
+        )
 
-    assert connected
+        response = await communicator.receive_json_from()
 
-    user = await database_sync_to_async(get_user_model().objects.create)(
-        username="test", email="test@example.com"
-    )
-
-    response = await communicator.receive_json_from()
-
-    assert {
-        "action": "create",
-        "body": {"pk": user.pk},
-        "type": "user.change.custom.groups",
-    } == response
-
-    await communicator.disconnect()
+        assert {
+            "action": "create",
+            "body": {"pk": user.pk},
+            "type": "user.change.custom.groups",
+        } == response
 
     user = await database_sync_to_async(get_user_model().objects.create)(
         username="test2", email="test@example.com"
@@ -620,31 +552,25 @@ async def test_model_observer_with_request_id(settings):
         def user_change_custom_groups(self, username=None, **kwargs):
             yield "-instance-username-{}".format(slugify(username))
 
-    communicator = WebsocketCommunicator(TestConsumerObserverCustomGroups(), "/testws/")
+    async with connected_communicator(TestConsumerObserverCustomGroups()) as communicator:
 
-    connected, _ = await communicator.connect()
+        await communicator.send_json_to(
+            {
+                "action": "subscribe",
+                "username": "thenewname",
+                "request_id": 5,
+            }
+        )
 
-    assert connected
+        user = await database_sync_to_async(get_user_model().objects.create)(
+            username="thenewname", email="test@example.com"
+        )
 
-    await communicator.send_json_to(
-        {
-            "action": "subscribe",
-            "username": "thenewname",
-            "request_id": 5,
-        }
-    )
+        response = await communicator.receive_json_from()
 
-    user = await database_sync_to_async(get_user_model().objects.create)(
-        username="thenewname", email="test@example.com"
-    )
-
-    response = await communicator.receive_json_from()
-
-    assert {
-        "action": "create",
-        "body": {"pk": user.pk},
-        "type": "user.change.custom.groups",
-        "subscribing_request_ids": [5],
-    } == response
-
-    await communicator.disconnect()
+        assert {
+            "action": "create",
+            "body": {"pk": user.pk},
+            "type": "user.change.custom.groups",
+            "subscribing_request_ids": [5],
+        } == response

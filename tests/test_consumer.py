@@ -1,7 +1,7 @@
 import asyncio
 
 import pytest
-from channels.testing import WebsocketCommunicator
+from tests.communicator import connected_communicator
 from rest_framework.exceptions import Throttled
 
 from djangochannelsrestframework.decorators import action, detached
@@ -26,41 +26,35 @@ async def test_decorator():
             return {"pk": pk, "sync": True}, 200
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(AConsumer(), "/testws/")
+    async with connected_communicator(AConsumer()) as communicator:
 
-    connected, _ = await communicator.connect()
+        await communicator.send_json_to(
+            {"action": "test_async_action", "pk": 2, "request_id": 1}
+        )
 
-    assert connected
+        response = await communicator.receive_json_from()
 
-    await communicator.send_json_to(
-        {"action": "test_async_action", "pk": 2, "request_id": 1}
-    )
+        assert response == {
+            "errors": [],
+            "data": {"pk": 2},
+            "action": "test_async_action",
+            "response_status": 200,
+            "request_id": 1,
+        }
 
-    response = await communicator.receive_json_from()
+        await communicator.send_json_to(
+            {"action": "test_sync_action", "pk": 3, "request_id": 10}
+        )
 
-    assert response == {
-        "errors": [],
-        "data": {"pk": 2},
-        "action": "test_async_action",
-        "response_status": 200,
-        "request_id": 1,
-    }
+        response = await communicator.receive_json_from()
 
-    await communicator.send_json_to(
-        {"action": "test_sync_action", "pk": 3, "request_id": 10}
-    )
-
-    response = await communicator.receive_json_from()
-
-    assert response == {
-        "errors": [],
-        "data": {"pk": 3, "sync": True},
-        "action": "test_sync_action",
-        "response_status": 200,
-        "request_id": 10,
-    }
-
-    await communicator.disconnect()
+        assert response == {
+            "errors": [],
+            "data": {"pk": 3, "sync": True},
+            "action": "test_sync_action",
+            "response_status": 200,
+            "request_id": 10,
+        }
 
 
 @pytest.mark.django_db(transaction=True)
@@ -81,31 +75,25 @@ async def test_detached_method():
             await self.send_json({"waited": 1})
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(AConsumer(), "/testws/")
+    async with connected_communicator(AConsumer()) as communicator:
 
-    connected, _ = await communicator.connect()
+        await communicator.send_json_to(
+            {"action": "test_async_action", "pk": 2, "request_id": 1}
+        )
 
-    assert connected
+        response = await communicator.receive_json_from()
 
-    await communicator.send_json_to(
-        {"action": "test_async_action", "pk": 2, "request_id": 1}
-    )
+        assert response == {
+            "errors": [],
+            "data": {"pk": 2},
+            "action": "test_async_action",
+            "response_status": 200,
+            "request_id": 1,
+        }
 
-    response = await communicator.receive_json_from()
+        response = await communicator.receive_json_from(timeout=2)
 
-    assert response == {
-        "errors": [],
-        "data": {"pk": 2},
-        "action": "test_async_action",
-        "response_status": 200,
-        "request_id": 1,
-    }
-
-    response = await communicator.receive_json_from(timeout=2)
-
-    assert response == {"waited": 1}
-
-    await communicator.disconnect()
+        assert response == {"waited": 1}
 
 
 @pytest.mark.django_db(transaction=True)
@@ -129,27 +117,21 @@ async def test_detached_method_cleanup():
                 raise
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(AConsumer(), "/testws/")
+    async with connected_communicator(AConsumer()) as communicator:
 
-    connected, _ = await communicator.connect()
+        await communicator.send_json_to(
+            {"action": "test_async_action", "pk": 2, "request_id": 1}
+        )
 
-    assert connected
+        response = await communicator.receive_json_from()
 
-    await communicator.send_json_to(
-        {"action": "test_async_action", "pk": 2, "request_id": 1}
-    )
-
-    response = await communicator.receive_json_from()
-
-    assert response == {
-        "errors": [],
-        "data": {"pk": 2},
-        "action": "test_async_action",
-        "response_status": 200,
-        "request_id": 1,
-    }
-
-    await communicator.disconnect()
+        assert response == {
+            "errors": [],
+            "data": {"pk": 2},
+            "action": "test_async_action",
+            "response_status": 200,
+            "request_id": 1,
+        }
 
     assert len(errors) == 1
 
@@ -171,43 +153,37 @@ async def test_detached_action():
             return {"pk": pk}, 200
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(AConsumer(), "/testws/")
+    async with connected_communicator(AConsumer()) as communicator:
 
-    connected, _ = await communicator.connect()
+        await communicator.send_json_to(
+            {"action": "test_detached_async_action", "pk": 2, "request_id": 1}
+        )
 
-    assert connected
+        await communicator.send_json_to(
+            {"action": "test_async_action", "pk": 3, "request_id": 2}
+        )
 
-    await communicator.send_json_to(
-        {"action": "test_detached_async_action", "pk": 2, "request_id": 1}
-    )
+        response = await communicator.receive_json_from()
 
-    await communicator.send_json_to(
-        {"action": "test_async_action", "pk": 3, "request_id": 2}
-    )
+        assert response == {
+            "errors": [],
+            "data": {"pk": 3},
+            "action": "test_async_action",
+            "response_status": 200,
+            "request_id": 2,
+        }
 
-    response = await communicator.receive_json_from()
+        event.set()
 
-    assert response == {
-        "errors": [],
-        "data": {"pk": 3},
-        "action": "test_async_action",
-        "response_status": 200,
-        "request_id": 2,
-    }
+        response = await communicator.receive_json_from()
 
-    event.set()
-
-    response = await communicator.receive_json_from()
-
-    assert response == {
-        "errors": [],
-        "data": {"pk": 2},
-        "action": "test_detached_async_action",
-        "response_status": 200,
-        "request_id": 1,
-    }
-
-    await communicator.disconnect()
+        assert response == {
+            "errors": [],
+            "data": {"pk": 2},
+            "action": "test_detached_async_action",
+            "response_status": 200,
+            "request_id": 1,
+        }
 
 
 @pytest.mark.django_db(transaction=True)
@@ -227,43 +203,37 @@ async def test_error_in_detached_action():
             return {"pk": pk}, 200
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(AConsumer(), "/testws/")
+    async with connected_communicator(AConsumer()) as communicator:
 
-    connected, _ = await communicator.connect()
+        await communicator.send_json_to(
+            {"action": "test_detached_async_action", "pk": 2, "request_id": 1}
+        )
 
-    assert connected
+        await communicator.send_json_to(
+            {"action": "test_async_action", "pk": 3, "request_id": 2}
+        )
 
-    await communicator.send_json_to(
-        {"action": "test_detached_async_action", "pk": 2, "request_id": 1}
-    )
+        response = await communicator.receive_json_from()
 
-    await communicator.send_json_to(
-        {"action": "test_async_action", "pk": 3, "request_id": 2}
-    )
+        assert response == {
+            "errors": [],
+            "data": {"pk": 3},
+            "action": "test_async_action",
+            "response_status": 200,
+            "request_id": 2,
+        }
 
-    response = await communicator.receive_json_from()
+        event.set()
 
-    assert response == {
-        "errors": [],
-        "data": {"pk": 3},
-        "action": "test_async_action",
-        "response_status": 200,
-        "request_id": 2,
-    }
+        response = await communicator.receive_json_from()
 
-    event.set()
-
-    response = await communicator.receive_json_from()
-
-    assert response == {
-        "data": None,
-        "action": "test_detached_async_action",
-        "response_status": 429,
-        "errors": ["Request was throttled."],
-        "request_id": 1,
-    }
-
-    await communicator.disconnect()
+        assert response == {
+            "data": None,
+            "action": "test_detached_async_action",
+            "response_status": 429,
+            "errors": ["Request was throttled."],
+            "request_id": 1,
+        }
 
 
 @pytest.mark.django_db(transaction=True)
@@ -278,22 +248,16 @@ async def test_error_on_missing_action():
             return {}, 200
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(AConsumer(), "/testws/")
+    async with connected_communicator(AConsumer()) as communicator:
 
-    connected, _ = await communicator.connect()
+        await communicator.send_json_to({"pk": 2, "request_id": 1})
 
-    assert connected
+        response = await communicator.receive_json_from()
 
-    await communicator.send_json_to({"pk": 2, "request_id": 1})
-
-    response = await communicator.receive_json_from()
-
-    assert response == {
-        "errors": ["Unable to find action in message body."],
-        "data": None,
-        "action": None,
-        "response_status": 405,
-        "request_id": 1,
-    }
-
-    await communicator.disconnect()
+        assert response == {
+            "errors": ["Unable to find action in message body."],
+            "data": None,
+            "action": None,
+            "response_status": 405,
+            "request_id": 1,
+        }
