@@ -1,3 +1,5 @@
+from contextlib import AsyncExitStack
+
 import pytest
 from channels import DEFAULT_CHANNEL_LAYER
 from channels.db import database_sync_to_async
@@ -216,53 +218,54 @@ async def test_two_observer_model_instance_mixins(settings):
     assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
     # Test a normal connection
-    async with connected_communicator(TestOtherConsumer()) as communicator1:
-        async with connected_communicator(TestUserConsumer()) as communicator2:
+    async with AsyncExitStack() as stack:
+        communicator1 = await stack.enter_async_context(connected_communicator(TestOtherConsumer()))
+        communicator2 = await stack.enter_async_context(connected_communicator(TestUserConsumer()))
 
-            u1 = await database_sync_to_async(get_user_model().objects.create)(
-                username="test1", email="42@example.com"
-            )
-            t1 = await database_sync_to_async(TestModel.objects.create)(name="test2")
+        u1 = await database_sync_to_async(get_user_model().objects.create)(
+            username="test1", email="42@example.com"
+        )
+        t1 = await database_sync_to_async(TestModel.objects.create)(name="test2")
 
-            await communicator1.send_json_to(
-                {"action": "subscribe_instance", "pk": t1.id, "request_id": 4}
-            )
+        await communicator1.send_json_to(
+            {"action": "subscribe_instance", "pk": t1.id, "request_id": 4}
+        )
 
-            response = await communicator1.receive_json_from()
+        response = await communicator1.receive_json_from()
 
-            assert response == {
-                "action": "subscribe_instance",
-                "errors": [],
-                "response_status": 201,
-                "request_id": 4,
-                "data": None,
-            }
+        assert response == {
+            "action": "subscribe_instance",
+            "errors": [],
+            "response_status": 201,
+            "request_id": 4,
+            "data": None,
+        }
 
-            await communicator2.send_json_to(
-                {"action": "subscribe_instance", "pk": u1.id, "request_id": 4}
-            )
+        await communicator2.send_json_to(
+            {"action": "subscribe_instance", "pk": u1.id, "request_id": 4}
+        )
 
-            response = await communicator2.receive_json_from()
+        response = await communicator2.receive_json_from()
 
-            assert response == {
-                "action": "subscribe_instance",
-                "errors": [],
-                "response_status": 201,
-                "request_id": 4,
-                "data": None,
-            }
+        assert response == {
+            "action": "subscribe_instance",
+            "errors": [],
+            "response_status": 201,
+            "request_id": 4,
+            "data": None,
+        }
 
-            # update the user
+        # update the user
 
-            u1.username = "no not a value"
+        u1.username = "no not a value"
 
-            await database_sync_to_async(u1.save)()
+        await database_sync_to_async(u1.save)()
 
-            # user is updated
-            assert await communicator2.receive_json_from()
+        # user is updated
+        assert await communicator2.receive_json_from()
 
-            # test model is not
-            assert await communicator1.receive_nothing()
+        # test model is not
+        assert await communicator1.receive_nothing()
 
 
 @pytest.mark.django_db(transaction=True)

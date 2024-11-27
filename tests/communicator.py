@@ -32,6 +32,12 @@ class Communicator(WebsocketCommunicator):
             except asyncio.TimeoutError:
                 break
     """
+    _connected = False
+
+    @property
+    def connected(self):
+        return self._connected
+
     async def receive_output(self, timeout=1):
         if self.future.done():
             self.future.result()  # Ensure exceptions are re-raised if future is complete
@@ -42,6 +48,14 @@ class Communicator(WebsocketCommunicator):
             if self.future.done():  # Re-check the state of the future after the timeout
                 self.future.result()
             raise e  # Propagate the timeout exception
+
+    async def connect(self, timeout=1):
+        self._connected, subprotocol = await super().connect(timeout)
+        return self._connected, subprotocol
+
+    async def disconnect(self, code=1000, timeout=1):
+        await super().disconnect(code, timeout)
+        self._connected = False
 
 
 @asynccontextmanager
@@ -67,4 +81,5 @@ async def connected_communicator(consumer, path: str = "/testws/") -> Awaitable[
         assert connected, "Failed to connect to WebSocket"
         yield communicator
     finally:
-        await communicator.disconnect()
+        if communicator.connected:
+            await communicator.disconnect()

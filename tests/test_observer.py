@@ -1,4 +1,5 @@
 import asyncio
+from contextlib import AsyncExitStack
 
 import pytest
 from asgiref.sync import async_to_sync
@@ -227,20 +228,22 @@ async def test_model_observer_many_connections_wrapper(settings):
         ):
             await self.send_json(dict(body=message, action=action, type=message_type))
 
-    async with connected_communicator(TestConsumer()) as communicator2:
-        async with connected_communicator(TestConsumer()) as communicator1:
+    async with AsyncExitStack() as stack:
+        communicator1 = await stack.enter_async_context(connected_communicator(TestConsumer()))
+        communicator2 = await stack.enter_async_context(connected_communicator(TestConsumer()))
+        user = await database_sync_to_async(get_user_model().objects.create)(
+            username="test", email="test@example.com"
+        )
 
-            user = await database_sync_to_async(get_user_model().objects.create)(
-                username="test", email="test@example.com"
-            )
+        response = await communicator1.receive_json_from()
 
-            response = await communicator1.receive_json_from()
+        assert {
+            "action": "create",
+            "body": {"pk": user.pk},
+            "type": "user.change.many.connections.wrapper",
+        } == response
 
-            assert {
-                "action": "create",
-                "body": {"pk": user.pk},
-                "type": "user.change.many.connections.wrapper",
-            } == response
+        await communicator1.disconnect()
 
         response = await communicator2.receive_json_from()
 
@@ -287,20 +290,23 @@ async def test_model_observer_many_consumers_wrapper(settings):
         ):
             await self.send_json(dict(body=message, action=action, type=message_type))
 
-    async with connected_communicator(TestConsumer2()) as communicator2:
-        async with connected_communicator(TestConsumer()) as communicator1:
+    async with AsyncExitStack() as stack:
+        communicator1 = await stack.enter_async_context(connected_communicator(TestConsumer()))
+        communicator2 = await stack.enter_async_context(connected_communicator(TestConsumer2()))
 
-            user = await database_sync_to_async(get_user_model().objects.create)(
-                username="test", email="test@example.com"
-            )
+        user = await database_sync_to_async(get_user_model().objects.create)(
+            username="test", email="test@example.com"
+        )
 
-            response = await communicator1.receive_json_from()
+        response = await communicator1.receive_json_from()
 
-            assert {
-                "action": "create",
-                "body": {"pk": user.pk},
-                "type": "user.change.many.consumers.wrapper.1",
-            } == response
+        assert {
+            "action": "create",
+            "body": {"pk": user.pk},
+            "type": "user.change.many.consumers.wrapper.1",
+        } == response
+
+        await communicator1.disconnect()
 
         response = await communicator2.receive_json_from()
 
