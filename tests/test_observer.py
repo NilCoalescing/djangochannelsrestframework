@@ -562,6 +562,8 @@ async def test_model_observer_with_request_id(settings):
             }
         )
 
+        await asyncio.sleep(0.5)
+
         user = await database_sync_to_async(get_user_model().objects.create)(
             username="thenewname", email="test@example.com"
         )

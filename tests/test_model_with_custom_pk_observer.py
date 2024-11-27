@@ -1,3 +1,4 @@
+import asyncio
 from typing import Dict
 
 import pytest
@@ -59,6 +60,8 @@ async def test_subscription_create_notification(settings):
         await communicator.send_json_to(
             {"action": "subscribe_to_all_changes", "request_id": subscription_id}
         )
+
+        await asyncio.sleep(0.5)
 
         # create an instance
         created_instance = await database_sync_to_async(
