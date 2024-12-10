@@ -175,30 +175,17 @@ class BaseObserver:
         groups = list(self.group_names_for_consumer(*args, consumer=consumer, **kwargs))
 
         for group_name in groups:
-            # remove group to request mappings
-            if (
-                group_name
-                in consumer._observer_group_to_request_id[self._stable_observer_id]
-            ):
-                # unsubscribe all requests to this group
+            if group_name in consumer._observer_group_to_request_id[self._stable_observer_id]:
                 if request_id is None:
-                    consumer._observer_group_to_request_id[
-                        self._stable_observer_id
-                    ].pop(group_name)
+                    consumer._observer_group_to_request_id[self._stable_observer_id].pop(group_name)
                 else:
-                    consumer._observer_group_to_request_id[self._stable_observer_id][
-                        group_name
-                    ].remove(request_id)
+                    consumer._observer_group_to_request_id[self._stable_observer_id][group_name].discard(request_id)
 
-            if (
-                len(
-                    consumer._observer_group_to_request_id[self._stable_observer_id][
-                        group_name
-                    ]
-                )
-                > 0
-            ):
-                await consumer.remove_group(group_name)
+                    if not consumer._observer_group_to_request_id[self._stable_observer_id][group_name]:
+                        consumer._observer_group_to_request_id[self._stable_observer_id].pop(group_name)
+
+                if group_name not in consumer._observer_group_to_request_id[self._stable_observer_id]:
+                    await consumer.remove_group(group_name)
 
         return groups
 
