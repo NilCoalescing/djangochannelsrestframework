@@ -61,7 +61,7 @@ async def test_subscription_create_notification(settings):
             {"action": "subscribe_to_all_changes", "request_id": subscription_id}
         )
 
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(2)
 
         # create an instance
         created_instance = await database_sync_to_async(

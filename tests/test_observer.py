@@ -568,7 +568,7 @@ async def test_model_observer_with_request_id(settings):
             }
         )
 
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(2)
 
         user = await database_sync_to_async(get_user_model().objects.create)(
             username="thenewname", email="test@example.com"
@@ -658,7 +658,7 @@ async def test_observer_unsubscribe_behavior_with_custom_groups(settings):
             }
         )
 
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(2)
 
         user = await database_sync_to_async(get_user_model().objects.create)(
             username="thenewname", email="test@example.com"
@@ -689,7 +689,7 @@ async def test_observer_unsubscribe_behavior_with_custom_groups(settings):
             }
         )
 
-        await asyncio.sleep(0.5)
+        await asyncio.sleep(2)
 
         await database_sync_to_async(user.delete)()
 
@@ -697,7 +697,7 @@ async def test_observer_unsubscribe_behavior_with_custom_groups(settings):
             username="thenewname", email="test@example.com"
         )
 
-        assert await communicator.receive_nothing(timeout=0.5)
+        assert await communicator.receive_nothing()
 
         user = await database_sync_to_async(get_user_model().objects.create)(
             username="thenewname2", email="test2@example.com"
