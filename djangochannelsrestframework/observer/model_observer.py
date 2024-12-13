@@ -11,7 +11,7 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.db import transaction
 from django.db.models import Model
-from django.db.models.signals import post_delete, post_save, post_init
+from django.db.models.signals import post_delete, post_save, post_init, m2m_changed
 from rest_framework.serializers import Serializer
 
 from djangochannelsrestframework.observer.base_observer import BaseObserver
@@ -70,6 +70,13 @@ class ModelObserver(BaseObserver):
             self.post_save_receiver, sender=self.model_cls, dispatch_uid=id(self)
         )
 
+        for field in self.model_cls._meta.many_to_many:
+            m2m_changed.connect(
+                self.m2m_changed_receiver,
+                sender=field.remote_field.through,
+                dispatch_uid=f"{id(self)}-{field.name}"
+            )
+
         post_delete.connect(
             self.post_delete_receiver, sender=self.model_cls, dispatch_uid=id(self)
         )
@@ -102,6 +109,23 @@ class ModelObserver(BaseObserver):
             self.database_event(instance, Action.CREATE)
         else:
             self.database_event(instance, Action.UPDATE)
+
+    def m2m_changed_receiver(self, action: str, instance: Model, reverse: bool, model: Type[Model], pk_set: Set[Any], **kwargs):
+        """
+        Handle many-to-many changes.
+        """
+        if action not in {"post_add",  "post_remove", "post_clear"}:
+            return
+
+        target_instances = []
+        if not reverse:
+            target_instances.append(instance)
+        else:
+            for pk in pk_set:
+                target_instances.append(model.objects.get(pk=pk))
+
+        for target_instance in target_instances:
+            self.database_event(target_instance, Action.UPDATE)
 
     def post_delete_receiver(self, instance: Model, **kwargs):
         self.database_event(instance, Action.DELETE)

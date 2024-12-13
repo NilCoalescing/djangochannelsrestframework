@@ -1,6 +1,8 @@
+import asyncio
 from contextlib import AsyncExitStack
 
 import pytest
+from django.contrib.auth.models import Group
 from channels import DEFAULT_CHANNEL_LAYER
 from channels.db import database_sync_to_async
 from channels.layers import channel_layers
@@ -23,6 +25,7 @@ class UserSerializer(serializers.ModelSerializer):
             "id",
             "username",
             "email",
+            "groups",
         )
 
 
@@ -97,7 +100,7 @@ async def test_observer_model_instance_mixin(settings):
             "errors": [],
             "response_status": 200,
             "request_id": 1,
-            "data": {"email": "42@example.com", "id": u1.id, "username": "test1"},
+            "data": {"email": "42@example.com", "id": u1.id, "username": "test1", "groups": []},
         }
 
         # lookup up u1
@@ -146,7 +149,7 @@ async def test_observer_model_instance_mixin(settings):
             "errors": [],
             "response_status": 200,
             "request_id": 4,
-            "data": {"email": "42@example.com", "id": u1.id, "username": "thenewname"},
+            "data": {"email": "42@example.com", "id": u1.id, "username": "thenewname", "groups": []},
         }
 
         u1_pk = u1.pk
@@ -323,7 +326,7 @@ async def test_unsubscribe_observer_model_instance_mixin(settings):
             "errors": [],
             "response_status": 200,
             "request_id": 4,
-            "data": {"email": "42@example.com", "id": u1.pk, "username": "thenewname"},
+            "data": {"email": "42@example.com", "id": u1.pk, "username": "thenewname", "groups": []},
         } in [a, b]
 
         # unsubscribe
@@ -456,7 +459,7 @@ async def test_observer_model_instance_mixin_with_many_subs(settings):
             "errors": [],
             "response_status": 200,
             "request_id": 4,
-            "data": {"email": "42@example.com", "id": u1.id, "username": "new name"},
+            "data": {"email": "42@example.com", "id": u1.id, "username": "new name", "groups": []},
         }
 
         assert await communicator.receive_nothing()
@@ -488,12 +491,166 @@ async def test_observer_model_instance_mixin_with_many_subs(settings):
             "errors": [],
             "response_status": 200,
             "request_id": 5,
+            "data": {"email": "45@example.com", "id": u2.id, "username": "the new name 2", "groups": []},
+        }
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.asyncio
+async def test_m2m_observer(settings):
+    """
+    This tests
+    """
+
+    settings.CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+            "TEST_CONFIG": {"expiry": 100500},
+        },
+    }
+
+    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
+
+    class TestConsumerMultipleSubs(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
+
+        queryset = get_user_model().objects.all()
+        serializer_class = UserSerializer
+
+        async def accept(self, subprotocol=None):
+            await super().accept()
+
+    assert not await database_sync_to_async(get_user_model().objects.all().exists)()
+
+    # Test a normal connection
+    async with connected_communicator(TestConsumerMultipleSubs()) as communicator:
+
+        u1 = await database_sync_to_async(get_user_model().objects.create)(
+            username="test1", email="42@example.com"
+        )
+
+        u2 = await database_sync_to_async(get_user_model().objects.create)(
+            username="test2", email="45@example.com"
+        )
+
+        # Subscribe to instance user 1
+        await communicator.send_json_to(
+            {"action": "subscribe_instance", "pk": u1.id, "request_id": 4}
+        )
+
+        response = await communicator.receive_json_from()
+
+        assert response == {
+            "action": "subscribe_instance",
+            "errors": [],
+            "response_status": 201,
+            "request_id": 4,
+            "data": None,
+        }
+
+        g1 = await database_sync_to_async(Group.objects.create)(name="group1")
+        g2 = await database_sync_to_async(Group.objects.create)(name="group2")
+        g3 = await database_sync_to_async(Group.objects.create)(name="group3")
+        g4 = await database_sync_to_async(Group.objects.create)(name="group4")
+
+        await database_sync_to_async(u1.groups.add)(g1, g2)
+
+        response = await communicator.receive_json_from()
+
+        assert response == {
+            "action": "update",
+            "errors": [],
+            "response_status": 200,
+            "request_id": 4,
             "data": {
-                "email": "45@example.com",
-                "id": u2.id,
-                "username": "the new name 2",
+                "email": "42@example.com",
+                "id": u1.id,
+                "username": "test1",
+                "groups": [g1.id, g2.id]
             },
         }
+
+        await database_sync_to_async(u2.groups.add)(g4)
+
+        await communicator.receive_nothing()
+
+        await database_sync_to_async(g1.user_set.add)(u2)
+
+        await communicator.receive_nothing()
+
+        await database_sync_to_async(g3.user_set.add)(u1, u2)
+
+        response = await communicator.receive_json_from()
+
+        assert response == {
+            "action": "update",
+            "errors": [],
+            "response_status": 200,
+            "request_id": 4,
+            "data": {
+                "email": "42@example.com",
+                "id": u1.id,
+                "username": "test1",
+                "groups": [g1.id, g2.id, g3.id]
+            },
+        }
+
+        await database_sync_to_async(g1.user_set.remove)(u1)
+
+        response = await communicator.receive_json_from()
+
+        assert response == {
+            "action": "update",
+            "errors": [],
+            "response_status": 200,
+            "request_id": 4,
+            "data": {
+                "email": "42@example.com",
+                "id": u1.id,
+                "username": "test1",
+                "groups": [g2.id, g3.id]
+            },
+        }
+
+        await database_sync_to_async(u1.groups.clear)()
+
+        response = await communicator.receive_json_from()
+
+        assert response == {
+            "action": "update",
+            "errors": [],
+            "response_status": 200,
+            "request_id": 4,
+            "data": {
+                "email": "42@example.com",
+                "id": u1.id,
+                "username": "test1",
+                "groups": []
+            },
+        }
+
+        await database_sync_to_async(u2.groups.clear)()
+
+        await communicator.receive_nothing()
+
+        await database_sync_to_async(u1.groups.set)([g1, g4])
+
+        response = await communicator.receive_json_from()
+        assert response == {
+            "action": "update",
+            "errors": [],
+            "response_status": 200,
+            "request_id": 4,
+            "data": {
+                "email": "42@example.com",
+                "id": u1.id,
+                "username": "test1",
+                "groups": [g1.id, g4.id]
+            },
+        }
+
+        await database_sync_to_async(u2.groups.set)([g1, g4])
+
+        await communicator.receive_nothing()
 
 
 @pytest.mark.django_db(transaction=True)
