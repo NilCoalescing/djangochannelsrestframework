@@ -1,4 +1,5 @@
 import asyncio
+from http.client import responses
 from typing import Dict
 
 import pytest
@@ -51,6 +52,12 @@ async def test_subscription_create_notification(settings):
         @action()
         async def subscribe_to_all_changes(self, request_id, **kwargs):
             await self.model_change.subscribe(request_id=request_id)
+            await self.send_json(
+                dict(
+                    request_id=request_id,
+                    action="subscribed_to_all_changes",
+                )
+            )
 
     # connect
     async with connected_communicator(TestConsumer()) as communicator:
@@ -61,7 +68,12 @@ async def test_subscription_create_notification(settings):
             {"action": "subscribe_to_all_changes", "request_id": subscription_id}
         )
 
-        await asyncio.sleep(2)
+        response = await communicator.receive_json_from()
+
+        assert response == {
+            "action": "subscribed_to_all_changes",
+            "request_id": subscription_id,
+        }
 
         # create an instance
         created_instance = await database_sync_to_async(

@@ -530,6 +530,12 @@ async def test_model_observer_with_request_id(settings):
             await self.user_change_custom_groups.subscribe(
                 username=username, request_id=request_id
             )
+            await self.send_json(
+                dict(
+                    request_id=request_id,
+                    action="subscribed",
+                )
+            )
 
         @model_observer(get_user_model())
         async def user_change_custom_groups(
@@ -568,7 +574,12 @@ async def test_model_observer_with_request_id(settings):
             }
         )
 
-        await asyncio.sleep(2)
+        response = await communicator.receive_json_from()
+
+        assert response == {
+            "action": "subscribed",
+            "request_id": 5,
+        }
 
         user = await database_sync_to_async(get_user_model().objects.create)(
             username="thenewname", email="test@example.com"
@@ -604,11 +615,23 @@ async def test_observer_unsubscribe_behavior_with_custom_groups(settings):
             await self.user_change_custom_groups.subscribe(
                 username=username, request_id=request_id
             )
+            await self.send_json(
+                dict(
+                    request_id=request_id,
+                    action="subscribed",
+                )
+            )
 
         @action()
         async def unsubscribe(self, username, request_id, **kwargs):
             await self.user_change_custom_groups.unsubscribe(
                 username=username, request_id=request_id
+            )
+            await self.send_json(
+                dict(
+                    request_id=request_id,
+                    action="unsubscribed",
+                )
             )
 
         @model_observer(get_user_model())
@@ -658,7 +681,12 @@ async def test_observer_unsubscribe_behavior_with_custom_groups(settings):
             }
         )
 
-        await asyncio.sleep(2)
+        response = await communicator.receive_json_from()
+
+        assert response == {
+            "action": "subscribed",
+            "request_id": 5,
+        }
 
         user = await database_sync_to_async(get_user_model().objects.create)(
             username="thenewname", email="test@example.com"
@@ -681,6 +709,13 @@ async def test_observer_unsubscribe_behavior_with_custom_groups(settings):
             }
         )
 
+        response = await communicator.receive_json_from()
+
+        assert response == {
+            "action": "unsubscribed",
+            "request_id": 5,
+        }
+
         await communicator.send_json_to(
             {
                 "action": "subscribe",
@@ -689,7 +724,12 @@ async def test_observer_unsubscribe_behavior_with_custom_groups(settings):
             }
         )
 
-        await asyncio.sleep(2)
+        response = await communicator.receive_json_from()
+
+        assert response == {
+            "action": "subscribed",
+            "request_id": 6,
+        }
 
         await database_sync_to_async(user.delete)()
 
