@@ -347,9 +347,9 @@ async def test_model_observer_custom_groups_wrapper(settings):
             self, instance=None, username=None, **kwargs
         ):
             if username:
-                yield "-instance-username-{}".format(slugify(username))
+                yield "-instance-username-{}-1".format(slugify(username))
             else:
-                yield "-instance-username-{}".format(instance.username)
+                yield "-instance-username-{}-1".format(instance.username)
 
     async with connected_communicator(TestConsumer()) as communicator:
 
@@ -481,11 +481,11 @@ async def test_model_observer_custom_groups_wrapper_with_split_function_api(sett
 
         @user_change_custom_groups.groups_for_signal
         def user_change_custom_groups(self, instance=None, **kwargs):
-            yield "-instance-username-{}".format(instance.username)
+            yield "-instance-username-{}-2".format(instance.username)
 
         @user_change_custom_groups.groups_for_consumer
         def user_change_custom_groups(self, username=None, **kwargs):
-            yield "-instance-username-{}".format(slugify(username))
+            yield "-instance-username-{}-2".format(slugify(username))
 
     async with connected_communicator(TestConsumerObserverCustomGroups()) as communicator:
 
@@ -558,11 +558,11 @@ async def test_model_observer_with_request_id(settings):
 
         @user_change_custom_groups.groups_for_signal
         def user_change_custom_groups(self, instance=None, **kwargs):
-            yield "-instance-username-{}".format(instance.username)
+            yield "-instance-username-{}-3".format(instance.username)
 
         @user_change_custom_groups.groups_for_consumer
         def user_change_custom_groups(self, username=None, **kwargs):
-            yield "-instance-username-{}".format(slugify(username))
+            yield "-instance-username-{}-3".format(slugify(username))
 
     async with connected_communicator(TestConsumerObserverCustomGroups()) as communicator:
 
@@ -655,11 +655,11 @@ async def test_observer_unsubscribe_behavior_with_custom_groups(settings):
 
         @user_change_custom_groups.groups_for_signal
         def user_change_custom_groups(self, instance=None, **kwargs):
-            yield "-instance-username-{}".format(instance.username)
+            yield "-instance-username-{}-4".format(instance.username)
 
         @user_change_custom_groups.groups_for_consumer
         def user_change_custom_groups(self, username=None, **kwargs):
-            yield "-instance-username-{}".format(slugify(username))
+            yield "-instance-username-{}-4".format(slugify(username))
 
     async with connected_communicator(TestConsumerObserverCustomGroups()) as communicator:
 
