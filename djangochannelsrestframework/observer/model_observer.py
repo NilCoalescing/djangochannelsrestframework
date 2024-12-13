@@ -62,11 +62,11 @@ class ModelObserver(BaseObserver):
 
         # this is used to capture the current state for the model
         post_init.connect(
-            self.post_init_receiver, sender=self.model_cls, dispatch_uid=id(self)
+            self.post_init_receiver, sender=self.model_cls, dispatch_uid=str(id(self))
         )
 
         post_save.connect(
-            self.post_save_receiver, sender=self.model_cls, dispatch_uid=id(self)
+            self.post_save_receiver, sender=self.model_cls, dispatch_uid=str(id(self))
         )
 
         for field in self.model_cls._meta.many_to_many:
@@ -77,7 +77,7 @@ class ModelObserver(BaseObserver):
             )
 
         post_delete.connect(
-            self.post_delete_receiver, sender=self.model_cls, dispatch_uid=id(self)
+            self.post_delete_receiver, sender=self.model_cls, dispatch_uid=str(id(self))
         )
 
     def post_init_receiver(self, instance: Model, **kwargs):
