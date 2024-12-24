@@ -1,4 +1,3 @@
-import asyncio
 from contextlib import AsyncExitStack
 
 import pytest
@@ -687,6 +686,57 @@ async def test_m2m_observer(settings):
         await database_sync_to_async(u2.groups.set)([g1, g4])
 
         await communicator.receive_nothing()
+        
+        await database_sync_to_async(u1.groups.set)([g1, g2, g3, g4])
+        
+        response = await communicator.receive_json_from()
+        
+        assert response == {
+            "action": "update",
+            "errors": [],
+            "response_status": 200,
+            "request_id": 4,
+            "data": {
+                "email": "42@example.com",
+                "id": u1.id,
+                "username": "test1",
+                "groups": [g1.id, g2.id, g3.id, g4.id]
+            },
+        }
+        
+        await database_sync_to_async(g4.user_set.clear)()
+        
+        response = await communicator.receive_json_from()
+
+        assert response == {
+            "action": "update",
+            "errors": [],
+            "response_status": 200,
+            "request_id": 4,
+            "data": {
+                "email": "42@example.com",
+                "id": u1.id,
+                "username": "test1",
+                "groups": [g1.id, g2.id, g3.id]
+            },
+        }
+
+        await database_sync_to_async(g3.user_set.remove)(u1)
+        
+        response = await communicator.receive_json_from()
+
+        assert response == {
+            "action": "update",
+            "errors": [],
+            "response_status": 200,
+            "request_id": 4,
+            "data": {
+                "email": "42@example.com",
+                "id": u1.id,
+                "username": "test1",
+                "groups": [g1.id, g2.id]
+            },
+        }
 
 
 @pytest.mark.django_db(transaction=True)
