@@ -71,12 +71,13 @@ class ModelObserver(BaseObserver):
         )
         have_m2m = False
         for field in self.model_cls._meta.many_to_many:
-            m2m_changed.connect(
-                self.m2m_changed_receiver,
-                sender=field.remote_field.through,
-                dispatch_uid=f"{id(self)}-{field.name}"
-            )
-            have_m2m = True
+            if hasattr(field.remote_field, 'through'):
+                m2m_changed.connect(
+                    self.m2m_changed_receiver,
+                    sender=field.remote_field.through,
+                    dispatch_uid=f"{str(id(self))}-{self.model_cls.__name__}-{field.name}"
+                )
+                have_m2m = True
 
         post_delete.connect(
             self.post_delete_receiver, sender=self.model_cls, dispatch_uid=str(id(self))
@@ -122,20 +123,36 @@ class ModelObserver(BaseObserver):
         else:
             self.database_event(instance, Action.UPDATE)
 
-    def m2m_changed_receiver(self, action: str, instance: Model, reverse: bool, model: Type[Model], pk_set: Set[Any], **kwargs):
+    def m2m_changed_receiver(self, sender, instance: Model, action: str, reverse: bool, model: Type[Model],
+                             pk_set: Set[Any], **kwargs):
         """
         Handle many-to-many changes.
         """
-        if action not in {"post_add",  "post_remove", "post_clear"}:
+        if action not in {"post_add", "post_remove", "post_clear"} and not reverse:
+            return
+
+        if action not in {"post_add", "post_remove", "pre_clear"} and reverse:
             return
 
         target_instances = []
         if not reverse:
             target_instances.append(instance)
         else:
-            for pk in pk_set:
-                target_instances.append(model.objects.get(pk=pk))
-
+            if pk_set:
+                for pk in pk_set:
+                    target_instances.append(model.objects.get(pk=pk))
+            else:  # pre_clear case
+                related_field = next(
+                    (field for field in instance._meta.get_fields()
+                     if field.many_to_many and hasattr(field, 'through') and field.through == sender),
+                    None
+                )
+                if related_field:
+                    related_manager = getattr(instance, related_field.related_name or f"{related_field.name}_set", None)
+                    if related_manager:
+                        target_instances.extend(related_manager.all())
+        
+        target_instances = list(set(target_instances))  # remove duplicates if any
         for target_instance in target_instances:
             self.database_event(target_instance, Action.UPDATE)
 
