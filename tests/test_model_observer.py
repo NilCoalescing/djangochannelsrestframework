@@ -494,13 +494,10 @@ async def test_observer_model_instance_mixin_with_many_subs(settings):
         }
 
 
-@pytest.mark.django_db(transaction=True)
+@pytest.mark.django_db(transaction=False)
 @pytest.mark.asyncio
 async def test_m2m_observer(settings):
-    """
-    This tests
-    """
-
+    
     settings.CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels.layers.InMemoryChannelLayer",
@@ -522,185 +519,188 @@ async def test_m2m_observer(settings):
 
     # Test a normal connection
     async with connected_communicator(TestConsumerMultipleSubs()) as communicator:
-
-        u1 = await database_sync_to_async(get_user_model().objects.create)(
-            username="test1", email="42@example.com"
-        )
-
-        u2 = await database_sync_to_async(get_user_model().objects.create)(
-            username="test2", email="45@example.com"
-        )
-
-        # Subscribe to instance user 1
-        await communicator.send_json_to(
-            {"action": "subscribe_instance", "pk": u1.id, "request_id": 4}
-        )
-
-        response = await communicator.receive_json_from()
-
-        assert response == {
-            "action": "subscribe_instance",
-            "errors": [],
-            "response_status": 201,
-            "request_id": 4,
-            "data": None,
-        }
-
-        g1 = await database_sync_to_async(Group.objects.create)(name="group1")
-        g2 = await database_sync_to_async(Group.objects.create)(name="group2")
-        g3 = await database_sync_to_async(Group.objects.create)(name="group3")
-        g4 = await database_sync_to_async(Group.objects.create)(name="group4")
-
-        await database_sync_to_async(u1.groups.add)(g1, g2)
-
-        response = await communicator.receive_json_from()
-
-        assert response == {
-            "action": "update",
-            "errors": [],
-            "response_status": 200,
-            "request_id": 4,
-            "data": {
-                "email": "42@example.com",
-                "id": u1.id,
-                "username": "test1",
-                "groups": [g1.id, g2.id]
-            },
-        }
-
-        await database_sync_to_async(u2.groups.add)(g4)
-
-        await communicator.receive_nothing()
-
-        await database_sync_to_async(g1.user_set.add)(u2)
-
-        await communicator.receive_nothing()
-
-        await database_sync_to_async(g3.user_set.add)(u1, u2)
-
-        response = await communicator.receive_json_from()
-
-        assert response == {
-            "action": "update",
-            "errors": [],
-            "response_status": 200,
-            "request_id": 4,
-            "data": {
-                "email": "42@example.com",
-                "id": u1.id,
-                "username": "test1",
-                "groups": [g1.id, g2.id, g3.id]
-            },
-        }
-
-        await database_sync_to_async(g1.user_set.remove)(u1)
-
-        response = await communicator.receive_json_from()
-
-        assert response == {
-            "action": "update",
-            "errors": [],
-            "response_status": 200,
-            "request_id": 4,
-            "data": {
-                "email": "42@example.com",
-                "id": u1.id,
-                "username": "test1",
-                "groups": [g2.id, g3.id]
-            },
-        }
-
-        await database_sync_to_async(u1.groups.clear)()
-
-        response = await communicator.receive_json_from()
-
-        assert response == {
-            "action": "update",
-            "errors": [],
-            "response_status": 200,
-            "request_id": 4,
-            "data": {
-                "email": "42@example.com",
-                "id": u1.id,
-                "username": "test1",
-                "groups": []
-            },
-        }
-
-        await database_sync_to_async(u2.groups.clear)()
-
-        await communicator.receive_nothing()
-
-        await database_sync_to_async(u1.groups.set)([g1, g4])
-
-        response = await communicator.receive_json_from()
-        assert response == {
-            "action": "update",
-            "errors": [],
-            "response_status": 200,
-            "request_id": 4,
-            "data": {
-                "email": "42@example.com",
-                "id": u1.id,
-                "username": "test1",
-                "groups": [g1.id, g4.id]
-            },
-        }
-
-        await database_sync_to_async(u2.groups.set)([g1, g4])
-
-        await communicator.receive_nothing()
-        
-        await database_sync_to_async(u1.groups.set)([g1, g2, g3, g4])
-        
-        response = await communicator.receive_json_from()
-        
-        assert response == {
-            "action": "update",
-            "errors": [],
-            "response_status": 200,
-            "request_id": 4,
-            "data": {
-                "email": "42@example.com",
-                "id": u1.id,
-                "username": "test1",
-                "groups": [g1.id, g2.id, g3.id, g4.id]
-            },
-        }
-        
-        await database_sync_to_async(g4.user_set.clear)()
-        
-        response = await communicator.receive_json_from()
-
-        assert response == {
-            "action": "update",
-            "errors": [],
-            "response_status": 200,
-            "request_id": 4,
-            "data": {
-                "email": "42@example.com",
-                "id": u1.id,
-                "username": "test1",
-                "groups": [g1.id, g2.id, g3.id]
-            },
-        }
-
-        await database_sync_to_async(g3.user_set.remove)(u1)
-        
-        response = await communicator.receive_json_from()
-
-        assert response == {
-            "action": "update",
-            "errors": [],
-            "response_status": 200,
-            "request_id": 4,
-            "data": {
-                "email": "42@example.com",
-                "id": u1.id,
-                "username": "test1",
-                "groups": [g1.id, g2.id]
-            },
-        }
+        try:
+            u1 = await database_sync_to_async(get_user_model().objects.create)(
+                username="test1", email="42@example.com"
+            )
+    
+            u2 = await database_sync_to_async(get_user_model().objects.create)(
+                username="test2", email="45@example.com"
+            )
+    
+            # Subscribe to instance user 1
+            await communicator.send_json_to(
+                {"action": "subscribe_instance", "pk": u1.id, "request_id": 4}
+            )
+    
+            response = await communicator.receive_json_from()
+    
+            assert response == {
+                "action": "subscribe_instance",
+                "errors": [],
+                "response_status": 201,
+                "request_id": 4,
+                "data": None,
+            }
+    
+            g1 = await database_sync_to_async(Group.objects.create)(name="group1")
+            g2 = await database_sync_to_async(Group.objects.create)(name="group2")
+            g3 = await database_sync_to_async(Group.objects.create)(name="group3")
+            g4 = await database_sync_to_async(Group.objects.create)(name="group4")
+    
+            await database_sync_to_async(u1.groups.add)(g1, g2)
+    
+            response = await communicator.receive_json_from()
+    
+            assert response == {
+                "action": "update",
+                "errors": [],
+                "response_status": 200,
+                "request_id": 4,
+                "data": {
+                    "email": "42@example.com",
+                    "id": u1.id,
+                    "username": "test1",
+                    "groups": [g1.id, g2.id]
+                },
+            }
+    
+            await database_sync_to_async(u2.groups.add)(g4)
+    
+            await communicator.receive_nothing()
+    
+            await database_sync_to_async(g1.user_set.add)(u2)
+    
+            await communicator.receive_nothing()
+    
+            await database_sync_to_async(g3.user_set.add)(u1, u2)
+    
+            response = await communicator.receive_json_from()
+    
+            assert response == {
+                "action": "update",
+                "errors": [],
+                "response_status": 200,
+                "request_id": 4,
+                "data": {
+                    "email": "42@example.com",
+                    "id": u1.id,
+                    "username": "test1",
+                    "groups": [g1.id, g2.id, g3.id]
+                },
+            }
+    
+            await database_sync_to_async(g1.user_set.remove)(u1)
+    
+            response = await communicator.receive_json_from()
+    
+            assert response == {
+                "action": "update",
+                "errors": [],
+                "response_status": 200,
+                "request_id": 4,
+                "data": {
+                    "email": "42@example.com",
+                    "id": u1.id,
+                    "username": "test1",
+                    "groups": [g2.id, g3.id]
+                },
+            }
+    
+            await database_sync_to_async(u1.groups.clear)()
+    
+            response = await communicator.receive_json_from()
+    
+            assert response == {
+                "action": "update",
+                "errors": [],
+                "response_status": 200,
+                "request_id": 4,
+                "data": {
+                    "email": "42@example.com",
+                    "id": u1.id,
+                    "username": "test1",
+                    "groups": []
+                },
+            }
+    
+            await database_sync_to_async(u2.groups.clear)()
+    
+            await communicator.receive_nothing()
+    
+            await database_sync_to_async(u1.groups.set)([g1, g4])
+    
+            response = await communicator.receive_json_from()
+            assert response == {
+                "action": "update",
+                "errors": [],
+                "response_status": 200,
+                "request_id": 4,
+                "data": {
+                    "email": "42@example.com",
+                    "id": u1.id,
+                    "username": "test1",
+                    "groups": [g1.id, g4.id]
+                },
+            }
+    
+            await database_sync_to_async(u2.groups.set)([g1, g4])
+    
+            await communicator.receive_nothing()
+            
+            await database_sync_to_async(u1.groups.set)([g1, g2, g3, g4])
+            
+            response = await communicator.receive_json_from()
+            
+            assert response == {
+                "action": "update",
+                "errors": [],
+                "response_status": 200,
+                "request_id": 4,
+                "data": {
+                    "email": "42@example.com",
+                    "id": u1.id,
+                    "username": "test1",
+                    "groups": [g1.id, g2.id, g3.id, g4.id]
+                },
+            }
+            
+            await database_sync_to_async(g4.user_set.clear)()
+            
+            response = await communicator.receive_json_from()
+    
+            assert response == {
+                "action": "update",
+                "errors": [],
+                "response_status": 200,
+                "request_id": 4,
+                "data": {
+                    "email": "42@example.com",
+                    "id": u1.id,
+                    "username": "test1",
+                    "groups": [g1.id, g2.id, g3.id]
+                },
+            }
+    
+            await database_sync_to_async(g3.user_set.remove)(u1)
+            
+            response = await communicator.receive_json_from()
+    
+            assert response == {
+                "action": "update",
+                "errors": [],
+                "response_status": 200,
+                "request_id": 4,
+                "data": {
+                    "email": "42@example.com",
+                    "id": u1.id,
+                    "username": "test1",
+                    "groups": [g1.id, g2.id]
+                },
+            }
+        finally:
+            await database_sync_to_async(get_user_model().objects.all().delete)()
+            await database_sync_to_async(Group.objects.all().delete)()
 
 
 @pytest.mark.django_db(transaction=True)
@@ -830,6 +830,7 @@ async def test_multiple_changes_within_transaction(settings):
                         "email": "42@example.com",
                         "id": u1.id,
                         "username": "thenewname3",
+                        "groups": []
                     },
                 }
             ]
