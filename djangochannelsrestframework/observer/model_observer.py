@@ -142,14 +142,23 @@ class ModelObserver(BaseObserver):
         """
         Generates messages for the given group names and action.
         """
-        for group_name in old_group_names - new_group_names:
-            yield {**self.serialize(instance, Action.DELETE, **kwargs), "group": group_name}
+        delete_group_names = old_group_names - new_group_names
+        if delete_group_names:
+            message_body = self.serialize(instance, Action.DELETE, **kwargs)
+            for group_name in delete_group_names:
+                yield {**message_body, "group": group_name}
 
-        for group_name in old_group_names & new_group_names:
-            yield {**self.serialize(instance, Action.UPDATE, **kwargs), "group": group_name}
+        update_group_names = old_group_names & new_group_names
+        if update_group_names:
+            message_body = self.serialize(instance, Action.UPDATE, **kwargs)
+            for group_name in update_group_names:
+                yield {**message_body, "group": group_name}
 
-        for group_name in new_group_names - old_group_names:
-            yield {**self.serialize(instance, Action.CREATE, **kwargs), "group": group_name}
+        create_group_names = new_group_names - old_group_names
+        if create_group_names:
+            message_body = self.serialize(instance, Action.CREATE, **kwargs)
+            for group_name in create_group_names:
+                yield {**message_body, "group": group_name}
 
     def send_prepared_messages(self, messages):
         """
