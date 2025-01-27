@@ -41,6 +41,7 @@ class ModelObserver(BaseObserver):
         self._model_cls = None
         self.model_cls = model_cls  # type: Type[Model]
         self.id = uuid4()
+        self._instance_messages_mapping = defaultdict(list)
 
     @property
     def model_cls(self) -> Type[Model]:
@@ -106,7 +107,8 @@ class ModelObserver(BaseObserver):
         """
         Handles database events and prepares messages for sending on commit.
         """
-        messages = list(self.prepare_messages(instance, action))
+
+        self._instance_messages_mapping[instance.pk].extend(self.prepare_messages(instance, action))
 
         connection = transaction.get_connection()
 
@@ -118,7 +120,7 @@ class ModelObserver(BaseObserver):
                     UnsupportedWarning,
                 )
 
-        connection.on_commit(partial(self.send_prepared_messages, messages))
+        connection.on_commit(partial(self.send_prepared_messages, instance.pk))
 
     def prepare_messages(self, instance: Model, action: Action, **kwargs):
         """
@@ -134,10 +136,13 @@ class ModelObserver(BaseObserver):
         else:
             new_group_names = set(self.group_names_for_signal(instance=instance))
 
-        self.get_observer_state(instance).current_groups = new_group_names
+        transaction.on_commit(partial(self._update_current_groups, instance, new_group_names))
 
         yield from self.generate_messages(instance, old_group_names, new_group_names, action, **kwargs)
 
+    def _update_current_groups(self, instance, new_group_names):
+        self.get_observer_state(instance).current_groups = new_group_names
+    
     def generate_messages(self, instance: Model, old_group_names: Set[str], new_group_names: Set[str], action: Action, **kwargs):
         """
         Generates messages for the given group names and action.
@@ -160,10 +165,11 @@ class ModelObserver(BaseObserver):
             for group_name in create_group_names:
                 yield {**message_body, "group": group_name}
 
-    def send_prepared_messages(self, messages):
+    def send_prepared_messages(self, instance_pk):
         """
-        Sends prepared messages to the channel layer.
+        Sends messages mapped to a specific instance after commit.
         """
+        messages = self._instance_messages_mapping.pop(instance_pk, [])
         if not messages:
             return
 

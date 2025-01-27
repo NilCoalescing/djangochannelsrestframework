@@ -4,6 +4,8 @@ import pytest
 from channels import DEFAULT_CHANNEL_LAYER
 from channels.db import database_sync_to_async
 from channels.layers import channel_layers
+from django.db import transaction
+
 from tests.communicator import connected_communicator
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
