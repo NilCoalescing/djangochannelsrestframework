@@ -57,6 +57,16 @@ class Communicator(WebsocketCommunicator):
         await super().disconnect(code, timeout)
         self._connected = False
 
+    async def receive_many_json_from(self, timeout=1):
+        messages = []
+        while True:
+            try:
+                message = await self.receive_json_from(timeout=timeout)
+                messages.append(message)
+            except asyncio.TimeoutError:
+                break
+        return messages
+
 
 @asynccontextmanager
 async def connected_communicator(consumer, path: str = "/testws/") -> Awaitable[Communicator]:

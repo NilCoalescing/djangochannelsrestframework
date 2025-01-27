@@ -1,4 +1,5 @@
 from contextlib import AsyncExitStack
+from asgiref.sync import sync_to_async, async_to_sync
 
 import pytest
 from channels import DEFAULT_CHANNEL_LAYER
@@ -526,3 +527,144 @@ async def test_observer_model_instance_mixin_with_many_subs(settings):
             "request_id": 5,
             "data": {"email": "45@example.com", "id": u2.id, "username": "the new name 2"},
         }
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.asyncio
+async def test_current_groups_updated_on_commit(settings):
+    settings.CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+            "TEST_CONFIG": {"expiry": 100500},
+        },
+    }
+
+    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
+
+    class TestConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
+
+        queryset = get_user_model().objects.all()
+        serializer_class = UserSerializer
+
+        async def accept(self, subprotocol=None):
+            await super().accept()
+
+        @action()
+        async def update_username(self, pk=None, username=None, **kwargs):
+            user = await database_sync_to_async(self.get_object)(pk=pk)
+            user.username = username
+            await database_sync_to_async(user.save)()
+            return {"pk": pk}, 200
+
+    assert not await database_sync_to_async(get_user_model().objects.all().exists)()
+
+    consumer = TestConsumer()
+
+    async with connected_communicator(consumer) as communicator:
+        
+        u1 = await database_sync_to_async(get_user_model().objects.create)(
+            username="test1", email="42@example.com"
+        )
+
+        def get_current_groups():
+            return consumer.handle_instance_change.get_observer_state(u1).current_groups
+        
+        async def aget_current_groups():
+            return await database_sync_to_async(get_current_groups)()
+
+        await communicator.send_json_to(
+            {"action": "subscribe_instance", "pk": u1.id, "request_id": 4}
+        )
+
+        response = await communicator.receive_json_from()
+
+        assert response == {
+            "action": "subscribe_instance",
+            "errors": [],
+            "response_status": 201,
+            "request_id": 4,
+            "data": None,
+        }
+
+        current_groups = await aget_current_groups()
+
+        # Check that current_groups is updated only on commit
+        @database_sync_to_async
+        def check_group_names_in_tx():
+            with transaction.atomic():
+                u1.delete()
+                assert get_current_groups() == current_groups
+            assert get_current_groups() != current_groups
+        
+        await check_group_names_in_tx()
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.asyncio
+async def test_multiple_changes_within_transaction(settings):
+    settings.CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+            "TEST_CONFIG": {"expiry": 100500},
+        },
+    }
+
+    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
+
+    class TestConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
+
+        queryset = get_user_model().objects.all()
+        serializer_class = UserSerializer
+
+        async def accept(self, subprotocol=None):
+            await super().accept()
+
+        @action()
+        async def update_username(self, pk=None, username=None, **kwargs):
+            user = await database_sync_to_async(self.get_object)(pk=pk)
+            user.username = username
+            await database_sync_to_async(user.save)()
+            return {"pk": pk}, 200
+
+    assert not await database_sync_to_async(get_user_model().objects.all().exists)()
+
+    async with connected_communicator(TestConsumer()) as communicator:
+        u1 = await database_sync_to_async(get_user_model().objects.create)(
+            username="test1", email="42@example.com"
+        )
+
+        await communicator.send_json_to(
+            {"action": "subscribe_instance", "pk": u1.id, "request_id": 4}
+        )
+
+        response = await communicator.receive_json_from()
+
+        assert response == {
+            "action": "subscribe_instance",
+            "errors": [],
+            "response_status": 201,
+            "request_id": 4,
+            "data": None,
+        }
+
+        await communicator.receive_many_json_from()
+
+        @database_sync_to_async
+        def change_username_in_tx():
+            with transaction.atomic():
+                u1.username = "thenewname"
+                u1.save()
+                u1.username = "thenewname2"
+                u1.save()
+        
+        await change_username_in_tx()
+        
+        response = await communicator.receive_many_json_from()
+
+        assert response == [{
+            "action": "update",
+            "errors": [],
+            "response_status": 200,
+            "request_id": 4,
+            "data": {"email": "42@example.com", "id": u1.id, "username": "thenewname2"},
+        }]

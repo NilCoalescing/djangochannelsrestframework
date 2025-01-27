@@ -82,7 +82,7 @@ class ModelObserver(BaseObserver):
 
         self.get_observer_state(instance).current_groups = current_groups
 
-    def get_observer_state(self, instance: Model) -> ModelObserverInstanceState:
+    def get_observer_state(self, instance: Model, *args, **kwargs) -> ModelObserverInstanceState:
         # use a thread local dict to be safe...
         if not hasattr(instance._state, "_thread_local_observers"):
             instance._state._thread_local_observers = defaultdict(
