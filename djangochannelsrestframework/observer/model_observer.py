@@ -107,8 +107,12 @@ class ModelObserver(BaseObserver):
         """
         Handles database events and prepares messages for sending on commit.
         """
+        
+        pk = str(instance.pk)
 
-        self._instance_messages_mapping[instance.pk].extend(self.prepare_messages(instance, action))
+        self._instance_messages_mapping[pk] = list(
+            self.prepare_messages(instance, action)
+        )
 
         connection = transaction.get_connection()
 
@@ -120,7 +124,7 @@ class ModelObserver(BaseObserver):
                     UnsupportedWarning,
                 )
 
-        connection.on_commit(partial(self.send_prepared_messages, instance.pk))
+        connection.on_commit(partial(self.send_prepared_messages, pk))
 
     def prepare_messages(self, instance: Model, action: Action, **kwargs):
         """

@@ -80,7 +80,7 @@ async def test_generic_consumer():
             "errors": [],
             "response_status": 200,
             "request_id": 2,
-            "data": {"email": "test@example.com", "id": 1, "username": "test1"},
+            "data": {"email": "test@example.com", "id": pk, "username": "test1"},
         }
 
 

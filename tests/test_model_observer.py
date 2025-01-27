@@ -1,5 +1,4 @@
 from contextlib import AsyncExitStack
-from asgiref.sync import sync_to_async, async_to_sync
 
 import pytest
 from channels import DEFAULT_CHANNEL_LAYER
@@ -599,7 +598,7 @@ async def test_current_groups_updated_on_commit(settings):
         await check_group_names_in_tx()
 
 
-@pytest.mark.django_db(transaction=True)
+@pytest.mark.django_db(transaction=False)
 @pytest.mark.asyncio
 async def test_multiple_changes_within_transaction(settings):
     settings.CHANNEL_LAYERS = {
@@ -633,38 +632,43 @@ async def test_multiple_changes_within_transaction(settings):
             username="test1", email="42@example.com"
         )
 
-        await communicator.send_json_to(
-            {"action": "subscribe_instance", "pk": u1.id, "request_id": 4}
-        )
-
-        response = await communicator.receive_json_from()
-
-        assert response == {
-            "action": "subscribe_instance",
-            "errors": [],
-            "response_status": 201,
-            "request_id": 4,
-            "data": None,
-        }
-
-        await communicator.receive_many_json_from()
-
-        @database_sync_to_async
-        def change_username_in_tx():
-            with transaction.atomic():
-                u1.username = "thenewname"
-                u1.save()
-                u1.username = "thenewname2"
-                u1.save()
-        
-        await change_username_in_tx()
-        
-        response = await communicator.receive_many_json_from()
-
-        assert response == [{
-            "action": "update",
-            "errors": [],
-            "response_status": 200,
-            "request_id": 4,
-            "data": {"email": "42@example.com", "id": u1.id, "username": "thenewname2"},
-        }]
+        try:
+            await communicator.send_json_to(
+                {"action": "subscribe_instance", "pk": u1.id, "request_id": 4}
+            )
+    
+            response = await communicator.receive_json_from()
+    
+            assert response == {
+                "action": "subscribe_instance",
+                "errors": [],
+                "response_status": 201,
+                "request_id": 4,
+                "data": None,
+            }
+    
+            await communicator.receive_many_json_from()
+    
+            @database_sync_to_async
+            def change_username_in_tx():
+                with transaction.atomic():
+                    u1.username = "thenewname"
+                    u1.save()
+                    u1.username = "thenewname2"
+                    u1.save()
+                    u1.username = "thenewname3"
+                    u1.save()
+            
+            await change_username_in_tx()
+            
+            response = await communicator.receive_many_json_from()
+    
+            assert response == [{
+                "action": "update",
+                "errors": [],
+                "response_status": 200,
+                "request_id": 4,
+                "data": {"email": "42@example.com", "id": u1.id, "username": "thenewname3"},
+            }]
+        finally:
+            await database_sync_to_async(u1.delete)()
