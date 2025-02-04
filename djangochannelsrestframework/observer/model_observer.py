@@ -214,7 +214,12 @@ class ModelObserver(BaseObserver):
         elif self._serializer_class:
             message_body = self._serializer_class(instance).data
         else:
-            message_body["pk"] = json.dumps(instance.pk)
+            try:
+                # Try encoding instance.pk directly
+                json.dumps(instance.pk)
+                message_body["pk"] = instance.pk
+            except TypeError:
+                message_body["pk"] = str(instance.pk)
 
         message = dict(
             type=self.func.__name__.replace("_", "."),
