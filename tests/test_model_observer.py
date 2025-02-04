@@ -461,7 +461,7 @@ async def test_observer_model_instance_mixin_with_many_subs(settings):
             "data": {"email": "42@example.com", "id": u1.id, "username": "new name", "groups": []},
         }
 
-        assert await communicator.receive_nothing()
+        assert await communicator.receive_nothing(), await communicator.receive_json_from()
 
         # Update U2
         await communicator.send_json_to(
