@@ -1,4 +1,6 @@
 import pytest
+from channels.layers import channel_layers
+from channels import DEFAULT_CHANNEL_LAYER
 from channels.db import database_sync_to_async
 from tests.communicator import connected_communicator
 from django.contrib.auth import get_user_model
@@ -21,7 +23,16 @@ from djangochannelsrestframework.mixins import (
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
-async def test_generic_consumer():
+async def test_generic_consumer(settings):
+    settings.CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+            "TEST_CONFIG": {"expiry": 100500},
+        },
+    }
+    
+    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
+    
     class UserSerializer(serializers.ModelSerializer):
         class Meta:
             model = get_user_model()
@@ -88,7 +99,16 @@ async def test_generic_consumer():
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
-async def test_create_mixin_consumer():
+async def test_create_mixin_consumer(settings):
+    settings.CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+            "TEST_CONFIG": {"expiry": 100500},
+        },
+    }
+
+    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
+    
     class UserSerializer(serializers.ModelSerializer):
         class Meta:
             model = get_user_model()
@@ -132,7 +152,16 @@ async def test_create_mixin_consumer():
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
-async def test_list_mixin_consumer():
+async def test_list_mixin_consumer(settings):
+    settings.CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+            "TEST_CONFIG": {"expiry": 100500},
+        },
+    }
+
+    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
+
     class UserSerializer(serializers.ModelSerializer):
         class Meta:
             model = get_user_model()
@@ -188,7 +217,16 @@ async def test_list_mixin_consumer():
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
-async def test_list_mixin_consumer_with_pagination():
+async def test_list_mixin_consumer_with_pagination(settings):
+    settings.CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+            "TEST_CONFIG": {"expiry": 100500},
+        },
+    }
+
+    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
+
     class UserSerializer(serializers.ModelSerializer):
         class Meta:
             model = get_user_model()
@@ -297,7 +335,16 @@ async def test_list_mixin_consumer_with_pagination():
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
-async def test_stream_paginated_list_mixin():
+async def test_stream_paginated_list_mixin(settings):
+    settings.CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+            "TEST_CONFIG": {"expiry": 100500},
+        },
+    }
+
+    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
+
     class UserSerializer(serializers.ModelSerializer):
         class Meta:
             model = get_user_model()
@@ -395,7 +442,16 @@ async def test_stream_paginated_list_mixin():
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
-async def test_retrieve_mixin_consumer():
+async def test_retrieve_mixin_consumer(settings):
+    settings.CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+            "TEST_CONFIG": {"expiry": 100500},
+        },
+    }
+
+    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
+
     class UserSerializer(serializers.ModelSerializer):
         class Meta:
             model = get_user_model()
@@ -468,7 +524,16 @@ async def test_retrieve_mixin_consumer():
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
-async def test_update_mixin_consumer():
+async def test_update_mixin_consumer(settings):
+    settings.CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+            "TEST_CONFIG": {"expiry": 100500},
+        },
+    }
+
+    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
+
     class UserSerializer(serializers.ModelSerializer):
         class Meta:
             model = get_user_model()
@@ -541,7 +606,16 @@ async def test_update_mixin_consumer():
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
-async def test_patch_mixin_consumer():
+async def test_patch_mixin_consumer(settings):
+    settings.CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+            "TEST_CONFIG": {"expiry": 100500},
+        },
+    }
+
+    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
+
     class UserSerializer(serializers.ModelSerializer):
         class Meta:
             model = get_user_model()
@@ -614,7 +688,16 @@ async def test_patch_mixin_consumer():
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
-async def test_delete_mixin_consumer():
+async def test_delete_mixin_consumer(settings):
+    settings.CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+            "TEST_CONFIG": {"expiry": 100500},
+        },
+    }
+
+    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
+
     class UserSerializer(serializers.ModelSerializer):
         class Meta:
             model = get_user_model()
