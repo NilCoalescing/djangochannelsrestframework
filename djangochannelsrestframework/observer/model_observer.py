@@ -3,8 +3,9 @@ from collections import defaultdict
 from copy import deepcopy
 from enum import Enum
 from functools import partial
-from typing import Type, Dict, Any, Set, Optional
+from typing import Type, Dict, Any, Set, Optional, List
 from uuid import uuid4
+import json
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
@@ -29,6 +30,7 @@ class UnsupportedWarning(Warning):
 class ModelObserverInstanceState:
     # this is set when the instance is created
     current_groups: Set[str] = set()
+    pending_messages: List[Dict] = []
 
 
 class ModelObserver(BaseObserver):
@@ -41,7 +43,6 @@ class ModelObserver(BaseObserver):
         self._model_cls = None
         self.model_cls = model_cls  # type: Type[Model]
         self.id = uuid4()
-        self._instance_messages_mapping = defaultdict(list)
 
     @property
     def model_cls(self) -> Type[Model]:
@@ -82,7 +83,9 @@ class ModelObserver(BaseObserver):
 
         self.get_observer_state(instance).current_groups = current_groups
 
-    def get_observer_state(self, instance: Model, *args, **kwargs) -> ModelObserverInstanceState:
+    def get_observer_state(
+        self, instance: Model, *args, **kwargs
+    ) -> ModelObserverInstanceState:
         # use a thread local dict to be safe...
         if not hasattr(instance._state, "_thread_local_observers"):
             instance._state._thread_local_observers = defaultdict(
@@ -107,10 +110,8 @@ class ModelObserver(BaseObserver):
         """
         Handles database events and prepares messages for sending on commit.
         """
-        
-        pk = str(instance.pk)
 
-        self._instance_messages_mapping[pk] = list(
+        self.get_observer_state(instance).pending_messages = list(
             self.prepare_messages(instance, action)
         )
 
@@ -124,7 +125,7 @@ class ModelObserver(BaseObserver):
                     UnsupportedWarning,
                 )
 
-        connection.on_commit(partial(self.send_prepared_messages, pk))
+        connection.on_commit(partial(self.send_prepared_messages, instance))
 
     def prepare_messages(self, instance: Model, action: Action, **kwargs):
         """
@@ -140,14 +141,25 @@ class ModelObserver(BaseObserver):
         else:
             new_group_names = set(self.group_names_for_signal(instance=instance))
 
-        transaction.on_commit(partial(self._update_current_groups, instance, new_group_names))
+        transaction.on_commit(
+            partial(self._update_current_groups, instance, new_group_names)
+        )
 
-        yield from self.generate_messages(instance, old_group_names, new_group_names, action, **kwargs)
+        yield from self.generate_messages(
+            instance, old_group_names, new_group_names, action, **kwargs
+        )
 
     def _update_current_groups(self, instance, new_group_names):
         self.get_observer_state(instance).current_groups = new_group_names
-    
-    def generate_messages(self, instance: Model, old_group_names: Set[str], new_group_names: Set[str], action: Action, **kwargs):
+
+    def generate_messages(
+        self,
+        instance: Model,
+        old_group_names: Set[str],
+        new_group_names: Set[str],
+        action: Action,
+        **kwargs
+    ):
         """
         Generates messages for the given group names and action.
         """
@@ -169,11 +181,17 @@ class ModelObserver(BaseObserver):
             for group_name in create_group_names:
                 yield {**message_body, "group": group_name}
 
-    def send_prepared_messages(self, instance_pk):
+    def send_prepared_messages(self, instance: Model):
         """
         Sends messages mapped to a specific instance after commit.
         """
-        messages = self._instance_messages_mapping.pop(instance_pk, [])
+
+        # Get pending messages
+        messages = self.get_observer_state(instance).pending_messages
+
+        # Ensure multiple updates within a single transaction do not create duplicate message sends
+        self.get_observer_state(instance).pending_messages = []
+
         if not messages:
             return
 
@@ -196,7 +214,7 @@ class ModelObserver(BaseObserver):
         elif self._serializer_class:
             message_body = self._serializer_class(instance).data
         else:
-            message_body["pk"] = instance.pk
+            message_body["pk"] = json.dumps(instance.pk)
 
         message = dict(
             type=self.func.__name__.replace("_", "."),

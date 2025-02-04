@@ -175,16 +175,32 @@ class BaseObserver:
         groups = list(self.group_names_for_consumer(*args, consumer=consumer, **kwargs))
 
         for group_name in groups:
-            if group_name in consumer._observer_group_to_request_id[self._stable_observer_id]:
+            if (
+                group_name
+                in consumer._observer_group_to_request_id[self._stable_observer_id]
+            ):
                 if request_id is None:
-                    consumer._observer_group_to_request_id[self._stable_observer_id].pop(group_name)
+                    consumer._observer_group_to_request_id[
+                        self._stable_observer_id
+                    ].pop(group_name)
                 else:
-                    consumer._observer_group_to_request_id[self._stable_observer_id][group_name].discard(request_id)
+                    consumer._observer_group_to_request_id[self._stable_observer_id][
+                        group_name
+                    ].discard(request_id)
 
-                    if not consumer._observer_group_to_request_id[self._stable_observer_id][group_name]:
-                        consumer._observer_group_to_request_id[self._stable_observer_id].pop(group_name)
+                    if not consumer._observer_group_to_request_id[
+                        self._stable_observer_id
+                    ][group_name]:
+                        consumer._observer_group_to_request_id[
+                            self._stable_observer_id
+                        ].pop(group_name)
 
-                if group_name not in consumer._observer_group_to_request_id[self._stable_observer_id]:
+                if (
+                    group_name
+                    not in consumer._observer_group_to_request_id[
+                        self._stable_observer_id
+                    ]
+                ):
                     await consumer.remove_group(group_name)
 
         return groups

@@ -24,5 +24,5 @@ def pytest_configure():
                     "expiry": 100500,
                 },
             },
-        }
+        },
     )

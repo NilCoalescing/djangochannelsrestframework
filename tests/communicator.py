@@ -32,6 +32,7 @@ class Communicator(WebsocketCommunicator):
             except asyncio.TimeoutError:
                 break
     """
+
     _connected = False
 
     @property
@@ -69,7 +70,9 @@ class Communicator(WebsocketCommunicator):
 
 
 @asynccontextmanager
-async def connected_communicator(consumer, path: str = "/testws/") -> Awaitable[Communicator]:
+async def connected_communicator(
+    consumer, path: str = "/testws/"
+) -> Awaitable[Communicator]:
     """
     Asynchronous context manager for managing WebSocket communicator lifecycle.
 

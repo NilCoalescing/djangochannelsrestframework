@@ -19,7 +19,9 @@ async def test_view_as_consumer():
             return Response(["test1", "test2"])
 
     # Test a normal connection
-    async with connected_communicator(view_as_consumer(TestView.as_view())) as communicator:
+    async with connected_communicator(
+        view_as_consumer(TestView.as_view())
+    ) as communicator:
 
         await communicator.send_json_to({"action": "retrieve", "request_id": 1})
 
@@ -48,10 +50,16 @@ async def test_view_as_consumer_get_params():
             return Response(self.request.GET)
 
     # Test a normal connection
-    async with connected_communicator(view_as_consumer(TestView.as_view())) as communicator:
+    async with connected_communicator(
+        view_as_consumer(TestView.as_view())
+    ) as communicator:
 
         await communicator.send_json_to(
-            {"action": "retrieve", "request_id": 1, "query": {"value": 1, "othervalue": 42}}
+            {
+                "action": "retrieve",
+                "request_id": 1,
+                "query": {"value": 1, "othervalue": 42},
+            }
         )
 
         response = await communicator.receive_json_from()
@@ -79,7 +87,9 @@ async def test_view_as_consumer_get_url_params():
             return Response(self.request.GET)
 
     # Test a normal connection
-    async with connected_communicator(view_as_consumer(TestView.as_view({"get": "retrieve"}))) as communicator:
+    async with connected_communicator(
+        view_as_consumer(TestView.as_view({"get": "retrieve"}))
+    ) as communicator:
 
         await communicator.send_json_to(
             {"action": "retrieve", "request_id": 1, "parameters": {"pk": 42}}

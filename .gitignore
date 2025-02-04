@@ -66,3 +66,6 @@ target/
 ### VisualStudioCode template
 .vscode/*
 
+#macOS
+.DS_Store
+*.DS_Store

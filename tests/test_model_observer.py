@@ -49,7 +49,9 @@ async def test_observer_model_instance_mixin(settings):
     # Test a normal connection
     async with connected_communicator(TestConsumer()) as communicator:
 
-        await communicator.send_json_to({"action": "retrieve", "pk": 100, "request_id": 1})
+        await communicator.send_json_to(
+            {"action": "retrieve", "pk": 100, "request_id": 1}
+        )
 
         response = await communicator.receive_json_from()
 
@@ -199,8 +201,12 @@ async def test_two_observer_model_instance_mixins(settings):
 
     # Test a normal connection
     async with AsyncExitStack() as stack:
-        communicator1 = await stack.enter_async_context(connected_communicator(TestOtherConsumer()))
-        communicator2 = await stack.enter_async_context(connected_communicator(TestUserConsumer()))
+        communicator1 = await stack.enter_async_context(
+            connected_communicator(TestOtherConsumer())
+        )
+        communicator2 = await stack.enter_async_context(
+            connected_communicator(TestUserConsumer())
+        )
 
         u1 = await database_sync_to_async(get_user_model().objects.create)(
             username="test1", email="42@example.com"
@@ -364,6 +370,7 @@ async def test_observer_model_instance_mixin_with_many_subs(settings):
     """
     This tests when there are 2 instances subscribed to on the same consumer.
     """
+
     class TestConsumerMultipleSubs(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
 
         queryset = get_user_model().objects.all()
@@ -481,7 +488,11 @@ async def test_observer_model_instance_mixin_with_many_subs(settings):
             "errors": [],
             "response_status": 200,
             "request_id": 5,
-            "data": {"email": "45@example.com", "id": u2.id, "username": "the new name 2"},
+            "data": {
+                "email": "45@example.com",
+                "id": u2.id,
+                "username": "the new name 2",
+            },
         }
 
 
@@ -508,14 +519,14 @@ async def test_current_groups_updated_on_commit(settings):
     consumer = TestConsumer()
 
     async with connected_communicator(consumer) as communicator:
-        
+
         u1 = await database_sync_to_async(get_user_model().objects.create)(
             username="test1", email="42@example.com"
         )
 
         def get_current_groups():
             return consumer.handle_instance_change.get_observer_state(u1).current_groups
-        
+
         async def aget_current_groups():
             return await database_sync_to_async(get_current_groups)()
 
@@ -542,7 +553,7 @@ async def test_current_groups_updated_on_commit(settings):
                 u1.delete()
                 assert get_current_groups() == current_groups
             assert get_current_groups() != current_groups
-        
+
         await check_group_names_in_tx()
 
 
@@ -575,9 +586,9 @@ async def test_multiple_changes_within_transaction(settings):
             await communicator.send_json_to(
                 {"action": "subscribe_instance", "pk": u1.id, "request_id": 4}
             )
-    
+
             response = await communicator.receive_json_from()
-    
+
             assert response == {
                 "action": "subscribe_instance",
                 "errors": [],
@@ -585,9 +596,9 @@ async def test_multiple_changes_within_transaction(settings):
                 "request_id": 4,
                 "data": None,
             }
-    
+
             await communicator.receive_many_json_from()
-    
+
             @database_sync_to_async
             def change_username_in_tx():
                 with transaction.atomic():
@@ -597,17 +608,23 @@ async def test_multiple_changes_within_transaction(settings):
                     u1.save()
                     u1.username = "thenewname3"
                     u1.save()
-            
+
             await change_username_in_tx()
-            
+
             response = await communicator.receive_many_json_from()
-    
-            assert response == [{
-                "action": "update",
-                "errors": [],
-                "response_status": 200,
-                "request_id": 4,
-                "data": {"email": "42@example.com", "id": u1.id, "username": "thenewname3"},
-            }]
+
+            assert response == [
+                {
+                    "action": "update",
+                    "errors": [],
+                    "response_status": 200,
+                    "request_id": 4,
+                    "data": {
+                        "email": "42@example.com",
+                        "id": u1.id,
+                        "username": "thenewname3",
+                    },
+                }
+            ]
         finally:
             await database_sync_to_async(u1.delete)()
