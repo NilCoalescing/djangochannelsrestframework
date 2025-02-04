@@ -17,15 +17,6 @@ from tests.models import TestModelWithCustomPK
 @pytest.mark.asyncio
 async def test_subscription_create_notification(settings):
 
-    settings.CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {
-                "expiry": 100500,
-            },
-        },
-    }
-
     class TestSerializer(serializers.ModelSerializer):
         class Meta:
             model = TestModelWithCustomPK

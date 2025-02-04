@@ -17,4 +17,12 @@ def pytest_configure():
             }
         },
         MIDDLEWARE_CLASSES=[],
+        CHANNEL_LAYERS={
+            "default": {
+                "BACKEND": "channels.layers.InMemoryChannelLayer",
+                "TEST_CONFIG": {
+                    "expiry": 100500,
+                },
+            },
+        }
     )

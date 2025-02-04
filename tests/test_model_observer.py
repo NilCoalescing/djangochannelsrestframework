@@ -29,17 +29,6 @@ class UserSerializer(serializers.ModelSerializer):
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_observer_model_instance_mixin(settings):
-    settings.CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {
-                "expiry": 100500,
-            },
-        },
-    }
-
-    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
-
     class TestConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
 
         queryset = get_user_model().objects.all()
@@ -176,17 +165,6 @@ async def test_observer_model_instance_mixin(settings):
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_two_observer_model_instance_mixins(settings):
-    settings.CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {
-                "expiry": 100500,
-            },
-        },
-    }
-
-    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
-
     class TestUserConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
 
         queryset = get_user_model().objects.all()
@@ -273,17 +251,6 @@ async def test_two_observer_model_instance_mixins(settings):
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_unsubscribe_observer_model_instance_mixin(settings):
-    settings.CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {
-                "expiry": 100500,
-            },
-        },
-    }
-
-    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
-
     class TestConsumerUnsubscribe(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
 
         queryset = get_user_model().objects.all()
@@ -397,16 +364,6 @@ async def test_observer_model_instance_mixin_with_many_subs(settings):
     """
     This tests when there are 2 instances subscribed to on the same consumer.
     """
-
-    settings.CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {"expiry": 100500},
-        },
-    }
-
-    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
-
     class TestConsumerMultipleSubs(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
 
         queryset = get_user_model().objects.all()
@@ -531,15 +488,6 @@ async def test_observer_model_instance_mixin_with_many_subs(settings):
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_current_groups_updated_on_commit(settings):
-    settings.CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {"expiry": 100500},
-        },
-    }
-
-    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
-
     class TestConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
 
         queryset = get_user_model().objects.all()
@@ -601,15 +549,6 @@ async def test_current_groups_updated_on_commit(settings):
 @pytest.mark.django_db(transaction=False)
 @pytest.mark.asyncio
 async def test_multiple_changes_within_transaction(settings):
-    settings.CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {"expiry": 100500},
-        },
-    }
-
-    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
-
     class TestConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
 
         queryset = get_user_model().objects.all()
