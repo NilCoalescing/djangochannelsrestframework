@@ -205,5 +205,5 @@ async def test_users_drf_complex_permission(settings):
             "has_permission_b": True,
             "has_permission_c": True,
             "has_permission_d": True,
-            "has_permission_e": False
+            "has_permission_e": False,
         }

@@ -8,7 +8,7 @@ from djangochannelsrestframework.decorators import action
 
 
 class CreateModelMixin:
-    """ Create model mixin."""
+    """Create model mixin."""
 
     @action()
     def create(self, data: dict, **kwargs) -> Tuple[ReturnDict, int]:

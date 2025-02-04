@@ -76,7 +76,9 @@ async def test_generic_consumer(settings):
 
         pk = user.id
 
-        assert await database_sync_to_async(get_user_model().objects.filter(pk=pk).exists)()
+        assert await database_sync_to_async(
+            get_user_model().objects.filter(pk=pk).exists
+        )()
 
     async with connected_communicator(AConsumer()) as communicator:
 
@@ -296,7 +298,9 @@ async def test_list_mixin_consumer_with_pagination(settings):
                 ],
             },
         }
-        await communicator.send_json_to({"action": "list", "request_id": 1, "offset": 1})
+        await communicator.send_json_to(
+            {"action": "list", "request_id": 1, "offset": 1}
+        )
 
         response = await communicator.receive_json_from()
 
@@ -314,7 +318,9 @@ async def test_list_mixin_consumer_with_pagination(settings):
                 ],
             },
         }
-        await communicator.send_json_to({"action": "list", "request_id": 1, "offset": 2})
+        await communicator.send_json_to(
+            {"action": "list", "request_id": 1, "offset": 2}
+        )
 
         response = await communicator.receive_json_from()
 
@@ -464,7 +470,9 @@ async def test_retrieve_mixin_consumer(settings):
     # Test a normal connection
     async with connected_communicator(AConsumer()) as communicator:
 
-        await communicator.send_json_to({"action": "retrieve", "pk": 100, "request_id": 1})
+        await communicator.send_json_to(
+            {"action": "retrieve", "pk": 100, "request_id": 1}
+        )
 
         response = await communicator.receive_json_from()
 
@@ -708,7 +716,9 @@ async def test_delete_mixin_consumer(settings):
     # Test a normal connection
     async with connected_communicator(AConsumer()) as communicator:
 
-        await communicator.send_json_to({"action": "delete", "pk": 100, "request_id": 1})
+        await communicator.send_json_to(
+            {"action": "delete", "pk": 100, "request_id": 1}
+        )
 
         response = await communicator.receive_json_from()
 
@@ -741,7 +751,9 @@ async def test_delete_mixin_consumer(settings):
             "data": None,
         }
 
-        await communicator.send_json_to({"action": "delete", "pk": u1.id, "request_id": 1})
+        await communicator.send_json_to(
+            {"action": "delete", "pk": u1.id, "request_id": 1}
+        )
 
         response = await communicator.receive_json_from()
 

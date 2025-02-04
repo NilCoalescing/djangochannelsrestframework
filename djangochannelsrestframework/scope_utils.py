@@ -25,7 +25,7 @@ def request_from_scope(scope: Dict[str, Any]) -> HttpRequest:
     request.META["HTTP_CONTENT_TYPE"] = "application/json"
     request.META["HTTP_ACCEPT"] = "application/json"
 
-    for (header_name, value) in scope.get("headers", []):
+    for header_name, value in scope.get("headers", []):
         request.META[header_name.decode("utf-8")] = value.decode("utf-8")
 
     if scope.get("cookies"):

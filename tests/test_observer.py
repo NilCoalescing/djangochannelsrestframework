@@ -21,17 +21,6 @@ from rest_framework import serializers
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_observer_wrapper(settings):
-    settings.CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {
-                "expiry": 100500,
-            },
-        },
-    }
-
-    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
-
     class TestConsumer(AsyncAPIConsumer):
         async def accept(self, **kwargs):
             await self.handle_user_logged_in.subscribe()
@@ -59,17 +48,6 @@ async def test_observer_wrapper(settings):
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_model_observer_wrapper(settings):
-    settings.CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {
-                "expiry": 100500,
-            },
-        },
-    }
-
-    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
-
     class TestConsumer(AsyncAPIConsumer):
         async def accept(self, **kwargs):
             await self.user_change_observer_wrapper.subscribe()
@@ -99,17 +77,6 @@ async def test_model_observer_wrapper(settings):
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_model_observer_wrapper_in_transaction(settings):
-    settings.CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {
-                "expiry": 100500,
-            },
-        },
-    }
-
-    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
-
     class TestConsumer(AsyncAPIConsumer):
         async def accept(self, **kwargs):
             await TestConsumer.user_change_wrapper_in_transaction.subscribe(self)
@@ -150,17 +117,6 @@ async def test_model_observer_wrapper_in_transaction(settings):
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_model_observer_delete_wrapper(settings):
-    settings.CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {
-                "expiry": 100500,
-            },
-        },
-    }
-
-    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
-
     class TestConsumerObserverDelete(AsyncAPIConsumer):
         async def accept(self, **kwargs):
             await self.user_change_observer_delete.subscribe()
@@ -206,17 +162,6 @@ async def test_model_observer_delete_wrapper(settings):
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_model_observer_many_connections_wrapper(settings):
-    settings.CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {
-                "expiry": 100500,
-            },
-        },
-    }
-
-    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
-
     class TestConsumer(AsyncAPIConsumer):
         async def accept(self, **kwargs):
             await self.user_change_many_connections_wrapper.subscribe()
@@ -229,8 +174,12 @@ async def test_model_observer_many_connections_wrapper(settings):
             await self.send_json(dict(body=message, action=action, type=message_type))
 
     async with AsyncExitStack() as stack:
-        communicator1 = await stack.enter_async_context(connected_communicator(TestConsumer()))
-        communicator2 = await stack.enter_async_context(connected_communicator(TestConsumer()))
+        communicator1 = await stack.enter_async_context(
+            connected_communicator(TestConsumer())
+        )
+        communicator2 = await stack.enter_async_context(
+            connected_communicator(TestConsumer())
+        )
         user = await database_sync_to_async(get_user_model().objects.create)(
             username="test", email="test@example.com"
         )
@@ -257,17 +206,6 @@ async def test_model_observer_many_connections_wrapper(settings):
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_model_observer_many_consumers_wrapper(settings):
-    settings.CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {
-                "expiry": 100500,
-            },
-        },
-    }
-
-    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
-
     class TestConsumer(AsyncAPIConsumer):
         async def accept(self, **kwargs):
             await self.user_change_many_consumers_wrapper_1.subscribe()
@@ -291,8 +229,12 @@ async def test_model_observer_many_consumers_wrapper(settings):
             await self.send_json(dict(body=message, action=action, type=message_type))
 
     async with AsyncExitStack() as stack:
-        communicator1 = await stack.enter_async_context(connected_communicator(TestConsumer()))
-        communicator2 = await stack.enter_async_context(connected_communicator(TestConsumer2()))
+        communicator1 = await stack.enter_async_context(
+            connected_communicator(TestConsumer())
+        )
+        communicator2 = await stack.enter_async_context(
+            connected_communicator(TestConsumer2())
+        )
 
         user = await database_sync_to_async(get_user_model().objects.create)(
             username="test", email="test@example.com"
@@ -320,17 +262,6 @@ async def test_model_observer_many_consumers_wrapper(settings):
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_model_observer_custom_groups_wrapper(settings):
-    settings.CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {
-                "expiry": 100500,
-            },
-        },
-    }
-
-    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
-
     class TestConsumer(AsyncAPIConsumer):
         async def accept(self, **kwargs):
             await self.user_change_custom_groups_wrapper.subscribe(username="test")
@@ -377,17 +308,6 @@ async def test_model_observer_custom_groups_wrapper(settings):
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_model_observer_with_class_serializer(settings):
-    settings.CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {
-                "expiry": 100500,
-            },
-        },
-    }
-
-    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
-
     class UserSerializer(serializers.ModelSerializer):
         class Meta:
             model = get_user_model()
@@ -457,17 +377,6 @@ async def test_model_observer_with_class_serializer(settings):
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_model_observer_custom_groups_wrapper_with_split_function_api(settings):
-    settings.CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {
-                "expiry": 100500,
-            },
-        },
-    }
-
-    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
-
     class TestConsumerObserverCustomGroups(AsyncAPIConsumer):
         async def accept(self, **kwargs):
             await self.user_change_custom_groups.subscribe(username="test")
@@ -487,7 +396,9 @@ async def test_model_observer_custom_groups_wrapper_with_split_function_api(sett
         def user_change_custom_groups(self, username=None, **kwargs):
             yield "-instance-username-{}-2".format(slugify(username))
 
-    async with connected_communicator(TestConsumerObserverCustomGroups()) as communicator:
+    async with connected_communicator(
+        TestConsumerObserverCustomGroups()
+    ) as communicator:
 
         user = await database_sync_to_async(get_user_model().objects.create)(
             username="test", email="test@example.com"
@@ -513,17 +424,6 @@ async def test_model_observer_custom_groups_wrapper_with_split_function_api(sett
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_model_observer_with_request_id(settings):
-    settings.CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {
-                "expiry": 100500,
-            },
-        },
-    }
-
-    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
-
     class TestConsumerObserverCustomGroups(AsyncAPIConsumer):
         @action()
         async def subscribe(self, username, request_id, **kwargs):
@@ -564,7 +464,9 @@ async def test_model_observer_with_request_id(settings):
         def user_change_custom_groups(self, username=None, **kwargs):
             yield "-instance-username-{}-3".format(slugify(username))
 
-    async with connected_communicator(TestConsumerObserverCustomGroups()) as communicator:
+    async with connected_communicator(
+        TestConsumerObserverCustomGroups()
+    ) as communicator:
 
         await communicator.send_json_to(
             {
@@ -598,17 +500,6 @@ async def test_model_observer_with_request_id(settings):
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_observer_unsubscribe_behavior_with_custom_groups(settings):
-    settings.CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {
-                "expiry": 100500,
-            },
-        },
-    }
-
-    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
-
     class TestConsumerObserverCustomGroups(AsyncAPIConsumer):
         @action()
         async def subscribe(self, username, request_id, **kwargs):
@@ -636,13 +527,13 @@ async def test_observer_unsubscribe_behavior_with_custom_groups(settings):
 
         @model_observer(get_user_model())
         async def user_change_custom_groups(
-                self,
-                message,
-                action,
-                message_type,
-                observer=None,
-                subscribing_request_ids=None,
-                **kwargs
+            self,
+            message,
+            action,
+            message_type,
+            observer=None,
+            subscribing_request_ids=None,
+            **kwargs
         ):
             await self.send_json(
                 dict(
@@ -661,7 +552,9 @@ async def test_observer_unsubscribe_behavior_with_custom_groups(settings):
         def user_change_custom_groups(self, username=None, **kwargs):
             yield "-instance-username-{}-4".format(slugify(username))
 
-    async with connected_communicator(TestConsumerObserverCustomGroups()) as communicator:
+    async with connected_communicator(
+        TestConsumerObserverCustomGroups()
+    ) as communicator:
 
         user = await database_sync_to_async(get_user_model().objects.create)(
             username="thenewname", email="test@example.com"
@@ -695,11 +588,11 @@ async def test_observer_unsubscribe_behavior_with_custom_groups(settings):
         response = await communicator.receive_json_from()
 
         assert {
-                   "action": "create",
-                   "body": {"pk": user.pk},
-                   "type": "user.change.custom.groups",
-                   "subscribing_request_ids": [5],
-               } == response
+            "action": "create",
+            "body": {"pk": user.pk},
+            "type": "user.change.custom.groups",
+            "subscribing_request_ids": [5],
+        } == response
 
         await communicator.send_json_to(
             {
@@ -746,8 +639,8 @@ async def test_observer_unsubscribe_behavior_with_custom_groups(settings):
         response = await communicator.receive_json_from()
 
         assert {
-                   "action": "create",
-                   "body": {"pk": user.pk},
-                   "type": "user.change.custom.groups",
-                   "subscribing_request_ids": [6],
-               } == response
+            "action": "create",
+            "body": {"pk": user.pk},
+            "type": "user.change.custom.groups",
+            "subscribing_request_ids": [6],
+        } == response

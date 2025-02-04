@@ -31,17 +31,6 @@ class UserSerializer(serializers.ModelSerializer):
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_observer_model_instance_mixin(settings):
-    settings.CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {
-                "expiry": 100500,
-            },
-        },
-    }
-
-    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
-
     class TestConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
 
         queryset = get_user_model().objects.all()
@@ -62,7 +51,9 @@ async def test_observer_model_instance_mixin(settings):
     # Test a normal connection
     async with connected_communicator(TestConsumer()) as communicator:
 
-        await communicator.send_json_to({"action": "retrieve", "pk": 100, "request_id": 1})
+        await communicator.send_json_to(
+            {"action": "retrieve", "pk": 100, "request_id": 1}
+        )
 
         response = await communicator.receive_json_from()
 
@@ -178,17 +169,6 @@ async def test_observer_model_instance_mixin(settings):
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_two_observer_model_instance_mixins(settings):
-    settings.CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {
-                "expiry": 100500,
-            },
-        },
-    }
-
-    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
-
     class TestUserConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
 
         queryset = get_user_model().objects.all()
@@ -223,8 +203,12 @@ async def test_two_observer_model_instance_mixins(settings):
 
     # Test a normal connection
     async with AsyncExitStack() as stack:
-        communicator1 = await stack.enter_async_context(connected_communicator(TestOtherConsumer()))
-        communicator2 = await stack.enter_async_context(connected_communicator(TestUserConsumer()))
+        communicator1 = await stack.enter_async_context(
+            connected_communicator(TestOtherConsumer())
+        )
+        communicator2 = await stack.enter_async_context(
+            connected_communicator(TestUserConsumer())
+        )
 
         u1 = await database_sync_to_async(get_user_model().objects.create)(
             username="test1", email="42@example.com"
@@ -275,17 +259,6 @@ async def test_two_observer_model_instance_mixins(settings):
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_unsubscribe_observer_model_instance_mixin(settings):
-    settings.CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {
-                "expiry": 100500,
-            },
-        },
-    }
-
-    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
-
     class TestConsumerUnsubscribe(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
 
         queryset = get_user_model().objects.all()
@@ -399,15 +372,6 @@ async def test_observer_model_instance_mixin_with_many_subs(settings):
     """
     This tests when there are 2 instances subscribed to on the same consumer.
     """
-
-    settings.CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {"expiry": 100500},
-        },
-    }
-
-    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
 
     class TestConsumerMultipleSubs(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
 
@@ -526,7 +490,12 @@ async def test_observer_model_instance_mixin_with_many_subs(settings):
             "errors": [],
             "response_status": 200,
             "request_id": 5,
-            "data": {"email": "45@example.com", "id": u2.id, "username": "the new name 2", "groups": []},
+            "data": {
+                "email": "45@example.com",
+                "id": u2.id,
+                "username": "the new name 2",
+                "groups": []
+            },
         }
 
 
@@ -742,15 +711,6 @@ async def test_m2m_observer(settings):
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_current_groups_updated_on_commit(settings):
-    settings.CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {"expiry": 100500},
-        },
-    }
-
-    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
-
     class TestConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
 
         queryset = get_user_model().objects.all()
@@ -812,15 +772,6 @@ async def test_current_groups_updated_on_commit(settings):
 @pytest.mark.django_db(transaction=False)
 @pytest.mark.asyncio
 async def test_multiple_changes_within_transaction(settings):
-    settings.CHANNEL_LAYERS = {
-        "default": {
-            "BACKEND": "channels.layers.InMemoryChannelLayer",
-            "TEST_CONFIG": {"expiry": 100500},
-        },
-    }
-
-    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
-
     class TestConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
 
         queryset = get_user_model().objects.all()
@@ -874,12 +825,19 @@ async def test_multiple_changes_within_transaction(settings):
 
             response = await communicator.receive_many_json_from()
 
-            assert response == [{
-                "action": "update",
-                "errors": [],
-                "response_status": 200,
-                "request_id": 4,
-                "data": {"email": "42@example.com", "id": u1.id, "username": "thenewname3", "groups": []},
-            }]
+            assert response == [
+                {
+                    "action": "update",
+                    "errors": [],
+                    "response_status": 200,
+                    "request_id": 4,
+                    "data": {
+                        "email": "42@example.com",
+                        "id": u1.id,
+                        "username": "thenewname3",
+                        "groups": []
+                    },
+                }
+            ]
         finally:
             await database_sync_to_async(u1.delete)()
