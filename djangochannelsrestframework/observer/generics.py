@@ -72,7 +72,8 @@ class ObserverConsumerMixin(metaclass=ObserverAPIConsumerMetaclass):
     def _unsubscribe(self, request_id: str):
         to_remove = []
         for group, request_ids in self.subscribed_requests.items():
-            request_ids.remove(request_id)
+            if request_id in request_ids:
+                request_ids.remove(request_id)
             if not request_ids:
                 to_remove.append(group)
 
