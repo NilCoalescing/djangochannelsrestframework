@@ -1,8 +1,8 @@
-django==4.2.4
-djangorestframework>=3.14.0
-channels>=4.0.0
-pytest
-pytest-asyncio
-pytest-django
+django>=4.2.16
+djangorestframework>=3.15.2
+channels>=4.1.0
+pytest>=8.3.3
+pytest-django>=4.9.0
+pytest-asyncio>=0.24.0
 sphinx
-black==20.8b1
+black==24.3.0

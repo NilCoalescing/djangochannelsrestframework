@@ -1,11 +1,10 @@
 import pytest
-from channels.testing import WebsocketCommunicator
-from django.http import QueryDict
 from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from djangochannelsrestframework.consumers import view_as_consumer
+from tests.communicator import connected_communicator
 
 
 @pytest.mark.django_db(transaction=True)
@@ -20,26 +19,23 @@ async def test_view_as_consumer():
             return Response(["test1", "test2"])
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(
-        view_as_consumer(TestView.as_view()), "/testws/"
-    )
+    async with connected_communicator(
+        view_as_consumer(TestView.as_view())
+    ) as communicator:
 
-    connected, _ = await communicator.connect()
-    assert connected
+        await communicator.send_json_to({"action": "retrieve", "request_id": 1})
 
-    await communicator.send_json_to({"action": "retrieve", "request_id": 1})
+        response = await communicator.receive_json_from()
 
-    response = await communicator.receive_json_from()
+        assert "TestView-get" in results
 
-    assert "TestView-get" in results
-
-    assert response == {
-        "errors": [],
-        "data": ["test1", "test2"],
-        "action": "retrieve",
-        "response_status": 200,
-        "request_id": 1,
-    }
+        assert response == {
+            "errors": [],
+            "data": ["test1", "test2"],
+            "action": "retrieve",
+            "response_status": 200,
+            "request_id": 1,
+        }
 
 
 @pytest.mark.django_db(transaction=True)
@@ -54,28 +50,29 @@ async def test_view_as_consumer_get_params():
             return Response(self.request.GET)
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(
-        view_as_consumer(TestView.as_view()), "/testws/"
-    )
+    async with connected_communicator(
+        view_as_consumer(TestView.as_view())
+    ) as communicator:
 
-    connected, _ = await communicator.connect()
-    assert connected
+        await communicator.send_json_to(
+            {
+                "action": "retrieve",
+                "request_id": 1,
+                "query": {"value": 1, "othervalue": 42},
+            }
+        )
 
-    await communicator.send_json_to(
-        {"action": "retrieve", "request_id": 1, "query": {"value": 1, "othervalue": 42}}
-    )
+        response = await communicator.receive_json_from()
 
-    response = await communicator.receive_json_from()
+        assert "TestView-get" in results
 
-    assert "TestView-get" in results
-
-    assert response == {
-        "errors": [],
-        "data": {"value": 1, "othervalue": 42},
-        "action": "retrieve",
-        "response_status": 200,
-        "request_id": 1,
-    }
+        assert response == {
+            "errors": [],
+            "data": {"value": 1, "othervalue": 42},
+            "action": "retrieve",
+            "response_status": 200,
+            "request_id": 1,
+        }
 
 
 @pytest.mark.django_db(transaction=True)
@@ -90,25 +87,22 @@ async def test_view_as_consumer_get_url_params():
             return Response(self.request.GET)
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(
-        view_as_consumer(TestView.as_view({"get": "retrieve"})), "/testws/"
-    )
+    async with connected_communicator(
+        view_as_consumer(TestView.as_view({"get": "retrieve"}))
+    ) as communicator:
 
-    connected, _ = await communicator.connect()
-    assert connected
+        await communicator.send_json_to(
+            {"action": "retrieve", "request_id": 1, "parameters": {"pk": 42}}
+        )
 
-    await communicator.send_json_to(
-        {"action": "retrieve", "request_id": 1, "parameters": {"pk": 42}}
-    )
+        response = await communicator.receive_json_from()
 
-    response = await communicator.receive_json_from()
+        assert results["TestView-retrieve"] == 42
 
-    assert results["TestView-retrieve"] == 42
-
-    assert response == {
-        "errors": [],
-        "data": {},
-        "action": "retrieve",
-        "response_status": 200,
-        "request_id": 1,
-    }
+        assert response == {
+            "errors": [],
+            "data": {},
+            "action": "retrieve",
+            "response_status": 200,
+            "request_id": 1,
+        }

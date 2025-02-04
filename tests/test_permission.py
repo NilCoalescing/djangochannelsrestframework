@@ -3,6 +3,8 @@ from typing import Dict, Any
 import pytest
 from channels.consumer import AsyncConsumer
 from channels.testing import WebsocketCommunicator
+
+from tests.communicator import connected_communicator
 from rest_framework.permissions import BasePermission as DRFBasePermission
 
 from djangochannelsrestframework.consumers import AsyncAPIConsumer
@@ -37,20 +39,14 @@ async def test_calls_permission_class_called():
             return {"response": True}, 200
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(AConsumer(), "/testws/")
+    async with connected_communicator(AConsumer()) as communicator:
 
-    connected, _ = await communicator.connect()
+        assert called == {"can_connect": True}
 
-    assert connected
+        await communicator.send_json_to({"action": "target", "request_id": 10})
+        response = await communicator.receive_json_from()
 
-    assert called == {"can_connect": True}
-
-    await communicator.send_json_to({"action": "target", "request_id": 10})
-    response = await communicator.receive_json_from()
-
-    assert called == {"can_connect": True, "has_permission": True}
-
-    await communicator.disconnect()
+        assert called == {"can_connect": True, "has_permission": True}
 
 
 @pytest.mark.django_db(transaction=True)
@@ -88,11 +84,8 @@ async def test_users_drf_permission_defaults(settings):
         pass
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(AConsumer(), "/testws/")
-
-    connected, _ = await communicator.connect()
-    assert connected
-    assert called == {"has_permission": True}
+    async with connected_communicator(AConsumer()) as communicator:
+        assert called == {"has_permission": True}
 
 
 @pytest.mark.django_db(transaction=True)
@@ -116,11 +109,8 @@ async def test_users_drf_or_permission(settings):
         pass
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(AConsumer(), "/testws/")
-
-    connected, _ = await communicator.connect()
-    assert connected
-    assert called == {"has_permission_a": False, "has_permission_b": True}
+    async with connected_communicator(AConsumer()) as communicator:
+        assert called == {"has_permission_a": False, "has_permission_b": True}
 
 
 @pytest.mark.django_db(transaction=True)
@@ -144,11 +134,8 @@ async def test_users_drf_and_permission(settings):
         pass
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(AConsumer(), "/testws/")
-
-    connected, _ = await communicator.connect()
-    assert connected
-    assert called == {"has_permission_a": True, "has_permission_b": True}
+    async with connected_communicator(AConsumer()) as communicator:
+        assert called == {"has_permission_a": True, "has_permission_b": True}
 
 
 @pytest.mark.django_db(transaction=True)
@@ -167,11 +154,8 @@ async def test_users_drf_not_permission(settings):
         pass
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(AConsumer(), "/testws/")
-
-    connected, _ = await communicator.connect()
-    assert connected
-    assert called == {"has_permission": False}
+    async with connected_communicator(AConsumer()) as communicator:
+        assert called == {"has_permission": False}
 
 
 @pytest.mark.django_db(transaction=True)
@@ -214,14 +198,12 @@ async def test_users_drf_complex_permission(settings):
         pass
 
     # Test a normal connection
-    communicator = WebsocketCommunicator(AConsumer(), "/testws/")
+    async with connected_communicator(AConsumer()) as communicator:
 
-    connected, _ = await communicator.connect()
-    assert connected
-    assert called == {
-        "has_permission_a": False,
-        "has_permission_b": True,
-        "has_permission_c": True,
-        "has_permission_d": True,
-        "has_permission_e": False
-    }
+        assert called == {
+            "has_permission_a": False,
+            "has_permission_b": True,
+            "has_permission_c": True,
+            "has_permission_d": True,
+            "has_permission_e": False,
+        }
