@@ -49,10 +49,10 @@ These are the important methods of the class.
     from djangochannelsrestframework.consumers import GenericAsyncAPIConsumer
     from djangochannelsrestframework.observer import model_observer
     from djangochannelsrestframework.decorators import action
-
+    from rest_framework.utils.serializer_helpers import ReturnDict
     from .serializers import UserSerializer, CommentSerializer
     from .models import User, Comment
-
+    
 
     class MyConsumer(GenericAsyncAPIConsumer):
         queryset = User.objects.all()
@@ -66,12 +66,12 @@ These are the important methods of the class.
             subscribing_request_ids=[],
             **kwargs
         ):
-            await self.send_json(dict(message.data))
+            await self.send_json(dict(message))
 
         @comment_activity.serializer
-        def comment_activity(self, instance: Comment, action, **kwargs) -> CommentSerializer:
+        def comment_activity(self, instance: Comment, action, **kwargs) -> ReturnDict:
             """This will return the comment serializer"""
-            return CommentSerializer(instance)
+            return CommentSerializer(instance).data
 
         @action()
         async def subscribe_to_comment_activity(self, request_id, **kwargs):
