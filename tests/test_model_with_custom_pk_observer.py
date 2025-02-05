@@ -3,7 +3,10 @@ from http.client import responses
 from typing import Dict
 
 import pytest
+from channels import DEFAULT_CHANNEL_LAYER
 from channels.db import database_sync_to_async
+from channels.layers import channel_layers
+
 from tests.communicator import connected_communicator
 from rest_framework import serializers
 
@@ -16,6 +19,17 @@ from tests.models import TestModelWithCustomPK
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
 async def test_subscription_create_notification(settings):
+
+    settings.CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+            "TEST_CONFIG": {
+                "expiry": 100500,
+            },
+        },
+    }
+
+    layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
 
     class TestSerializer(serializers.ModelSerializer):
         class Meta:
