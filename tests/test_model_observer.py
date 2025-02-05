@@ -460,7 +460,6 @@ async def test_observer_model_instance_mixin_with_many_subs(settings):
             "request_id": 4,
             "data": {"email": "42@example.com", "id": u1.id, "username": "new name", "groups": []},
         }
-
         assert await communicator.receive_nothing(), await communicator.receive_json_from()
 
         # Update U2
@@ -507,7 +506,7 @@ async def test_m2m_observer(settings):
 
     layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
 
-    class TestConsumerMultipleSubs(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
+    class TestM2MConsumerMultipleSubs(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
 
         queryset = get_user_model().objects.all()
         serializer_class = UserSerializer
@@ -518,7 +517,7 @@ async def test_m2m_observer(settings):
     assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
     # Test a normal connection
-    async with connected_communicator(TestConsumerMultipleSubs()) as communicator:
+    async with connected_communicator(TestM2MConsumerMultipleSubs()) as communicator:
         try:
             u1 = await database_sync_to_async(get_user_model().objects.create)(
                 username="test1", email="42@example.com"
