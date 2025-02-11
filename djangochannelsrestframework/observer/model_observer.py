@@ -34,11 +34,17 @@ class ModelObserverInstanceState:
 
 
 class ModelObserver(BaseObserver):
-    def __init__(self, func, model_cls: Type[Model], partition: str = "*", **kwargs):
+    def __init__(
+        self,
+        func,
+        model_cls: Type[Model],
+        partition: str = "*",
+        serializer_class: Optional[Type[Serializer]] = None,
+        many_to_many: bool = False,
+    ):
         super().__init__(func, partition=partition)
-        self._serializer_class = (
-            kwargs["kwargs"].get("serializer_class") if "kwargs" in kwargs else None
-        )  # type: Optional[Serializer]
+        self._serializer_class = serializer_class
+        self._many_to_many_tracking = many_to_many
         self._serializer = None
         self._model_cls = None
         self.model_cls = model_cls  # type: Type[Model]
@@ -56,6 +62,28 @@ class ModelObserver(BaseObserver):
         if self._model_cls is not None and was_none:
             self._connect()
 
+    def _connect_m2m(self):
+        have_m2m = False
+        for field in self.model_cls._meta.many_to_many:
+            if hasattr(field.remote_field, "through"):
+                m2m_changed.connect(
+                    self.m2m_changed_receiver,
+                    sender=field.remote_field.through,
+                    dispatch_uid=f"{str(id(self))}-{self.model_cls.__name__}-{field.name}",
+                )
+                have_m2m = True
+
+        if have_m2m:
+            warnings.warn(
+                "Model observation with many-to-many fields is partially supported. "
+                + "If you delete a related object, the signal will not be sent. "
+                + "This is a Django bug that is over 10 years old: https://code.djangoproject.com/ticket/17688. "
+                + "Also, when working with many-to-many fields, Django uses savepoints, "
+                + "working with which is non-deterministic and can lead to unexpected results, "
+                + "as we do not support them.",
+                UnsupportedWarning,
+            )
+
     def _connect(self):
         """
         Connect the signal listing.
@@ -69,30 +97,13 @@ class ModelObserver(BaseObserver):
         post_save.connect(
             self.post_save_receiver, sender=self.model_cls, dispatch_uid=str(id(self))
         )
-        have_m2m = False
-        for field in self.model_cls._meta.many_to_many:
-            if hasattr(field.remote_field, 'through'):
-                m2m_changed.connect(
-                    self.m2m_changed_receiver,
-                    sender=field.remote_field.through,
-                    dispatch_uid=f"{str(id(self))}-{self.model_cls.__name__}-{field.name}"
-                )
-                have_m2m = True
+
+        if self._many_to_many_tracking:
+            self._connect_m2m()
 
         post_delete.connect(
             self.post_delete_receiver, sender=self.model_cls, dispatch_uid=str(id(self))
         )
-
-        if have_m2m:
-            warnings.warn(
-                "Model observation with many-to-many fields is partially supported. " +
-                "If you delete a related object, the signal will not be sent. " +
-                "This is a Django bug that is over 10 years old: https://code.djangoproject.com/ticket/17688. " +
-                "Also, when working with many-to-many fields, Django uses savepoints, " +
-                "working with which is non-deterministic and can lead to unexpected results, " +
-                "as we do not support them.",
-                UnsupportedWarning,
-            )
 
     def post_init_receiver(self, instance: Model, **kwargs):
 
@@ -123,8 +134,16 @@ class ModelObserver(BaseObserver):
         else:
             self.database_event(instance, Action.UPDATE)
 
-    def m2m_changed_receiver(self, sender, instance: Model, action: str, reverse: bool, model: Type[Model],
-                             pk_set: Set[Any], **kwargs):
+    def m2m_changed_receiver(
+        self,
+        sender,
+        instance: Model,
+        action: str,
+        reverse: bool,
+        model: Type[Model],
+        pk_set: Set[Any],
+        **kwargs,
+    ):
         """
         Handle many-to-many changes.
         """
@@ -143,15 +162,24 @@ class ModelObserver(BaseObserver):
                     target_instances.append(model.objects.get(pk=pk))
             else:  # pre_clear case
                 related_field = next(
-                    (field for field in instance._meta.get_fields()
-                     if field.many_to_many and hasattr(field, 'through') and field.through == sender),
-                    None
+                    (
+                        field
+                        for field in instance._meta.get_fields()
+                        if field.many_to_many
+                        and hasattr(field, "through")
+                        and field.through == sender
+                    ),
+                    None,
                 )
                 if related_field:
-                    related_manager = getattr(instance, related_field.related_name or f"{related_field.name}_set", None)
+                    related_manager = getattr(
+                        instance,
+                        related_field.related_name or f"{related_field.name}_set",
+                        None,
+                    )
                     if related_manager:
                         target_instances.extend(related_manager.all())
-        
+
         target_instances = list(set(target_instances))  # remove duplicates if any
         for target_instance in target_instances:
             self.database_event(target_instance, Action.UPDATE)
@@ -211,7 +239,7 @@ class ModelObserver(BaseObserver):
         old_group_names: Set[str],
         new_group_names: Set[str],
         action: Action,
-        **kwargs
+        **kwargs,
     ):
         """
         Generates messages for the given group names and action.

@@ -20,8 +20,15 @@ class _GenericModelObserver:
         self._group_names = None
         self._serializer = None
 
-    def bind_to_model(self, model_cls: Type[Model], name: str) -> ModelObserver:
-        observer = ModelObserver(func=self.func, model_cls=model_cls, partition=name)
+    def bind_to_model(
+        self, model_cls: Type[Model], name: str, many_to_many=False
+    ) -> ModelObserver:
+        observer = ModelObserver(
+            func=self.func,
+            model_cls=model_cls,
+            partition=name,
+            many_to_many=many_to_many,
+        )
         observer.groups(self._group_names)
         observer.serializer(self._serializer)
         return observer
@@ -39,12 +46,14 @@ class ObserverAPIConsumerMetaclass(APIConsumerMetaclass):
     def __new__(mcs, name, bases, body) -> Type[GenericAsyncAPIConsumer]:
 
         queryset = body.get("queryset", None)
+        many_to_many = body.get("observer_many_to_many_relationships", False)
         if queryset is not None:
             for attr_name, attr in body.items():
                 if isinstance(attr, _GenericModelObserver):
                     body[attr_name] = attr.bind_to_model(
                         model_cls=queryset.model,
                         name=f"{body['__module__']}.{name}.{attr_name}",
+                        many_to_many=many_to_many,
                     )
             for base in bases:
                 for attr_name in dir(base):
@@ -53,12 +62,15 @@ class ObserverAPIConsumerMetaclass(APIConsumerMetaclass):
                         body[attr_name] = attr.bind_to_model(
                             model_cls=queryset.model,
                             name=f"{body['__module__']}.{name}.{attr_name}",
+                            many_to_many=many_to_many,
                         )
 
         return super().__new__(mcs, name, bases, body)
 
 
 class ObserverConsumerMixin(metaclass=ObserverAPIConsumerMetaclass):
+    observer_many_to_many_relationships = False
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.subscribed_requests = {}  # type: Dict[str, Set[str]]
@@ -95,6 +107,28 @@ class ObserverConsumerMixin(metaclass=ObserverAPIConsumerMetaclass):
 
 
 class ObserverModelInstanceMixin(ObserverConsumerMixin, RetrieveModelMixin):
+    """
+    Use this as a mixing with :class:`~djangochannelsrestframework.generics.GenericAsyncAPIConsumer`.
+
+    You can also set the ``observer_many_to_many_relationships = True`` class property to ensure many-to-many
+    relationship changes are tracked by the subscription.
+
+    .. code-block:: python
+
+        # consumers.py
+        from djangochannelsrestframework.consumers import GenericAsyncAPIConsumer
+        from djangochannelsrestframework.observer.generics import ObserverModelInstanceMixin
+
+        from .serializers import UserSerializer
+        from .models import User
+
+        class MyConsumer(ObserverModelInstanceMixin, GenericAsyncAPIConsumer):
+            queryset = User.objects.all()
+            serializer_class = UserSerializer
+            observer_many_to_many_relationships = True
+
+    """
+
     @action()
     async def subscribe_instance(self, request_id=None, **kwargs):
         """
