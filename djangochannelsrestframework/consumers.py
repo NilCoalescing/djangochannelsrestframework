@@ -51,7 +51,9 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
     This provides an async API consumer that is very inspired by DjangoRestFrameworks ViewSets.
 
     Attributes:
-        permission_classes     An array for Permission classes
+        permission_classes:  An array for permission classes,
+            All permission classes are checked on connect and before handling any actions.
+            See :doc:`permissions <permissions>` for more detail on building custom permissions.
 
     """
 
@@ -90,12 +92,14 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.groups = set(self.groups or [])
-
+        self.detached_tasks = []
         self._observer_group_to_request_id = defaultdict(lambda: defaultdict(set))
 
     async def add_group(self, name: str):
         """
         Add a group to the set of groups this consumer is subscribed to.
+
+        You should always use this method rather than `self.channel_layer.group_add` to ensure proper bookkeeping.
         """
         if not isinstance(self.groups, set):
             self.groups = set(self.groups)
@@ -107,6 +111,8 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
     async def remove_group(self, name: str):
         """
         Remove a group to the set of groups this consumer is subscribed to.
+
+        You should always use this method rather than `self.channel_layer.group_discard` to ensure proper bookkeeping.
         """
         if not isinstance(self.groups, set):
             self.groups = set(self.groups)
@@ -237,7 +243,7 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
         Override this method if you do not want to use `{"action": "action_name"}` as the way to describe actions.
         """
         action = content.pop("action")
-        return (action, content)
+        return action, content
 
     async def reply(
         self,

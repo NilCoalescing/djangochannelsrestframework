@@ -39,7 +39,7 @@ def model_observer(model: Type[Model], **kwargs):
         Should be used as a method decorator eg: `@model_observer(BlogPost)`
 
     The resulted wrapped method body becomes the handler that is called on each subscribed consumer.
-    The method itself is replaced with an instance of :class:`djangochannelsrestframework.observer.model_observer.ModelObserver`
+    The method itself is replaced with an instance of :class:`~djangochannelsrestframework.observer.model_observer.ModelObserver`
 
     .. code-block:: python
 
@@ -87,5 +87,36 @@ def model_observer(model: Type[Model], **kwargs):
             async def subscribe_to_comment_activity(self, request_id, **kwargs):
                 await self.comment_activity.subscribe(request_id=request_id)
 
+    You can also use ``@model_observer`` to subscribe to a collection of models by configuring the group names used.
+
+    .. code-block:: python
+
+        class MyConsumer(GenericAsyncAPIConsumer):
+            queryset = User.objects.all()
+            serializer_class = UserSerializer
+
+            @model_observer(Comment)
+            async def comment_activity(self, message, observer=None, subscribing_request_ids=[], **kwargs):
+                for request_id in subscribing_request_ids:
+                    await self.send_json({"message": message, "request_id": request_id})
+
+            @comment_activity.groups_for_signal
+            def comment_activity(self, instance, **kwargs):
+                yield f'comment__{instance.user_id}'
+
+            @comment_activity.groups_for_consumer
+            def comment_activity(self, user_pk, **kwargs):
+                if user_pk:
+                    yield f'comment__{user_pk}'
+
+            @action()
+            async def subscribe_to_comment_activity(self, request_id, user_pk, **kwargs):
+                await self.comment_activity.subscribe(request_id=request_id, user_pk=user_pk)
+
+
+    Here the ``groups_for_signal`` method is called whenever a comment is updated/created/deleted to figure out which
+    groups to send a message to.
+
+    The ```groups_for_consumer``` method is used when subscribing to determine the groups to subscribe to.
     """
     return partial(ModelObserver, model_cls=model, kwargs=kwargs)

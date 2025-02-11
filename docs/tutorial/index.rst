@@ -9,7 +9,8 @@ In this tutorial we redo the channels tutorial to use DCRF consumers.
 
 .. toctree::
    :maxdepth: 1
-   
+
    part_1
    part_2
-   
+   part_3
+

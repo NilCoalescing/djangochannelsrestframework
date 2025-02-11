@@ -143,7 +143,7 @@ In the console log we will see something like this:
 .. code-block:: javascript
 
     {
-        action: "subscribe_to_comment_activity",
+        action: "create",
         errors: [],
         response_status: 200,
         request_id: 15606042,

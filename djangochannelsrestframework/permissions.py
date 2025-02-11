@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, Type
 
 
 from channels.consumer import AsyncConsumer
@@ -26,24 +26,36 @@ class OperationHolderMixin:
 
 
 class SingleOperandHolder(OperationHolderMixin):
-    def __init__(self, operator_class, op1_class):
+    op1_class: "Type[BasePermission | OperationHolderMixin]"
+
+    def __init__(
+        self, operator_class, op1_class: "Type[ BasePermission | OperationHolderMixin]"
+    ):
         self.operator_class = operator_class
         self.op1_class = op1_class
 
     def __call__(self, *args, **kwargs):
-        op1 = self.op1_class(*args, **kwargs)
+        op1 = _ensure_base(self.op1_class)
         return self.operator_class(op1)
 
 
 class OperandHolder(OperationHolderMixin):
-    def __init__(self, operator_class, op1_class, op2_class):
+    op1_class: "Type[BasePermission | OperationHolderMixin]"
+    op2_class: "Type[BasePermission | OperationHolderMixin]"
+
+    def __init__(
+        self,
+        operator_class,
+        op1_class: "Type[BasePermission | OperationHolderMixin]",
+        op2_class: "Type[BasePermission | OperationHolderMixin]",
+    ):
         self.operator_class = operator_class
         self.op1_class = op1_class
         self.op2_class = op2_class
 
     def __call__(self, *args, **kwargs):
-        op1 = self.op1_class(*args, **kwargs)
-        op2 = self.op2_class(*args, **kwargs)
+        op1 = _ensure_base(self.op1_class)
+        op2 = _ensure_base(self.op2_class)
         return self.operator_class(op1, op2)
 
 
@@ -52,12 +64,19 @@ class AND:
         self.op1 = op1
         self.op2 = op2
 
-    def has_permission(
+    async def has_permission(
         self, scope: Dict[str, Any], consumer: AsyncConsumer, action: str, **kwargs
     ):
-        return self.op1.has_permission(
+        return await self.op1.has_permission(
             scope, consumer, action, **kwargs
-        ) and self.op2.has_permission(scope, consumer, action, **kwargs)
+        ) and await self.op2.has_permission(scope, consumer, action, **kwargs)
+
+    async def can_connect(
+        self, scope: Dict[str, Any], consumer: AsyncConsumer, **kwargs
+    ) -> bool:
+        return await self.op1.can_connect(
+            scope, consumer, **kwargs
+        ) and await self.op2.can_connect(scope, consumer, **kwargs)
 
 
 class OR:
@@ -65,22 +84,34 @@ class OR:
         self.op1 = op1
         self.op2 = op2
 
-    def has_permission(
+    async def has_permission(
         self, scope: Dict[str, Any], consumer: AsyncConsumer, action: str, **kwargs
     ):
-        return self.op1.has_permission(
+        return await self.op1.has_permission(
             scope, consumer, action, **kwargs
-        ) or self.op2.has_permission(scope, consumer, action, **kwargs)
+        ) or await self.op2.has_permission(scope, consumer, action, **kwargs)
+
+    async def can_connect(
+        self, scope: Dict[str, Any], consumer: AsyncConsumer, **kwargs
+    ) -> bool:
+        return await self.op1.can_connect(
+            scope, consumer, **kwargs
+        ) or await self.op2.can_connect(scope, consumer, **kwargs)
 
 
 class NOT:
     def __init__(self, op1: "BasePermission"):
         self.op1 = op1
 
-    def has_permission(
+    async def has_permission(
         self, scope: Dict[str, Any], consumer: AsyncConsumer, action: str, **kwargs
     ):
-        return not self.op1.has_permission(scope, consumer, action, **kwargs)
+        return not await self.op1.has_permission(scope, consumer, action, **kwargs)
+
+    async def can_connect(
+        self, scope: Dict[str, Any], consumer: AsyncConsumer, **kwargs
+    ) -> bool:
+        return not await self.op1.can_connect(scope, consumer, **kwargs)
 
 
 class BasePermissionMetaclass(OperationHolderMixin, type):
@@ -92,6 +123,7 @@ class BasePermission(metaclass=BasePermissionMetaclass):
 
     Notes:
         You should extend this class and override the `has_permission` method to create your own permission class.
+        You can also over override`can_connect` to determine if a websocket connection should even be permitted.
 
     Methods:
         async has_permission (scope, consumer, action, **kwargs)
@@ -117,7 +149,7 @@ class BasePermission(metaclass=BasePermissionMetaclass):
 
 
 class AllowAny(BasePermission):
-    """Allow any permission class"""
+    """Always allow"""
 
     async def has_permission(
         self, scope: Dict[str, Any], consumer: AsyncConsumer, action: str, **kwargs
@@ -138,9 +170,6 @@ class IsAuthenticated(BasePermission):
 
 
 class WrappedDRFPermission(BasePermission):
-    """
-    Used to wrap an instance of DRF permissions class.
-    """
 
     permission: DRFBasePermission
 
@@ -153,6 +182,7 @@ class WrappedDRFPermission(BasePermission):
     }
 
     def __init__(self, permission: DRFBasePermission):
+        super().__init__()
         self.permission = permission
 
     async def has_permission(
@@ -168,3 +198,9 @@ class WrappedDRFPermission(BasePermission):
         request = request_from_scope(scope)
         request.method = self.mapped_actions.get("connect", "CONNECT")
         return await ensure_async(self.permission.has_permission)(request, consumer)
+
+
+def _ensure_base(cls: Type[BasePermission | DRFBasePermission]) -> BasePermission:
+    if issubclass(cls, DRFBasePermission):
+        return WrappedDRFPermission(permission=cls())
+    return cls()
