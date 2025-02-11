@@ -30,9 +30,9 @@ async def test_generic_consumer(settings):
             "TEST_CONFIG": {"expiry": 100500},
         },
     }
-    
+
     layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
-    
+
     class UserSerializer(serializers.ModelSerializer):
         class Meta:
             model = get_user_model()
@@ -108,7 +108,7 @@ async def test_create_mixin_consumer(settings):
     }
 
     layer = channel_layers.make_test_backend(DEFAULT_CHANNEL_LAYER)
-    
+
     class UserSerializer(serializers.ModelSerializer):
         class Meta:
             model = get_user_model()

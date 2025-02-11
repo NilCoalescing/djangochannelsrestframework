@@ -1,8 +1,9 @@
 from functools import partial
-from typing import Type, Callable
+from typing import Type, Optional
 
 from django.db.models import Model
 from django.dispatch import Signal
+from rest_framework.serializers import Serializer
 
 from djangochannelsrestframework.observer.observer import Observer
 from djangochannelsrestframework.observer.model_observer import ModelObserver
@@ -33,13 +34,23 @@ def observer(signal: Signal, **kwargs):
     return partial(Observer, signal=signal, kwargs=kwargs)
 
 
-def model_observer(model: Type[Model], **kwargs):
+def model_observer(
+    model: Type[Model],
+    serializer_class: Optional[Type[Serializer]] = None,
+    many_to_many: bool = False,
+    **kwargs
+):
     """
     .. note::
         Should be used as a method decorator eg: `@model_observer(BlogPost)`
 
     The resulted wrapped method body becomes the handler that is called on each subscribed consumer.
     The method itself is replaced with an instance of :class:`~djangochannelsrestframework.observer.model_observer.ModelObserver`
+
+    Args:
+        model (Type[Model]): The django  model class to observe.
+        serializer_class (Type[Serializer] | None): Django rest-framework serializer class to use.
+        many_to_many (bool): Should the observer track many-to-many relationships.
 
     .. code-block:: python
 
@@ -87,6 +98,24 @@ def model_observer(model: Type[Model], **kwargs):
             async def subscribe_to_comment_activity(self, request_id, **kwargs):
                 await self.comment_activity.subscribe(request_id=request_id)
 
+    If you want to include updates on many-to-many relationships you can also pass:
+
+    .. code-block:: python
+
+        class MyConsumer(GenericAsyncAPIConsumer):
+            queryset = User.objects.all()
+            serializer_class = UserSerializer
+
+            @model_observer(Comment, many_to_many=True)
+            async def comment_activity(self, message, action, subscribing_request_ids=[], **kwargs):
+                for request_id in subscribing_request_ids:
+                    await self.reply(data=message, action=action, request_id=request_id)
+
+            @action()
+            async def subscribe_to_comment_activity(self, request_id, **kwargs):
+                await self.comment_activity.subscribe(request_id=request_id)
+
+
     You can also use ``@model_observer`` to subscribe to a collection of models by configuring the group names used.
 
     .. code-block:: python
@@ -117,6 +146,12 @@ def model_observer(model: Type[Model], **kwargs):
     Here the ``groups_for_signal`` method is called whenever a comment is updated/created/deleted to figure out which
     groups to send a message to.
 
-    The ```groups_for_consumer``` method is used when subscribing to determine the groups to subscribe to.
+    The ``groups_for_consumer`` method is used when subscribing to determine the groups to subscribe to.
     """
-    return partial(ModelObserver, model_cls=model, kwargs=kwargs)
+    return partial(
+        ModelObserver,
+        model_cls=model,
+        serializer_class=serializer_class,
+        many_to_many=many_to_many,
+        **kwargs
+    )
