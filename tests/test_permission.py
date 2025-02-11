@@ -51,6 +51,97 @@ async def test_calls_permission_class_called():
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.asyncio
+async def test_calls_permission_class_called_merged():
+
+    called = {}
+
+    class TestPermissionA(BasePermission):
+        async def has_permission(
+            self, scope: Dict[str, Any], consumer: AsyncConsumer, action: str, **kwargs
+        ) -> bool:
+            called["has_permission_a"] = True
+            return True
+
+        async def can_connect(
+            self, scope: Dict[str, Any], consumer: AsyncConsumer, message=None
+        ) -> bool:
+            called["can_connect_a"] = True
+            return True
+
+    class TestPermissionB(BasePermission):
+        async def has_permission(
+            self, scope: Dict[str, Any], consumer: AsyncConsumer, action: str, **kwargs
+        ) -> bool:
+            called["has_permission_b"] = True
+            return True
+
+        async def can_connect(
+            self, scope: Dict[str, Any], consumer: AsyncConsumer, message=None
+        ) -> bool:
+            called["can_connect_b"] = True
+            return True
+
+    class BConsumer(AsyncAPIConsumer):
+        permission_classes = [TestPermissionA & TestPermissionB]
+
+        @action()
+        async def target(self, *args, **kwargs):
+            return {"response": True}, 200
+
+    # Test a normal connection
+    async with connected_communicator(BConsumer()) as communicator:
+
+        assert called == {"can_connect_a": True, "can_connect_b": True}
+
+        await communicator.send_json_to({"action": "target", "request_id": 10})
+        response = await communicator.receive_json_from()
+
+        assert called == {
+            "can_connect_a": True,
+            "can_connect_b": True,
+            "has_permission_a": True,
+            "has_permission_b": True,
+        }
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.asyncio
+async def test_users_drf_permission_merged(settings):
+
+    called = {}
+
+    class TestPermission(DRFBasePermission):
+        def has_permission(self, request, view):
+            called["has_permission"] = True
+            return True
+
+    class TestPermissionA(BasePermission):
+        async def has_permission(
+            self, scope: Dict[str, Any], consumer: AsyncConsumer, action: str, **kwargs
+        ) -> bool:
+            called["has_permission_a"] = True
+            return True
+
+        async def can_connect(
+            self, scope: Dict[str, Any], consumer: AsyncConsumer, message=None
+        ) -> bool:
+            called["can_connect_a"] = True
+            return True
+
+    class AConsumer(AsyncAPIConsumer):
+        permission_classes = [TestPermissionA & TestPermission]
+        pass
+
+    # Test a normal connection
+    async with connected_communicator(AConsumer()) as communicator:
+        assert called == {
+            "has_permission": True,
+            "can_connect_a": True,
+        }
+
+
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.asyncio
 async def test_calls_permission_can_connect_closes():
     class TestPermission(BasePermission):
         async def can_connect(

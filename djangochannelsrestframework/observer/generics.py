@@ -2,7 +2,7 @@ from copy import deepcopy
 
 from django.db.models import Model
 from functools import partial
-from typing import Dict, Type, Optional, Set, List
+from typing import Dict, Type, Optional, Set, List, Iterable
 
 from channels.db import database_sync_to_async
 from rest_framework import status
@@ -76,10 +76,16 @@ class ObserverConsumerMixin(metaclass=ObserverAPIConsumerMetaclass):
             if not request_ids:
                 to_remove.append(group)
 
-        for group in to_remove:
-            self.subscribed_requests.pop(group)
+        self._unsubscribe_groups(to_remove)
 
-    def _requests_for(self, group: Optional[str]):
+    def _unsubscribe_groups(self, groups: Iterable[str]):
+        for group in groups:
+            try:
+                self.subscribed_requests.pop(group)
+            except KeyError:
+                continue
+
+    def _requests_for(self, group: Optional[str]) -> Set[str]:
         all_request_ids = set()
         if not group:
             for request_ids in self.subscribed_requests.values():
@@ -91,6 +97,20 @@ class ObserverConsumerMixin(metaclass=ObserverAPIConsumerMetaclass):
 class ObserverModelInstanceMixin(ObserverConsumerMixin, RetrieveModelMixin):
     @action()
     async def subscribe_instance(self, request_id=None, **kwargs):
+        """
+        Subscribes the current consumer to updates for a specific model instance.
+
+        This method retrieves the model instance based on the provided lookup parameters
+        (`kwargs`), then subscribes the consumer to receive real-time updates related to
+        that instance. The subscription is identified by a `request_id`, which must be provided.
+
+        Args:
+            request_id (str): A unique identifier for the subscription request.
+            **kwargs: Lookup parameters used to retrieve the model instance.
+
+        Raises:
+            ValueError: If `request_id` is not provided.
+        """
         if request_id is None:
             raise ValueError("request_id must have a value set")
         # subscribe!
@@ -101,13 +121,25 @@ class ObserverModelInstanceMixin(ObserverConsumerMixin, RetrieveModelMixin):
         return None, status.HTTP_201_CREATED
 
     @action()
-    async def unsubscribe_instance(self, request_id=None, **kwargs):
-        if request_id is None:
-            raise ValueError("request_id must have a value set")
-        # subscribe!
+    async def unsubscribe_instance(self, request_id: Optional[str] = None, **kwargs):
+        """
+        Unsubscribes the current consumer from updates for a specific model instance.
+
+        This method removes the consumer's subscription to real-time updates for the given
+        model instance. If a `request_id` is provided, only that specific subscription is removed.
+        Otherwise, all subscriptions related to the instance are unsubscribed.
+
+        Args:
+            request_id (str, optional): A unique identifier for the subscription request.
+            **kwargs: Lookup parameters used to retrieve the model instance.
+        """
         instance = await database_sync_to_async(self.get_object)(**kwargs)
-        await self.handle_instance_change.unsubscribe(instance=instance)
-        self._unsubscribe(request_id)
+        groups = await self.handle_instance_change.unsubscribe(instance=instance)
+
+        if request_id is None:
+            self._unsubscribe_groups(groups)
+        else:
+            self._unsubscribe(request_id)
 
         return None, status.HTTP_204_NO_CONTENT
 

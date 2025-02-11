@@ -93,7 +93,7 @@ Subscription
 .. code-block:: javascript
 
     ws.send(JSON.stringify({
-        action: "retrieve",
+        action: "subscribe_instance",
         request_id: new Date().getTime(),
         pk: 1,
     }))
@@ -128,8 +128,3 @@ Subscription
         data: {email: '1@example.com', id: 1, username: 'edited user name'},
     }
 
-
-Todo
-----
-
-* More detailed example.

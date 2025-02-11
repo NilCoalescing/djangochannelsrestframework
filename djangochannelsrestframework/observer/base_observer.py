@@ -101,6 +101,8 @@ class BaseObserver:
 
         The advantage of doing serialization at this point is that it happens only once even if 1000s of consumers are
         subscribed to the event.
+        The disadvantage is this will always be called on every model **update/create/delete** even if
+        there are no active subscribers.
         """
         self._serializer = func
         return self
@@ -145,7 +147,11 @@ class BaseObserver:
         return groups
 
     async def unsubscribe(
-        self, consumer: AsyncAPIConsumer, *args, request_id=None, **kwargs
+        self,
+        consumer: AsyncAPIConsumer,
+        *args,
+        request_id: Optional[str] = None,
+        **kwargs,
     ) -> Iterable[str]:
         """
         This should be called to unsubscribe the current consumer.

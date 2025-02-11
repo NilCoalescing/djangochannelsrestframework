@@ -418,11 +418,32 @@ class DeleteModelMixin:
 
 
 class PaginatedModelListMixin(ListModelMixin):
+    """
+    A mixin that provides paginated listing functionality for model instances.
+
+    This mixin extends `ListModelMixin` to support paginated retrieval of model instances.
+    It applies filtering, pagination, and serialization before returning the response.
+
+    Attributes:
+        permission_classes (list): The permission classes that control access to the list endpoint.
+        pagination_class (class): The pagination class used for paginating query results.
+    """
+
     permission_classes = api_settings.DEFAULT_PERMISSION_CLASSES
     pagination_class = api_settings.DEFAULT_PAGINATION_CLASS
 
     @action()
     def list(self, **kwargs):
+        """
+        Retrieves a paginated list of model instances.
+
+        This method applies queryset filtering, pagination, and serialization to return
+        a paginated response. If pagination is disabled or not needed, it returns the full
+        list of objects.
+
+        Args:
+            **kwargs: Additional keyword arguments used for filtering and serialization.
+        """
         queryset = self.filter_queryset(self.get_queryset(**kwargs), **kwargs)
         page = self.paginate_queryset(queryset, **kwargs)
         if page is not None:
@@ -466,18 +487,31 @@ class PaginatedModelListMixin(ListModelMixin):
 
 class StreamedPaginatedListMixin(PaginatedModelListMixin):
     @action()
-    async def list(self, action, request_id, **kwargs):
-        data, status = await super().list(
-            action=action, request_id=request_id, **kwargs
-        )
+    async def list(self, action: str, request_id, **kwargs):
+        """
+        Streams a paginated list of model instances.
 
-        await self.reply(action=action, data=data, status=status, request_id=request_id)
+        This method retrieves a paginated list of objects, sends the initial response,
+        and continues fetching and streaming additional pages until all results are
+        delivered.
 
-        count = data.get("count", 0)
-        limit = data.get("limit", 0)
-        offset = data.get("offset", 0)
+        Args:
+            request_id (str): A unique identifier for the request.
+            **kwargs: Additional keyword arguments used for pagination and filtering.
+        """
+        while True:
+            data, status = await super().list(request_id=request_id, **kwargs)
+            await self.reply(
+                action=action, data=data, status=status, request_id=request_id
+            )
 
-        if offset < (count - limit):
-            kwargs["offset"] = limit + offset
+            count = data.get("count", 0)
+            limit = data.get("limit", 0)
+            offset = data.get("offset", 0)
 
-            await self.list(action=action, request_id=request_id, **kwargs)
+            # Stop when there are no more pages to fetch
+            if offset >= (count - limit):
+                break
+
+            # Update offset for the next batch
+            kwargs["offset"] = offset + limit
