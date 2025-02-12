@@ -130,6 +130,8 @@ Installation
 
     pip install djangochannelsrestframework
 
+Since this package depends on Django Channels you do need to add `channels` to your projects `INSTALLED_APPS`.
+
 ---------
 Thanks to
 ---------
