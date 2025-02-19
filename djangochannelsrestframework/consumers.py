@@ -72,8 +72,8 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
     )
 
     # Detached Tasks
-    # type: List[asyncio.Task]
-    detached_tasks = []
+    # type: Dict[str, asyncio.Task]
+    detached_tasks = defaultdict(list)
 
     async def websocket_connect(self, message):
         """
@@ -92,7 +92,7 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.groups = set(self.groups or [])
-        self.detached_tasks = []
+        self.detached_tasks = defaultdict(list)
         self._observer_group_to_request_id = defaultdict(lambda: defaultdict(set))
 
     async def add_group(self, name: str):
@@ -273,7 +273,9 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
 
         await self.send_json(payload)
 
-    async def handle_detached_task_completion(self, task: asyncio.Task):
+    async def handle_detached_task_completion(
+        self, function_name: str, task: asyncio.Task
+    ):
         try:
             await task
         except asyncio.CancelledError:
@@ -282,15 +284,16 @@ class AsyncAPIConsumer(AsyncJsonWebsocketConsumer, metaclass=APIConsumerMetaclas
             logger.error("Error while waiting for detached task to finish", exc_info=e)
         finally:
             try:
-                self.detached_tasks.remove(task)
+                self.detached_tasks[function_name].remove(task)
             except ValueError:
                 # If the task has already been removed
                 pass
 
     async def websocket_disconnect(self, message):
-        for task in self.detached_tasks:
-            task.cancel()
-            await self.handle_detached_task_completion(task)
+        for function_name, tasks in self.detached_tasks.items():
+            for task in tasks:
+                task.cancel()
+                await self.handle_detached_task_completion(function_name, task)
         await super().websocket_disconnect(message)
 
 

@@ -1,8 +1,10 @@
 from typing import Any, Tuple, Dict, Optional, OrderedDict, Union
 
+import asyncio
 from rest_framework import status
 from rest_framework.utils.serializer_helpers import ReturnDict, ReturnList
 
+from djangochannelsrestframework.consumers import AsyncAPIConsumer
 from djangochannelsrestframework.settings import api_settings
 from djangochannelsrestframework.decorators import action
 
@@ -486,7 +488,18 @@ class PaginatedModelListMixin(ListModelMixin):
 
 
 class StreamedPaginatedListMixin(PaginatedModelListMixin):
-    @action()
+    """
+    Paginated list mixin that automatically streams extra pages.
+
+    Action ``list`` to start streaming list pages.
+    Action ``list_cancel`` will cancle all inflight lists.
+
+    Override class property `sleep_time_between_pages` to add a small delay between each page. (defaults 0seconds)
+    """
+
+    sleep_time_between_pages = 0
+
+    @action(detached=True)
     async def list(self, action: str, request_id, **kwargs):
         """
         Streams a paginated list of model instances.
@@ -499,7 +512,8 @@ class StreamedPaginatedListMixin(PaginatedModelListMixin):
             request_id (str): A unique identifier for the request.
             **kwargs: Additional keyword arguments used for pagination and filtering.
         """
-        while True:
+        while not asyncio.current_task().cancelled():
+            await asyncio.sleep(self.sleep_time_between_pages)
             data, status = await super().list(request_id=request_id, **kwargs)
             await self.reply(
                 action=action, data=data, status=status, request_id=request_id
@@ -515,3 +529,16 @@ class StreamedPaginatedListMixin(PaginatedModelListMixin):
 
             # Update offset for the next batch
             kwargs["offset"] = offset + limit
+
+    @action()
+    async def list_cancel(self: AsyncAPIConsumer, action: str, request_id, **kwargs):
+        """
+        Action that will stop all pending streaming list requests.
+        """
+        for task in self.detached_tasks["list"]:
+            task.cancel()
+            await self.handle_detached_task_completion("list", task)
+
+        await self.reply(
+            action=action, status=status.HTTP_200_OK, request_id=request_id
+        )
