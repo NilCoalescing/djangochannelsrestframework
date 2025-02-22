@@ -365,6 +365,7 @@ async def test_stream_paginated_list_mixin(settings):
         queryset = get_user_model().objects.all()
         serializer_class = UserSerializer
         pagination_class = TempClass
+        sleep_time_between_pages = 0.5
 
     assert not await database_sync_to_async(get_user_model().objects.all().exists)()
 
@@ -422,22 +423,24 @@ async def test_stream_paginated_list_mixin(settings):
             },
         }
 
+        await communicator.send_json_to(
+            {
+                "action": "list_cancel",
+                "request_id": 1,
+            }
+        )
+
         response = await communicator.receive_json_from()
 
         assert response == {
-            "action": "list",
+            "action": "list_cancel",
             "errors": [],
             "response_status": 200,
             "request_id": 1,
-            "data": {
-                "count": 3,
-                "limit": 1,
-                "offset": 2,
-                "results": [
-                    {"email": "46@example.com", "id": u3.id, "username": "test3"},
-                ],
-            },
+            "data": None,
         }
+
+        await communicator.receive_nothing()
 
 
 @pytest.mark.django_db(transaction=True)

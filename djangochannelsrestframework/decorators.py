@@ -163,9 +163,11 @@ def detached(func):
     async def wrapped_method(self: AsyncAPIConsumer, *args, **kwargs):
         task = asyncio.create_task(func(self, *args, **kwargs))
         task.add_done_callback(
-            lambda t: asyncio.create_task(self.handle_detached_task_completion(t))
+            lambda t: asyncio.create_task(
+                self.handle_detached_task_completion(func.__name__, t)
+            )
         )
-        self.detached_tasks.append(task)
+        self.detached_tasks[func.__name__].append(task)
 
     return wrapped_method
 
@@ -197,8 +199,10 @@ def __detached_action(func):
 
         task = asyncio.create_task(wrapped_action())
         task.add_done_callback(
-            lambda t: asyncio.create_task(self.handle_detached_task_completion(t))
+            lambda t: asyncio.create_task(
+                self.handle_detached_task_completion(func.__name__, t)
+            )
         )
-        self.detached_tasks.append(task)
+        self.detached_tasks[func.__name__].append(task)
 
     return wrapped_detached_method
