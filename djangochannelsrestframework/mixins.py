@@ -492,7 +492,7 @@ class StreamedPaginatedListMixin(PaginatedModelListMixin):
     Paginated list mixin that automatically streams extra pages.
 
     Action ``list`` to start streaming list pages.
-    Action ``list_cancel`` will cancle all inflight lists.
+    Action ``list_cancel`` will cancel all inflight lists.
 
     Override class property `sleep_time_between_pages` to add a small delay between each page. (defaults 0seconds)
     """
