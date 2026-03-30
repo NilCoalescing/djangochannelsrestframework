@@ -321,3 +321,48 @@ class ModelObserver(BaseObserver):
             .replace("_", ".")
         )
         return model_label
+
+
+class StaticModelObserver(ModelObserver):
+    """Model observer optimized for immutable signal group topologies.
+
+    This observer intentionally skips ``post_init`` tracking and therefore does
+    not compute group membership while Django is hydrating model instances from
+    querysets. It is safe to use only when ``groups_for_signal`` resolves to the
+    same group set for the lifetime of an instance.
+
+    If a model update can move an instance from one observer group to another,
+    use :class:`ModelObserver` instead so old and new groups can be diffed
+    correctly.
+    """
+
+    def _connect(self):
+        """Connect save/delete signals without hydration-time group tracking."""
+
+        post_save.connect(
+            self.post_save_receiver, sender=self.model_cls, dispatch_uid=str(id(self))
+        )
+
+        if self._many_to_many_tracking:
+            self._connect_m2m()
+
+        post_delete.connect(
+            self.post_delete_receiver, sender=self.model_cls, dispatch_uid=str(id(self))
+        )
+
+    def prepare_messages(self, instance: Model, action: Action, **kwargs):
+        """Prepare messages for the current group set only.
+
+        Static observers do not track ``old_group_names`` because group
+        membership is assumed to be immutable. Each database event is therefore
+        broadcast directly to the groups resolved from the current instance
+        snapshot.
+        """
+
+        group_names = set(self.group_names_for_signal(instance=instance))
+        if not group_names:
+            return
+
+        message_body = self.serialize(instance, action, **kwargs)
+        for group_name in group_names:
+            yield {**message_body, "group": group_name}

@@ -407,6 +407,42 @@ To do this we need to split the model updates into `groups` and then in the cons
         await self.classroom_change_handler.subscribe(classroom=classroom, request_id=request_id)
 
 
+Subscribing to models with static groups
+========================================
+
+If your ``groups_for_signal`` output is immutable for the lifetime of an
+instance, you can use ``static_model_observer`` instead of
+``model_observer``.
+
+This variant does not track group membership through ``post_init``. That makes
+it a better fit for high-volume queryset hydration where the group function
+would otherwise touch deferred fields or relations.
+
+.. code-block:: python
+
+    from djangochannelsrestframework.observer import static_model_observer
+
+    class CommentConsumer(AsyncAPIConsumer):
+        @static_model_observer(models.Comment)
+        async def comment_activity(self, message, action=None, **kwargs):
+            await self.send_json(message)
+
+        @comment_activity.groups_for_signal
+        def comment_activity(self, instance=None, **kwargs):
+            yield f'-tenant__{instance.tenant_id}'
+
+        @comment_activity.groups_for_consumer
+        def comment_activity(self, tenant_id=None, **kwargs):
+            yield f'-tenant__{tenant_id}'
+
+.. warning::
+
+    ``static_model_observer`` assumes an instance never moves between observer
+    groups. If an update can change the set of groups returned by
+    ``groups_for_signal``, use ``model_observer`` so the library can diff the
+    old and new group sets correctly.
+
+
 .. _ReadTheDocs: https://djangochannelsrestframework.readthedocs.io/en/latest/
 .. _post: https://lostmoa.com/blog/DjangoChannelsRestFramework/
 .. _GenericAPIView: https://www.django-rest-framework.org/api-guide/generic-views/

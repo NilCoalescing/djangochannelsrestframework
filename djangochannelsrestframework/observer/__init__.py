@@ -6,7 +6,10 @@ from django.dispatch import Signal
 from rest_framework.serializers import Serializer
 
 from djangochannelsrestframework.observer.observer import Observer
-from djangochannelsrestframework.observer.model_observer import ModelObserver
+from djangochannelsrestframework.observer.model_observer import (
+    ModelObserver,
+    StaticModelObserver,
+)
 
 
 def observer(signal: Signal, **kwargs):
@@ -150,6 +153,35 @@ def model_observer(
     """
     return partial(
         ModelObserver,
+        model_cls=model,
+        serializer_class=serializer_class,
+        many_to_many=many_to_many,
+        **kwargs
+    )
+
+
+def static_model_observer(
+    model: Type[Model],
+    serializer_class: Optional[Type[Serializer]] = None,
+    many_to_many: bool = False,
+    **kwargs
+):
+    """Create a model observer that does not track group changes via ``post_init``.
+
+    Use this when the observer's ``groups_for_signal`` output is static for the
+    lifetime of an instance. In exchange for that restriction, queryset
+    hydration remains free of observer-driven group resolution.
+
+    Args:
+        model (Type[Model]): The Django model class to observe.
+        serializer_class (Type[Serializer] | None): Django REST framework
+            serializer class to use.
+        many_to_many (bool): Should the observer track many-to-many
+            relationships.
+    """
+
+    return partial(
+        StaticModelObserver,
         model_cls=model,
         serializer_class=serializer_class,
         many_to_many=many_to_many,
